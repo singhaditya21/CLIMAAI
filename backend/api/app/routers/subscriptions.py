@@ -118,32 +118,46 @@ async def validate_subscription(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Validate a subscription receipt.
+    Validate a subscription receipt using server-to-server verification.
     
-    Used to verify purchases without creating a subscription.
+    - Apple: Verifies with App Store Connect (production/sandbox)
+    - Google: Verifies with Google Play Developer API
+    
+    Returns detailed subscription status including expiration and auto-renewal.
     """
-    subscription_service = SubscriptionService()
+    from ..services.receipt_validator import get_receipt_validator, Platform
+    
+    validator = get_receipt_validator()
     
     try:
-        if validation_data.platform.value == "apple":
-            result = await subscription_service.validate_apple_receipt(
-                validation_data.receipt_data,
-                sandbox=True
-            )
+        platform = Platform.IOS if validation_data.platform.value == "apple" else Platform.ANDROID
+        
+        is_valid, receipt_info = await validator.validate_receipt(
+            platform=platform,
+            receipt_data=validation_data.receipt_data,
+            product_id=getattr(validation_data, 'product_id', None)
+        )
+        
+        if not is_valid:
             return {
-                "valid": result.get("status") == 0,
-                "platform": "apple",
-                "details": result
+                "valid": False,
+                "platform": platform.value,
+                "error": receipt_info.get("error", "Validation failed")
             }
-        else:
-            # For Google, would validate with Play Developer API
-            return {
-                "valid": True,
-                "platform": "google",
-                "details": {}
-            }
+        
+        return {
+            "valid": True,
+            "platform": platform.value,
+            "is_active": receipt_info.get("is_active", False),
+            "product_id": receipt_info.get("product_id"),
+            "expires_at": receipt_info.get("expires_date") or receipt_info.get("expiry_time"),
+            "is_trial": receipt_info.get("is_trial_period", False),
+            "auto_renew": receipt_info.get("auto_renew") or receipt_info.get("auto_renewing", False),
+            "details": receipt_info
+        }
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Receipt validation error: {str(e)}")
 
 
 @router.delete("/cancel", response_model=SubscriptionResponse)

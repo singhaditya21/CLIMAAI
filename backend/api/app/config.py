@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     APPLE_BUNDLE_ID: str = "com.climaai.app"
     GOOGLE_PACKAGE_NAME: str = "com.climaai.app"
     
+    # Receipt Validation
+    APPLE_SHARED_SECRET: str = ""  # App Store Connect shared secret
+    GOOGLE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string of service account key
+    
     # Feature flags
     ENABLE_AI_INSIGHTS: bool = True
     

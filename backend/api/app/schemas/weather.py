@@ -69,12 +69,28 @@ class AirQuality(BaseModel):
     health_recommendation: str
 
 
+class PollenData(BaseModel):
+    """Pollen and allergy data."""
+    grass_pollen: float = Field(0, description="Grass pollen grains/m³")
+    tree_pollen: float = Field(0, description="Birch pollen grains/m³")
+    weed_pollen: float = Field(0, description="Ragweed pollen grains/m³")
+    
+    grass_level: str = Field("Low", description="Grass pollen level")
+    tree_level: str = Field("Low", description="Tree pollen level")
+    weed_level: str = Field("Low", description="Weed pollen level")
+    
+    overall_risk: str = Field("Low", description="Overall allergy risk")
+    recommendation: str = Field("", description="Health recommendation for allergy sufferers")
+
+
 class WeatherResponse(BaseModel):
     """Complete weather response."""
     current: CurrentWeather
     hourly: List[HourlyWeather]
     daily: List[DailyWeather]
     air_quality: Optional[AirQuality] = None
+    pollen: Optional[PollenData] = None
     location: dict = Field(..., description="Location metadata")
     timezone: str
     cached: bool = Field(default=False, description="Whether data was served from cache")
+
