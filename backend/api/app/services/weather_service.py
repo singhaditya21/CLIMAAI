@@ -1,0 +1,333 @@
+"""
+Weather service integrating with Open-Meteo API.
+Handles data fetching, caching, and transformation.
+"""
+import httpx
+import json
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
+import redis.asyncio as redis
+from ..config import get_settings
+from ..schemas.weather import (
+    CurrentWeather,
+    HourlyWeather,
+    DailyWeather,
+    AirQuality,
+    WeatherResponse,
+)
+
+settings = get_settings()
+
+
+class WeatherService:
+    """Service for fetching and managing weather data."""
+    
+    # WMO Weather interpretation codes
+    WEATHER_CODES = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Foggy",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Moderate drizzle",
+        55: "Dense drizzle",
+        61: "Slight rain",
+        63: "Moderate rain",
+        65: "Heavy rain",
+        71: "Slight snow",
+        73: "Moderate snow",
+        75: "Heavy snow",
+        77: "Snow grains",
+        80: "Slight rain showers",
+        81: "Moderate rain showers",
+        82: "Violent rain showers",
+        85: "Slight snow showers",
+        86: "Heavy snow showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with slight hail",
+        99: "Thunderstorm with heavy hail",
+    }
+    
+    def __init__(self):
+        self.redis_client: Optional[redis.Redis] = None
+        self.http_client = httpx.AsyncClient(timeout=30.0)
+    
+    async def _get_redis(self) -> redis.Redis:
+        """Get or create Redis client."""
+        if self.redis_client is None:
+            self.redis_client = await redis.from_url(settings.REDIS_URL)
+        return self.redis_client
+    
+    def _get_cache_key(self, latitude: float, longitude: float, data_type: str) -> str:
+        """Generate cache key for weather data."""
+        return f"weather:{data_type}:{latitude:.2f}:{longitude:.2f}"
+    
+    async def _get_cached_data(self, cache_key: str) -> Optional[dict]:
+        """Get cached weather data."""
+        try:
+            redis_client = await self._get_redis()
+            cached = await redis_client.get(cache_key)
+            if cached:
+                return json.loads(cached)
+        except Exception as e:
+            print(f"Redis get error: {e}")
+        return None
+    
+    async def _set_cached_data(self, cache_key: str, data: dict, ttl: int = None):
+        """Set cached weather data."""
+        try:
+            redis_client = await self._get_redis()
+            ttl = ttl or settings.WEATHER_CACHE_TTL
+            await redis_client.setex(cache_key, ttl, json.dumps(data))
+        except Exception as e:
+            print(f"Redis set error: {e}")
+    
+    def _get_weather_description(self, code: int) -> str:
+        """Get human-readable weather description from WMO code."""
+        return self.WEATHER_CODES.get(code, "Unknown")
+    
+    def _calculate_aqi(self, pm2_5: float, pm10: float, no2: float, o3: float) -> Tuple[int, str, str]:
+        """
+        Calculate AQI using simplified US EPA standard.
+        Returns: (aqi_value, category, health_recommendation)
+        """
+        # Simplified AQI calculation based on PM2.5 (most common pollutant)
+        if pm2_5 <= 12:
+            aqi = int((50 / 12) * pm2_5)
+            category = "Good"
+            health = "Air quality is satisfactory, and air pollution poses little or no risk."
+        elif pm2_5 <= 35.4:
+            aqi = int(50 + ((100 - 50) / (35.4 - 12.1)) * (pm2_5 - 12.1))
+            category = "Moderate"
+            health = "Unusually sensitive people should consider reducing prolonged outdoor exertion."
+        elif pm2_5 <= 55.4:
+            aqi = int(100 + ((150 - 100) / (55.4 - 35.5)) * (pm2_5 - 35.5))
+            category = "Unhealthy for Sensitive Groups"
+            health = "Children, older adults, and people with lung disease should reduce prolonged outdoor exertion."
+        elif pm2_5 <= 150.4:
+            aqi = int(150 + ((200 - 150) / (150.4 - 55.5)) * (pm2_5 - 55.5))
+            category = "Unhealthy"
+            health = "Everyone should reduce prolonged outdoor exertion."
+        elif pm2_5 <= 250.4:
+            aqi = int(200 + ((300 - 200) / (250.4 - 150.5)) * (pm2_5 - 150.5))
+            category = "Very Unhealthy"
+            health = "Everyone should avoid prolonged outdoor exertion."
+        else:
+            aqi = int(300 + ((500 - 300) / (500.4 - 250.5)) * (pm2_5 - 250.5))
+            category = "Hazardous"
+            health = "Everyone should avoid all outdoor exertion."
+        
+        return min(aqi, 500), category, health
+    
+    async def get_current_weather(
+        self,
+        latitude: float,
+        longitude: float,
+        use_cache: bool = True
+    ) -> WeatherResponse:
+        """
+        Get current weather, hourly, and daily forecasts.
+        """
+        cache_key = self._get_cache_key(latitude, longitude, "complete")
+        
+        # Check cache
+        if use_cache:
+            cached_data = await self._get_cached_data(cache_key)
+            if cached_data:
+                cached_data["cached"] = True
+                return WeatherResponse(**cached_data)
+        
+        # Fetch from Open-Meteo
+        url = f"{settings.OPEN_METEO_BASE_URL}/forecast"
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": [
+                "temperature_2m",
+                "apparent_temperature",
+                "relative_humidity_2m",
+                "precipitation",
+                "weather_code",
+                "cloud_cover",
+                "pressure_msl",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "is_day",
+            ],
+            "hourly": [
+                "temperature_2m",
+                "apparent_temperature",
+                "precipitation_probability",
+                "precipitation",
+                "weather_code",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "relative_humidity_2m",
+                "cloud_cover",
+                "uv_index",
+            ],
+            "daily": [
+                "temperature_2m_max",
+                "temperature_2m_min",
+                "sunrise",
+                "sunset",
+                "precipitation_sum",
+                "precipitation_probability_max",
+                "weather_code",
+                "wind_speed_10m_max",
+                "wind_direction_10m_dominant",
+                "uv_index_max",
+            ],
+            "timezone": "auto",
+            "forecast_days": 16,  # Maximum for free tier
+        }
+        
+        try:
+            response = await self.http_client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPError as e:
+            raise Exception(f"Failed to fetch weather data: {str(e)}")
+        
+        # Get air quality data
+        air_quality = await self._get_air_quality(latitude, longitude)
+        
+        # Parse current weather
+        current_data = data.get("current", {})
+        current = CurrentWeather(
+            temperature=current_data.get("temperature_2m", 0),
+            feels_like=current_data.get("apparent_temperature", 0),
+            humidity=current_data.get("relative_humidity_2m", 0),
+            wind_speed=current_data.get("wind_speed_10m", 0),
+            wind_direction=current_data.get("wind_direction_10m", 0),
+            precipitation=current_data.get("precipitation", 0),
+            weather_code=current_data.get("weather_code", 0),
+            weather_description=self._get_weather_description(current_data.get("weather_code", 0)),
+            cloud_cover=current_data.get("cloud_cover", 0),
+            pressure=current_data.get("pressure_msl", 0),
+            visibility=10000,  # Open-Meteo doesn't provide this, default to 10km
+            uv_index=0,  # Will be from hourly
+            is_day=bool(current_data.get("is_day", 1)),
+            timestamp=datetime.fromisoformat(current_data.get("time", datetime.now().isoformat())),
+        )
+        
+        # Parse hourly forecast (next 24 hours)
+        hourly_data = data.get("hourly", {})
+        hourly = []
+        for i in range(min(24, len(hourly_data.get("time", [])))):
+            hourly.append(HourlyWeather(
+                time=datetime.fromisoformat(hourly_data["time"][i]),
+                temperature=hourly_data["temperature_2m"][i],
+                feels_like=hourly_data["apparent_temperature"][i],
+                precipitation_probability=hourly_data["precipitation_probability"][i] or 0,
+                precipitation=hourly_data["precipitation"][i],
+                weather_code=hourly_data["weather_code"][i],
+                weather_description=self._get_weather_description(hourly_data["weather_code"][i]),
+                wind_speed=hourly_data["wind_speed_10m"][i],
+                wind_direction=hourly_data["wind_direction_10m"][i],
+                humidity=hourly_data["relative_humidity_2m"][i],
+                cloud_cover=hourly_data["cloud_cover"][i],
+                uv_index=hourly_data["uv_index"][i],
+            ))
+        
+        # Update current UV index from hourly
+        if hourly:
+            current.uv_index = hourly[0].uv_index
+        
+        # Parse daily forecast
+        daily_data = data.get("daily", {})
+        daily = []
+        for i in range(len(daily_data.get("time", []))):
+            daily.append(DailyWeather(
+                date=daily_data["time"][i],
+                temperature_max=daily_data["temperature_2m_max"][i],
+                temperature_min=daily_data["temperature_2m_min"][i],
+                sunrise=daily_data["sunrise"][i],
+                sunset=daily_data["sunset"][i],
+                precipitation_sum=daily_data["precipitation_sum"][i],
+                precipitation_probability=daily_data["precipitation_probability_max"][i] or 0,
+                weather_code=daily_data["weather_code"][i],
+                weather_description=self._get_weather_description(daily_data["weather_code"][i]),
+                wind_speed_max=daily_data["wind_speed_10m_max"][i],
+                wind_direction=daily_data["wind_direction_10m_dominant"][i],
+                uv_index_max=daily_data["uv_index_max"][i],
+            ))
+        
+        # Build response
+        weather_response = WeatherResponse(
+            current=current,
+            hourly=hourly,
+            daily=daily,
+            air_quality=air_quality,
+            location={
+                "latitude": latitude,
+                "longitude": longitude,
+                "elevation": data.get("elevation", 0),
+            },
+            timezone=data.get("timezone", "UTC"),
+            cached=False,
+        )
+        
+        # Cache the response
+        await self._set_cached_data(cache_key, weather_response.model_dump(mode="json"))
+        
+        return weather_response
+    
+    async def _get_air_quality(self, latitude: float, longitude: float) -> Optional[AirQuality]:
+        """Get air quality data from Open-Meteo."""
+        cache_key = self._get_cache_key(latitude, longitude, "air_quality")
+        
+        # Check cache
+        cached_data = await self._get_cached_data(cache_key)
+        if cached_data:
+            return AirQuality(**cached_data)
+        
+        url = f"{settings.OPEN_METEO_AIR_QUALITY_URL}/air-quality"
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone"],
+        }
+        
+        try:
+            response = await self.http_client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            current_aq = data.get("current", {})
+            pm2_5 = current_aq.get("pm2_5", 0) or 0
+            pm10 = current_aq.get("pm10", 0) or 0
+            no2 = current_aq.get("nitrogen_dioxide", 0) or 0
+            o3 = current_aq.get("ozone", 0) or 0
+            
+            aqi, category, health_rec = self._calculate_aqi(pm2_5, pm10, no2, o3)
+            
+            air_quality = AirQuality(
+                aqi=aqi,
+                pm2_5=pm2_5,
+                pm10=pm10,
+                carbon_monoxide=current_aq.get("carbon_monoxide", 0) or 0,
+                nitrogen_dioxide=no2,
+                ozone=o3,
+                sulphur_dioxide=current_aq.get("sulphur_dioxide", 0) or 0,
+                category=category,
+                health_recommendation=health_rec,
+            )
+            
+            # Cache for 1 hour
+            await self._set_cached_data(cache_key, air_quality.model_dump(mode="json"), ttl=3600)
+            
+            return air_quality
+            
+        except Exception as e:
+            print(f"Failed to fetch air quality: {e}")
+            return None
+    
+    async def close(self):
+        """Close HTTP and Redis connections."""
+        await self.http_client.aclose()
+        if self.redis_client:
+            await self.redis_client.close()

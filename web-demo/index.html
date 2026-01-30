@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClimaAI - AI Weather Demo</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Mobile App Container -->
+    <div class="phone-container">
+        <div class="phone-frame">
+            <div class="phone-notch"></div>
+
+            <!-- App Content -->
+            <div class="app-container" id="appContainer">
+
+                <!-- Login Screen -->
+                <div class="screen" id="loginScreen">
+                    <div class="screen-header">
+                        <h1 class="app-logo">🌤️ ClimaAI</h1>
+                        <p class="tagline">AI-Powered Weather Insights</p>
+                    </div>
+
+                    <div class="screen-content">
+                        <div class="auth-card">
+                            <h2>Welcome Back</h2>
+
+                            <!-- Google Sign-In Button -->
+                            <button type="button" class="btn btn-google" id="googleSignInBtn">
+                                <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 12px;">
+                                    <path fill="#4285F4"
+                                        d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" />
+                                    <path fill="#34A853"
+                                        d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z" />
+                                    <path fill="#FBBC05"
+                                        d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z" />
+                                    <path fill="#EA4335"
+                                        d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z" />
+                                </svg>
+                                Continue with Google
+                            </button>
+
+                            <div class="divider">
+                                <span>or</span>
+                            </div>
+
+                            <!-- Traditional Login Form -->
+                            <form id="loginForm">
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="loginEmail" value="demo@climaai.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Password</label>
+                                    <input type="password" id="loginPassword" value="Test1234" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Sign In with Email</button>
+                            </form>
+                            <p class="auth-switch">
+                                Don't have an account? <a href="#" id="showRegister">Sign Up</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Register Screen -->
+                <div class="screen hidden" id="registerScreen">
+                    <div class="screen-header">
+                        <button class="back-btn" id="backToLogin">←</button>
+                        <h1 class="app-logo">🌤️ ClimaAI</h1>
+                        <p class="tagline">AI-Powered Weather Insights</p>
+                    </div>
+
+                    <div class="screen-content">
+                        <div class="auth-card">
+                            <h2>Create Account</h2>
+                            <form id="registerForm">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" id="registerName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="registerEmail" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Password</label>
+                                    <input type="password" id="registerPassword" minlength="8" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Sign Up</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Home Screen -->
+                <div class="screen hidden" id="homeScreen">
+                    <!-- Header -->
+                    <div class="home-header">
+                        <div class="location-info">
+                            <span class="location-icon">📍</span>
+                            <span class="location-name" id="locationName">Loading...</span>
+                        </div>
+                        <button class="icon-btn" id="refreshBtn">🔄</button>
+                    </div>
+
+                    <!-- Current Weather -->
+                    <div class="current-weather" id="currentWeather">
+                        <div class="loading">Loading weather...</div>
+                    </div>
+
+                    <!-- AI Summary Card (Premium) -->
+                    <div class="ai-summary-card" id="aiSummaryCard">
+                        <div class="premium-badge">💎 Premium</div>
+                        <h3>AI Weather Summary</h3>
+                        <div class="ai-content" id="aiSummaryContent">
+                            <div class="loading">Loading AI insights...</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="quick-stats" id="quickStats">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Hourly Forecast -->
+                    <div class="section">
+                        <h3>Hourly Forecast</h3>
+                        <div class="hourly-scroll" id="hourlyForecast">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Daily Forecast -->
+                    <div class="section">
+                        <h3>7-Day Forecast</h3>
+                        <div class="daily-list" id="dailyForecast">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Navigation -->
+                    <div class="bottom-nav">
+                        <button class="nav-btn active" data-screen="home">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-label">Home</span>
+                        </button>
+                        <button class="nav-btn" data-screen="insights">
+                            <span class="nav-icon">🤖</span>
+                            <span class="nav-label">AI Insights</span>
+                        </button>
+                        <button class="nav-btn" data-screen="airquality">
+                            <span class="nav-icon">🌬️</span>
+                            <span class="nav-label">Air Quality</span>
+                        </button>
+                        <button class="nav-btn" data-screen="settings">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-label">Settings</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Insights Screen -->
+                <div class="screen hidden" id="insightsScreen">
+                    <div class="screen-header">
+                        <h2>🤖 AI Insights</h2>
+                        <div class="premium-badge">💎 Premium</div>
+                    </div>
+
+                    <div class="screen-content" id="insightsContent">
+                        <div class="loading">Loading AI insights...</div>
+                    </div>
+
+                    <div class="bottom-nav">
+                        <button class="nav-btn" data-screen="home">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-label">Home</span>
+                        </button>
+                        <button class="nav-btn active" data-screen="insights">
+                            <span class="nav-icon">🤖</span>
+                            <span class="nav-label">AI Insights</span>
+                        </button>
+                        <button class="nav-btn" data-screen="airquality">
+                            <span class="nav-icon">🌬️</span>
+                            <span class="nav-label">Air Quality</span>
+                        </button>
+                        <button class="nav-btn" data-screen="settings">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-label">Settings</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Air Quality Screen -->
+                <div class="screen hidden" id="airqualityScreen">
+                    <div class="screen-header">
+                        <h2>🌬️ Air Quality</h2>
+                    </div>
+
+                    <div class="screen-content" id="airqualityContent">
+                        <div class="loading">Loading air quality...</div>
+                    </div>
+
+                    <div class="bottom-nav">
+                        <button class="nav-btn" data-screen="home">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-label">Home</span>
+                        </button>
+                        <button class="nav-btn" data-screen="insights">
+                            <span class="nav-icon">🤖</span>
+                            <span class="nav-label">AI Insights</span>
+                        </button>
+                        <button class="nav-btn active" data-screen="airquality">
+                            <span class="nav-icon">🌬️</span>
+                            <span class="nav-label">Air Quality</span>
+                        </button>
+                        <button class="nav-btn" data-screen="settings">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-label">Settings</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Settings Screen -->
+                <div class="screen hidden" id="settingsScreen">
+                    <div class="screen-header">
+                        <h2>⚙️ Settings</h2>
+                    </div>
+
+                    <div class="screen-content">
+                        <div class="settings-section">
+                            <h3>Account</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">Email</div>
+                                <div class="setting-value" id="userEmail">-</div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">Subscription</div>
+                                <div class="setting-value" id="subscriptionStatus">Free</div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Preferences</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">Temperature Unit</div>
+                                <select id="tempUnit" class="setting-select">
+                                    <option value="celsius">Celsius (°C)</option>
+                                    <option value="fahrenheit">Fahrenheit (°F)</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">Theme</div>
+                                <select id="theme" class="setting-select">
+                                    <option value="auto">Auto</option>
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <button class="btn btn-secondary" id="upgradeBtn">
+                                💎 Upgrade to Premium
+                            </button>
+                            <button class="btn btn-danger" id="logoutBtn">
+                                🚪 Logout
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bottom-nav">
+                        <button class="nav-btn" data-screen="home">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-label">Home</span>
+                        </button>
+                        <button class="nav-btn" data-screen="insights">
+                            <span class="nav-icon">🤖</span>
+                            <span class="nav-label">AI Insights</span>
+                        </button>
+                        <button class="nav-btn" data-screen="airquality">
+                            <span class="nav-icon">🌬️</span>
+                            <span class="nav-label">Air Quality</span>
+                        </button>
+                        <button class="nav-btn active" data-screen="settings">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-label">Settings</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="js/api.js?v=2.0"></script>
+    <script src="js/app.js?v=2.0"></script>
+</body>
+
+</html>
