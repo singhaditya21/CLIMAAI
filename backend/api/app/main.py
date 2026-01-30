@@ -18,6 +18,7 @@ from .routers import (
     alerts_router,
     notifications_router
 )
+from .routers.personalization import router as personalization_router
 
 settings = get_settings()
 
@@ -110,6 +111,7 @@ app.include_router(subscriptions_router)
 app.include_router(locations_router)
 app.include_router(alerts_router)
 app.include_router(notifications_router)
+app.include_router(personalization_router)
 
 
 if __name__ == "__main__":

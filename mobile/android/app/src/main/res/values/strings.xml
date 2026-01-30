@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ClimaAI</string>
+    
+    <!-- Widget descriptions -->
+    <string name="widget_small_description">Quick glance at current temperature</string>
+    <string name="widget_medium_description">Current weather with humidity and wind</string>
+    <string name="widget_large_description">Full forecast with AI insights</string>
+    
+    <!-- Widget names -->
+    <string name="widget_small_name">ClimaAI Small</string>
+    <string name="widget_medium_name">ClimaAI Medium</string>
+    <string name="widget_large_name">ClimaAI Large</string>
+</resources>
