@@ -209,24 +209,63 @@ class ClimaAI {
 
     async loadWeatherData() {
         try {
-            // Get location (using default: New York for demo)
-            this.currentLocation = {
-                latitude: 40.7128,
-                longitude: -74.0060,
-                name: 'New York, USA'
-            };
+            // Show loading state
+            document.getElementById('locationName').textContent = '📍 Getting location...';
 
             // Try to get user's actual location
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    this.currentLocation.latitude = position.coords.latitude;
-                    this.currentLocation.longitude = position.coords.longitude;
-                    await this.fetchWeatherData();
-                }, () => {
-                    // Fallback to default location
-                    this.fetchWeatherData();
-                });
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        // Got user's real location
+                        this.currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            name: 'Your Location'
+                        };
+
+                        // Try to get city name from coordinates using reverse geocoding
+                        try {
+                            const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=10`
+                            );
+                            const data = await response.json();
+
+                            if (data && data.address) {
+                                const city = data.address.city || data.address.town || data.address.village || data.address.county;
+                                const country = data.address.country;
+                                this.currentLocation.name = city ? `${city}, ${country}` : country || 'Your Location';
+                            }
+                        } catch (geoError) {
+                            console.log('Reverse geocoding failed, using coordinates');
+                            this.currentLocation.name = `📍 ${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`;
+                        }
+
+                        await this.fetchWeatherData();
+                    },
+                    (error) => {
+                        // Location denied or error - use default
+                        console.log('Geolocation error:', error.message);
+                        this.currentLocation = {
+                            latitude: 40.7128,
+                            longitude: -74.0060,
+                            name: 'New York, USA (Demo)'
+                        };
+                        this.showToast('📍 Using demo location. Allow location access for local weather.', 'info');
+                        this.fetchWeatherData();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000 // Cache for 5 minutes
+                    }
+                );
             } else {
+                // Browser doesn't support geolocation
+                this.currentLocation = {
+                    latitude: 40.7128,
+                    longitude: -74.0060,
+                    name: 'New York, USA (Demo)'
+                };
                 await this.fetchWeatherData();
             }
         } catch (error) {
@@ -265,29 +304,29 @@ class ClimaAI {
     renderCurrentWeather() {
         const { current } = this.weatherData;
         const html = `
-    < div class="weather-icon" > ${weatherUtils.getWeatherIcon(current.weather_code)}</div >
+            <div class="weather-icon">${weatherUtils.getWeatherIcon(current.weather_code)}</div>
             <div class="temperature">${weatherUtils.formatTemperature(current.temperature)}</div>
             <div class="weather-description">${current.weather_description}</div>
             <div class="feels-like">Feels like ${weatherUtils.formatTemperature(current.feels_like)}</div>
-`;
+        `;
         document.getElementById('currentWeather').innerHTML = html;
     }
 
     renderQuickStats() {
         const { current } = this.weatherData;
         const stats = [
-            { icon: '💨', value: `${Math.round(current.wind_speed)} km / h`, label: 'Wind' },
-            { icon: '💧', value: `${current.humidity}% `, label: 'Humidity' },
+            { icon: '💨', value: `${Math.round(current.wind_speed)} km/h`, label: 'Wind' },
+            { icon: '💧', value: `${current.humidity}%`, label: 'Humidity' },
             { icon: '☀️', value: Math.round(current.uv_index), label: 'UV Index' }
         ];
 
         const html = stats.map(stat => `
-    < div class="stat-card" >
+            <div class="stat-card">
                 <div class="stat-icon">${stat.icon}</div>
                 <div class="stat-value">${stat.value}</div>
                 <div class="stat-label">${stat.label}</div>
-            </div >
-    `).join('');
+            </div>
+        `).join('');
 
         document.getElementById('quickStats').innerHTML = html;
     }
@@ -297,13 +336,13 @@ class ClimaAI {
         const next24 = hourly.slice(0, 24);
 
         const html = next24.map(hour => `
-    < div class="hourly-item" >
+            <div class="hourly-item">
                 <div class="hourly-time">${weatherUtils.formatTime(hour.time)}</div>
                 <div class="hourly-icon">${weatherUtils.getWeatherIcon(hour.weather_code)}</div>
                 <div class="hourly-temp">${weatherUtils.formatTemperature(hour.temperature)}</div>
                 <div class="hourly-rain">${hour.precipitation_probability}%</div>
-            </div >
-    `).join('');
+            </div>
+        `).join('');
 
         document.getElementById('hourlyForecast').innerHTML = html;
     }
@@ -312,15 +351,15 @@ class ClimaAI {
         const { daily } = this.weatherData;
 
         const html = daily.map(day => `
-    < div class="daily-item" >
+            <div class="daily-item">
                 <div class="daily-date">${weatherUtils.formatDate(day.date)}</div>
                 <div class="daily-icon">${weatherUtils.getWeatherIcon(day.weather_code)}</div>
                 <div class="daily-temps">
                     <span class="temp-max">${weatherUtils.formatTemperature(day.temperature_max)}</span>
                     <span class="temp-min">${weatherUtils.formatTemperature(day.temperature_min)}</span>
                 </div>
-            </div >
-    `).join('');
+            </div>
+        `).join('');
 
         document.getElementById('dailyForecast').innerHTML = html;
     }
@@ -331,9 +370,9 @@ class ClimaAI {
             const data = await api.getDailySummary(latitude, longitude, name);
 
             const html = `
-    < h4 > ${data.summary.title}</h4 >
-        <p>${data.summary.summary}</p>
-`;
+                <h4>${data.summary.title}</h4>
+                <p>${data.summary.summary}</p>
+            `;
             document.getElementById('aiSummaryContent').innerHTML = html;
         } catch (error) {
             this.showPremiumAICard();
@@ -342,7 +381,7 @@ class ClimaAI {
 
     showPremiumAICard() {
         const html = `
-    < p >🔒 Upgrade to Premium to unlock AI - powered weather insights:</p >
+            <p>🔒 Upgrade to Premium to unlock AI-powered weather insights:</p>
             <ul class="insight-list">
                 <li>📰 Daily weather summaries</li>
                 <li>👔 "What to wear" recommendations</li>
@@ -352,7 +391,7 @@ class ClimaAI {
             <button class="btn btn-primary" onclick="app.showUpgradePrompt()" style="margin-top: 12px;">
                 Upgrade to Premium
             </button>
-`;
+        `;
         document.getElementById('aiSummaryContent').innerHTML = html;
     }
 
@@ -379,16 +418,15 @@ class ClimaAI {
         const { daily_summary, outfit, activities, health } = this.aiInsights;
 
         const html = `
-    < div class="insight-card" >
+            <div class="insight-card">
                 <h4>📰 ${daily_summary.title}</h4>
                 <p>${daily_summary.summary}</p>
                 ${daily_summary.highlights.length > 0 ? `
                     <ul class="insight-list">
                         ${daily_summary.highlights.map(h => `<li>✨ ${h}</li>`).join('')}
                     </ul>
-                ` : ''
-            }
-            </div >
+                ` : ''}
+            </div>
 
             <div class="insight-card">
                 <h4>👔 What to Wear</h4>
@@ -453,11 +491,11 @@ class ClimaAI {
         };
 
         const html = `
-    < div class="aqi-gauge" style = "background: linear-gradient(135deg, ${getAQIColor(aqi.aqi)} 0%, ${getAQIColor(aqi.aqi)}dd 100%);" >
+            <div class="aqi-gauge" style="background: linear-gradient(135deg, ${getAQIColor(aqi.aqi)} 0%, ${getAQIColor(aqi.aqi)}dd 100%);">
                 <div class="aqi-value">${aqi.aqi}</div>
                 <div class="aqi-category">${aqi.category}</div>
                 <div class="aqi-description">${aqi.health_recommendation}</div>
-            </div >
+            </div>
 
     <div class="pollutant-grid">
         <div class="pollutant-card">
@@ -498,15 +536,15 @@ class ClimaAI {
 
     showPremiumPrompt(containerId) {
         const html = `
-    < div class="insight-card" style = "text-align: center; padding: 40px 20px;" >
+            <div class="insight-card" style="text-align: center; padding: 40px 20px;">
                 <h2 style="font-size: 48px; margin-bottom: 16px;">💎</h2>
                 <h3 style="margin-bottom: 12px;">Premium Feature</h3>
                 <p style="margin-bottom: 20px;">Upgrade to Premium to unlock AI-powered insights and advanced features.</p>
                 <button class="btn btn-primary" onclick="app.showUpgradePrompt()">
                     Upgrade to Premium
                 </button>
-            </div >
-    `;
+            </div>
+        `;
         document.getElementById(containerId).innerHTML = html;
     }
 
@@ -516,7 +554,7 @@ class ClimaAI {
 
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
-        toast.className = `toast ${type} `;
+        toast.className = `toast ${type}`;
 
         const icons = {
             success: '✅',
@@ -525,9 +563,9 @@ class ClimaAI {
         };
 
         toast.innerHTML = `
-    < span class="toast-icon" > ${icons[type] || icons.info}</span >
-        <span class="toast-message">${message}</span>
-`;
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <span class="toast-message">${message}</span>
+        `;
 
         document.getElementById('toastContainer').appendChild(toast);
 
