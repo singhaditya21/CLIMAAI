@@ -4,8 +4,9 @@ Handles data fetching, caching, and transformation.
 """
 import httpx
 import json
+import math
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import redis.asyncio as redis
 from ..config import get_settings
 from ..schemas.weather import (
@@ -148,6 +149,7 @@ class WeatherService:
                 "temperature_2m",
                 "apparent_temperature",
                 "relative_humidity_2m",
+                "dew_point_2m",
                 "precipitation",
                 "weather_code",
                 "cloud_cover",
@@ -201,6 +203,7 @@ class WeatherService:
             temperature=current_data.get("temperature_2m", 0),
             feels_like=current_data.get("apparent_temperature", 0),
             humidity=current_data.get("relative_humidity_2m", 0),
+            dew_point=current_data.get("dew_point_2m"),
             wind_speed=current_data.get("wind_speed_10m", 0),
             wind_direction=current_data.get("wind_direction_10m", 0),
             precipitation=current_data.get("precipitation", 0),
@@ -241,6 +244,11 @@ class WeatherService:
         daily_data = data.get("daily", {})
         daily = []
         for i in range(len(daily_data.get("time", []))):
+            # Calculate moon phase for this date
+            forecast_date = date.fromisoformat(daily_data["time"][i])
+            moon_phase = self._calculate_moon_phase(forecast_date)
+            moon_phase_name = self._get_moon_phase_name(moon_phase)
+            
             daily.append(DailyWeather(
                 date=daily_data["time"][i],
                 temperature_max=daily_data["temperature_2m_max"][i],
@@ -254,6 +262,8 @@ class WeatherService:
                 wind_speed_max=daily_data["wind_speed_10m_max"][i],
                 wind_direction=daily_data["wind_direction_10m_dominant"][i],
                 uv_index_max=daily_data["uv_index_max"][i],
+                moon_phase=moon_phase,
+                moon_phase_name=moon_phase_name,
             ))
         
         # Build response
@@ -331,3 +341,57 @@ class WeatherService:
         await self.http_client.aclose()
         if self.redis_client:
             await self.redis_client.close()
+    
+    def _calculate_moon_phase(self, target_date: date) -> float:
+        """
+        Calculate moon phase for a given date.
+        
+        Uses a simplified algorithm based on known new moon dates.
+        Returns a value from 0 to 1:
+        - 0 or 1 = New Moon
+        - 0.25 = First Quarter
+        - 0.5 = Full Moon
+        - 0.75 = Last Quarter
+        """
+        # Known new moon: January 6, 2000 at 18:14 UTC
+        known_new_moon = datetime(2000, 1, 6, 18, 14)
+        
+        # Synodic month (average lunar cycle)
+        synodic_month = 29.530588853
+        
+        # Calculate days since known new moon
+        target_datetime = datetime.combine(target_date, datetime.min.time())
+        days_since = (target_datetime - known_new_moon).total_seconds() / 86400
+        
+        # Calculate current position in lunar cycle (0 to 1)
+        cycles = days_since / synodic_month
+        phase = cycles - math.floor(cycles)
+        
+        return round(phase, 4)
+    
+    def _get_moon_phase_name(self, phase: float) -> str:
+        """
+        Get human-readable moon phase name.
+        
+        Args:
+            phase: Moon phase value from 0 to 1
+            
+        Returns:
+            Moon phase name string
+        """
+        if phase < 0.0625 or phase >= 0.9375:
+            return "New Moon 🌑"
+        elif phase < 0.1875:
+            return "Waxing Crescent 🌒"
+        elif phase < 0.3125:
+            return "First Quarter 🌓"
+        elif phase < 0.4375:
+            return "Waxing Gibbous 🌔"
+        elif phase < 0.5625:
+            return "Full Moon 🌕"
+        elif phase < 0.6875:
+            return "Waning Gibbous 🌖"
+        elif phase < 0.8125:
+            return "Last Quarter 🌗"
+        else:
+            return "Waning Crescent 🌘"

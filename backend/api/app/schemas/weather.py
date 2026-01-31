@@ -11,6 +11,7 @@ class CurrentWeather(BaseModel):
     temperature: float = Field(..., description="Temperature in degrees")
     feels_like: float = Field(..., description="Apparent temperature")
     humidity: int = Field(..., ge=0, le=100, description="Relative humidity %")
+    dew_point: Optional[float] = Field(None, description="Dew point temperature")
     wind_speed: float = Field(..., description="Wind speed")
     wind_direction: int = Field(..., ge=0, le=360, description="Wind direction in degrees")
     precipitation: float = Field(..., description="Precipitation amount")
@@ -54,6 +55,11 @@ class DailyWeather(BaseModel):
     wind_speed_max: float
     wind_direction: int
     uv_index_max: float
+    # Moon phase data
+    moon_phase: Optional[float] = Field(None, description="Moon phase (0=new, 0.5=full, 1=new)")
+    moon_phase_name: Optional[str] = Field(None, description="Moon phase name")
+    moonrise: Optional[str] = Field(None, description="Moonrise time")
+    moonset: Optional[str] = Field(None, description="Moonset time")
 
 
 class AirQuality(BaseModel):

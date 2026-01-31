@@ -1,11 +1,15 @@
 """
-Health API router - Pollen, Air Quality, and Health insights.
+Health API router - Pollen, Air Quality, Activities, and Health insights.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+from typing import Optional, List
+from datetime import date
 from ..models import User
 from ..schemas.pollen import PollenForecastResponse, PollenTypeResponse, DailyPollenResponse, PollenLevel
 from ..services.pollen_service import PollenService
+from ..services.health_index_service import HealthIndexService
+from ..services.activity_service import ActivityForecastService, ActivityType
+from ..services.weather_service import WeatherService
 from ..services.auth import get_optional_user
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -142,3 +146,229 @@ async def get_todays_pollen(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         await pollen_service.close()
+
+
+@router.get("/flu-risk")
+async def get_flu_risk(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180)
+):
+    """
+    Get current flu risk assessment based on weather.
+    
+    Factors:
+    - Temperature (cold increases risk)
+    - Humidity (dry air increases transmission)
+    - Seasonal patterns
+    """
+    weather_service = WeatherService()
+    health_service = HealthIndexService()
+    
+    try:
+        # Get current weather
+        weather = await weather_service.get_current_weather(latitude, longitude)
+        
+        flu_risk = health_service.calculate_flu_risk(
+            temperature=weather.current.temperature,
+            humidity=weather.current.humidity,
+            current_date=date.today(),
+            latitude=latitude
+        )
+        
+        return {
+            "risk_level": flu_risk.risk_level.value,
+            "risk_score": flu_risk.risk_score,
+            "factors": flu_risk.factors,
+            "recommendations": flu_risk.recommendations,
+            "seasonal_context": flu_risk.seasonal_context,
+            "current_conditions": {
+                "temperature": weather.current.temperature,
+                "humidity": weather.current.humidity
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await weather_service.close()
+
+
+@router.get("/migraine-risk")
+async def get_migraine_risk(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180)
+):
+    """
+    Get migraine trigger risk based on weather conditions.
+    
+    Key triggers:
+    - Barometric pressure changes
+    - Humidity extremes
+    - Temperature changes
+    """
+    weather_service = WeatherService()
+    health_service = HealthIndexService()
+    
+    try:
+        # Get current weather
+        weather = await weather_service.get_current_weather(latitude, longitude)
+        
+        # Use hourly pressure for history (simulated since we don't track history)
+        # In production, would use Redis to track pressure over 24h
+        pressure_history = [weather.current.pressure] * 24  # Placeholder
+        
+        migraine_risk = health_service.calculate_migraine_risk(
+            current_pressure=weather.current.pressure,
+            pressure_history=pressure_history,
+            humidity=weather.current.humidity,
+            temperature=weather.current.temperature
+        )
+        
+        return {
+            "risk_level": migraine_risk.risk_level.value,
+            "risk_score": migraine_risk.risk_score,
+            "pressure_change": migraine_risk.pressure_change,
+            "pressure_trend": migraine_risk.pressure_trend,
+            "triggers": migraine_risk.triggers,
+            "recommendations": migraine_risk.recommendations,
+            "current_conditions": {
+                "pressure": weather.current.pressure,
+                "humidity": weather.current.humidity,
+                "temperature": weather.current.temperature
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await weather_service.close()
+
+
+@router.get("/activities")
+async def get_all_activities(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180)
+):
+    """
+    Get activity forecast for all outdoor activities.
+    
+    Returns scores for: running, cycling, golf, hiking, beach, skiing, tennis, photography.
+    Sorted by today's score (best activities first).
+    """
+    weather_service = WeatherService()
+    activity_service = ActivityForecastService()
+    
+    try:
+        # Get hourly forecast
+        weather = await weather_service.get_current_weather(latitude, longitude)
+        
+        # Convert to activity service format
+        hourly_data = [
+            {
+                "time": h.time.isoformat(),
+                "temperature": h.temperature,
+                "humidity": h.humidity,
+                "wind_speed": h.wind_speed,
+                "precipitation": h.precipitation,
+                "precipitation_probability": h.precipitation_probability,
+                "uv_index": h.uv_index,
+                "cloud_cover": h.cloud_cover,
+                "is_day": True  # Simplified
+            }
+            for h in weather.hourly
+        ]
+        
+        # Get AQI if available
+        current_aqi = weather.air_quality.aqi if weather.air_quality else 50
+        
+        # Get all activity summaries
+        summaries = activity_service.get_all_activities_summary(
+            hourly_data, current_aqi
+        )
+        
+        return {
+            "location": weather.location,
+            "activities": summaries,
+            "timestamp": weather.current.timestamp.isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await weather_service.close()
+
+
+@router.get("/activities/{activity}")
+async def get_activity_forecast(
+    activity: str,
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180)
+):
+    """
+    Get detailed forecast for a specific activity.
+    
+    Supported activities: running, cycling, golf, hiking, beach, skiing, tennis, photography.
+    """
+    # Validate activity type
+    try:
+        activity_type = ActivityType(activity.lower())
+    except ValueError:
+        valid_activities = [a.value for a in ActivityType]
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid activity. Valid options: {', '.join(valid_activities)}"
+        )
+    
+    weather_service = WeatherService()
+    activity_service = ActivityForecastService()
+    
+    try:
+        # Get hourly forecast
+        weather = await weather_service.get_current_weather(latitude, longitude)
+        
+        # Convert to activity service format
+        hourly_data = [
+            {
+                "time": h.time.isoformat(),
+                "temperature": h.temperature,
+                "humidity": h.humidity,
+                "wind_speed": h.wind_speed,
+                "precipitation": h.precipitation,
+                "precipitation_probability": h.precipitation_probability,
+                "uv_index": h.uv_index,
+                "cloud_cover": h.cloud_cover,
+                "visibility": 10000,
+                "is_day": True
+            }
+            for h in weather.hourly
+        ]
+        
+        current_aqi = weather.air_quality.aqi if weather.air_quality else 50
+        
+        forecast = activity_service.get_activity_forecast(
+            activity_type, hourly_data, current_aqi
+        )
+        
+        return {
+            "activity": forecast.activity,
+            "display_name": forecast.activity_display_name,
+            "today_score": forecast.today_score,
+            "today_rating": forecast.today_rating,
+            "best_time": {
+                "start": forecast.best_time_today.start_time.isoformat() if forecast.best_time_today else None,
+                "end": forecast.best_time_today.end_time.isoformat() if forecast.best_time_today else None,
+                "score": forecast.best_time_today.score if forecast.best_time_today else None,
+                "conditions": forecast.best_time_today.conditions_summary if forecast.best_time_today else None
+            },
+            "hourly_scores": forecast.hourly_scores[:12],  # First 12 hours
+            "recommendations": forecast.recommendations,
+            "factors_used": forecast.factors_used,
+            "location": weather.location
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await weather_service.close()
