@@ -141,6 +141,43 @@ struct Location: Codable {
     let elevation: Double?
 }
 
+// MARK: - Nowcast Models (MinuteCast equivalent)
+
+struct NowcastMinute: Codable, Identifiable {
+    var id: String { time.ISO8601Format() }
+    let time: Date
+    let precipitation: Double      // mm
+    let precipitationProbability: Int  // 0-100
+    let intensity: String          // none, light, moderate, heavy
+    let isPrecipitation: Bool
+    
+    enum CodingKeys: String, CodingKey {
+        case time, precipitation
+        case precipitationProbability = "precipitation_probability"
+        case intensity
+        case isPrecipitation = "is_precipitation"
+    }
+}
+
+struct NowcastResponse: Codable {
+    let location: Location
+    let timezone: String
+    let summary: String            // "Rain starting in 15 minutes"
+    let precipitationStart: Date?  // When rain starts
+    let precipitationEnd: Date?    // When rain stops
+    let totalPrecipitation: Double // Total mm expected
+    let minutes: [NowcastMinute]   // 120 minute-by-minute data points
+    let lastUpdated: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case location, timezone, summary, minutes
+        case precipitationStart = "precipitation_start"
+        case precipitationEnd = "precipitation_end"
+        case totalPrecipitation = "total_precipitation"
+        case lastUpdated = "last_updated"
+    }
+}
+
 // MARK: - AI Models
 
 struct AIInsightsResponse: Codable {
