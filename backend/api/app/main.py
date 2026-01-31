@@ -20,6 +20,8 @@ from .routers import (
 )
 from .routers.personalization import router as personalization_router
 from .routers.precipitation import router as precipitation_router
+from .routers.health import router as health_router
+from .routers.demo import router as demo_router
 
 settings = get_settings()
 
@@ -114,6 +116,8 @@ app.include_router(alerts_router)
 app.include_router(notifications_router)
 app.include_router(personalization_router)
 app.include_router(precipitation_router)
+app.include_router(health_router)
+app.include_router(demo_router)
 
 
 if __name__ == "__main__":
