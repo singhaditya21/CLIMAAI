@@ -368,6 +368,7 @@ class ClimaAI {
                     <div class="weather-meta">
                         <span class="weather-description">${current.weather_description}</span>
                         <span class="temp-range">H:${Math.round(today.temperature_max ?? current.temperature)}° L:${Math.round(today.temperature_min ?? current.temperature - 5)}°</span>
+                        <span class="feels-like">Feels ${Math.round(current.feels_like)}°</span>
                     </div>
                 </div>
             </div>
@@ -402,11 +403,6 @@ class ClimaAI {
                     <span class="detail-value">${current.cloud_cover ?? 0}%</span>
                     <span class="detail-label">Cloud</span>
                 </div>
-            </div>
-            <div class="sun-times">
-                <div class="sun-item"><span>🌅</span> ${this.formatSunTime(today.sunrise)}</div>
-                <div class="sun-item"><span>🌇</span> ${this.formatSunTime(today.sunset)}</div>
-                <div class="sun-item feels"><span>🤚</span> Feels ${weatherUtils.formatTemperature(current.feels_like)}</div>
             </div>
         `;
         document.getElementById('currentWeather').innerHTML = html;

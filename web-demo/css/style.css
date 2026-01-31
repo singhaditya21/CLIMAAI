@@ -668,11 +668,11 @@ body {
 
 /* AI Summary Card - Premium Glass */
 .ai-summary-card {
-    margin: -20px var(--space-4) var(--space-4);
+    margin: var(--space-3) var(--space-4) var(--space-3);
     background: var(--bg-glass);
     backdrop-filter: var(--card-blur);
-    border-radius: 16px;
-    padding: var(--space-4);
+    border-radius: 12px;
+    padding: var(--space-3);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow), var(--inner-glow);
     position: relative;
@@ -761,12 +761,12 @@ body {
     letter-spacing: 0.1em;
 }
 
-/* Hourly Forecast - Premium Scroll */
+/* Hourly Forecast - Ultra Compact */
 .hourly-scroll {
     display: flex;
-    gap: var(--space-2);
+    gap: var(--space-1);
     overflow-x: auto;
-    padding-bottom: var(--space-2);
+    padding-bottom: var(--space-1);
     scrollbar-width: none;
 }
 
@@ -775,14 +775,14 @@ body {
 }
 
 .hourly-item {
-    flex: 0 0 56px;
+    flex: 0 0 42px;
     background: var(--bg-glass);
     backdrop-filter: var(--card-blur);
-    border-radius: 28px;
-    padding: var(--space-3) var(--space-2);
+    border-radius: 8px;
+    padding: var(--space-2) var(--space-1);
     text-align: center;
     border: 1px solid var(--glass-border);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .hourly-item:first-child {
@@ -791,13 +791,13 @@ body {
 }
 
 .hourly-item:hover {
-    transform: scale(1.05);
+    transform: translateY(-2px);
 }
 
 .hourly-time {
-    font-size: var(--font-xs);
+    font-size: var(--font-2xs);
     color: var(--text-tertiary);
-    margin-bottom: var(--space-2);
+    margin-bottom: 2px;
     font-weight: 500;
 }
 
@@ -806,22 +806,21 @@ body {
 }
 
 .hourly-icon {
-    font-size: 20px;
-    margin-bottom: var(--space-2);
+    font-size: 14px;
+    margin-bottom: 2px;
 }
 
 .hourly-temp {
-    font-size: var(--font-sm);
-    font-weight: 500;
+    font-size: var(--font-xs);
+    font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 1px;
 }
 
 .hourly-rain {
-    font-size: 8px;
+    font-size: 7px;
     color: var(--accent-cyan);
     font-weight: 500;
-    min-height: 10px;
+    min-height: 8px;
 }
 
 .hourly-item.now {
