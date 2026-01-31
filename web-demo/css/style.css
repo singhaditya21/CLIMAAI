@@ -323,6 +323,80 @@ body {
     opacity: 0.8;
 }
 
+/* Weather Animations */
+.current-weather.weather-clear {
+    background: linear-gradient(135deg, #66b3ff 0%, #3380cc 100%);
+}
+
+.current-weather.weather-cloudy {
+    background: linear-gradient(135deg, #8099b3 0%, #606d80 100%);
+}
+
+.current-weather.weather-rain {
+    background: linear-gradient(135deg, #4d6680 0%, #334d66 100%);
+}
+
+.current-weather.weather-rain::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        transparent,
+        transparent 3px,
+        rgba(255, 255, 255, 0.1) 3px,
+        rgba(255, 255, 255, 0.1) 4px
+    );
+    animation: rain-move 0.3s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rain-move {
+    0% { transform: translateY(-10px); }
+    100% { transform: translateY(10px); }
+}
+
+.current-weather.weather-snow {
+    background: linear-gradient(135deg, #ccd9e6 0%, #b3c0cc 100%);
+    color: #333;
+}
+
+.current-weather.weather-snow::before {
+    content: '❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️';
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    font-size: 12px;
+    letter-spacing: 20px;
+    animation: snow-fall 3s linear infinite;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+@keyframes snow-fall {
+    0% { transform: translateY(-20px); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(300px); opacity: 0; }
+}
+
+.current-weather.weather-thunder {
+    background: linear-gradient(135deg, #333359 0%, #1a1a33 100%);
+    animation: lightning-flash 4s infinite;
+}
+
+@keyframes lightning-flash {
+    0%, 89%, 91%, 93%, 100% { background: linear-gradient(135deg, #333359 0%, #1a1a33 100%); }
+    90%, 92% { background: linear-gradient(135deg, #667eea 0%, #9999cc 100%); }
+}
+
+.current-weather.weather-night {
+    background: linear-gradient(135deg, #1a1a4d 0%, #0d0d26 100%) !important;
+}
+
 /* AI Summary Card */
 .ai-summary-card {
     margin: -30px 20px 20px;

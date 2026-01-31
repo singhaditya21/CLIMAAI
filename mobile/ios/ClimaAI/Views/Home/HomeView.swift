@@ -11,24 +11,42 @@ struct HomeView: View {
     @EnvironmentObject var weatherViewModel: WeatherViewModel
     @EnvironmentObject var aiInsightsViewModel: AIInsightsViewModel
     @EnvironmentObject var subscriptionViewModel: SubscriptionViewModel
+    @StateObject private var themeManager = ThemeManager.shared
     @State private var showingLocationSearch = false
     @State private var showingSettings = false
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient based on weather
-                weatherBackgroundGradient
-                    .ignoresSafeArea()
+                // Animated weather background
+                if let weather = weatherViewModel.currentWeather {
+                    WeatherBackground(
+                        weatherCode: weather.weatherCode,
+                        isDay: weather.isDay
+                    )
+                } else {
+                    weatherBackgroundGradient
+                        .ignoresSafeArea()
+                }
                 
                 ScrollView {
                     VStack(spacing: 20) {
                         // Location header
                         locationHeader
                         
+                        // Precipitation alert banner
+                        if let nowcast = weatherViewModel.precipitationNowcast {
+                            PrecipitationBanner(nowcast: nowcast)
+                        }
+                        
                         // Current weather card
                         if let weather = weatherViewModel.currentWeather {
                             currentWeatherCard(weather: weather)
+                        }
+                        
+                        // Horizontal hourly forecast
+                        if !weatherViewModel.hourlyForecast.isEmpty {
+                            HourlyScrollView(forecast: weatherViewModel.hourlyForecast)
                         }
                         
                         // Sunrise/Sunset card

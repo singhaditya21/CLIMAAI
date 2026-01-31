@@ -18,6 +18,7 @@ class WeatherViewModel: ObservableObject {
     @Published var hourlyForecast: [HourlyWeather] = []
     @Published var dailyForecast: [DailyWeather] = []
     @Published var airQuality: AirQuality?
+    @Published var precipitationNowcast: PrecipitationNowcast?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var currentLocation: CLLocation?
@@ -97,6 +98,9 @@ class WeatherViewModel: ObservableObject {
             // Fetch air quality
             await fetchAirQuality(latitude: latitude, longitude: longitude)
             
+            // Fetch precipitation nowcast
+            await fetchPrecipitationNowcast(latitude: latitude, longitude: longitude)
+            
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -157,6 +161,23 @@ class WeatherViewModel: ObservableObject {
             airQuality = response.airQuality
         } catch {
             print("Error fetching air quality: \\(error)")
+        }
+    }
+    
+    /// Fetch precipitation nowcast data
+    func fetchPrecipitationNowcast(latitude: Double, longitude: Double) async {
+        do {
+            let response: PrecipitationNowcast = try await apiClient.get(
+                "/api/v1/weather/nowcast",
+                queryItems: [
+                    URLQueryItem(name: "latitude", value: String(latitude)),
+                    URLQueryItem(name: "longitude", value: String(longitude))
+                ]
+            )
+            
+            precipitationNowcast = response
+        } catch {
+            print("Error fetching precipitation nowcast: \\(error)")
         }
     }
     

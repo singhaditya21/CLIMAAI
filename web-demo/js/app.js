@@ -310,6 +310,35 @@ class ClimaAI {
             <div class="feels-like">Feels like ${weatherUtils.formatTemperature(current.feels_like)}</div>
         `;
         document.getElementById('currentWeather').innerHTML = html;
+
+        // Apply weather-based animation
+        this.applyWeatherAnimation(current.weather_code, current.is_day);
+    }
+
+    applyWeatherAnimation(weatherCode, isDay) {
+        const container = document.getElementById('currentWeather');
+
+        // Remove existing weather classes
+        container.classList.remove('weather-clear', 'weather-cloudy', 'weather-rain',
+            'weather-snow', 'weather-thunder', 'weather-night');
+
+        // Determine weather type
+        let weatherClass = 'weather-clear';
+        if (weatherCode >= 95) {
+            weatherClass = 'weather-thunder';
+        } else if (weatherCode >= 71 && weatherCode <= 86) {
+            weatherClass = 'weather-snow';
+        } else if (weatherCode >= 51 && weatherCode <= 82) {
+            weatherClass = 'weather-rain';
+        } else if (weatherCode >= 1 && weatherCode <= 48) {
+            weatherClass = 'weather-cloudy';
+        }
+
+        if (!isDay) {
+            weatherClass += ' weather-night';
+        }
+
+        container.classList.add(weatherClass);
     }
 
     renderQuickStats() {

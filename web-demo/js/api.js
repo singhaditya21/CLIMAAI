@@ -3,6 +3,7 @@ class APIClient {
     constructor() {
         this.baseURL = 'http://localhost:8000';
         this.token = localStorage.getItem('access_token');
+        this.useMockData = true; // Enable mock mode for demo
     }
 
     setToken(token) {
@@ -15,6 +16,11 @@ class APIClient {
     }
 
     async request(endpoint, options = {}) {
+        // Use mock data for demo mode
+        if (this.useMockData) {
+            return this.getMockData(endpoint);
+        }
+
         const url = `${this.baseURL}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
@@ -42,9 +48,110 @@ class APIClient {
 
             return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
-            throw error;
+            console.log('API unavailable, using mock data');
+            return this.getMockData(endpoint);
         }
+    }
+
+    getMockData(endpoint) {
+        // Mock weather data - match any weather endpoint
+        if (endpoint.includes('/weather')) {
+            return {
+                current: {
+                    temperature: 28,
+                    feels_like: 30,
+                    humidity: 65,
+                    wind_speed: 12,
+                    weather_code: 1,
+                    weather_description: 'Mostly Sunny',
+                    uv_index: 6,
+                    is_day: true,
+                    pressure: 1013,
+                    visibility: 10
+                },
+                hourly: Array.from({ length: 24 }, (_, i) => ({
+                    time: new Date(Date.now() + i * 3600000).toISOString(),
+                    temperature: 24 + Math.sin(i / 4) * 5,
+                    weather_code: i < 12 ? 1 : 2,
+                    precipitation_probability: Math.floor(Math.random() * 30)
+                })),
+                daily: Array.from({ length: 7 }, (_, i) => ({
+                    date: new Date(Date.now() + i * 86400000).toISOString().split('T')[0],
+                    temperature_max: 30 + Math.random() * 4,
+                    temperature_min: 22 + Math.random() * 3,
+                    weather_code: [0, 1, 2, 3, 1, 0, 2][i],
+                    weather_description: ['Clear', 'Sunny', 'Partly Cloudy', 'Cloudy', 'Sunny', 'Clear', 'Partly Cloudy'][i],
+                    precipitation_probability: [10, 5, 20, 40, 15, 5, 25][i],
+                    sunrise: '06:30',
+                    sunset: '18:45'
+                })),
+                air_quality: {
+                    aqi: 42,
+                    category: 'Good',
+                    pm2_5: 8.5,
+                    pm10: 15.2,
+                    nitrogen_dioxide: 12.3,
+                    ozone: 45.2,
+                    sulphur_dioxide: 5.1,
+                    carbon_monoxide: 0.3,
+                    health_recommendation: 'Air quality is good. Enjoy outdoor activities!'
+                }
+            };
+        }
+
+        // Mock AI insights - match any ai endpoint
+        if (endpoint.includes('/ai')) {
+            return {
+                summary: {
+                    title: "Great Weather Today! ☀️",
+                    summary: "Expect warm and sunny conditions with comfortable temperatures. Perfect for outdoor activities!"
+                },
+                daily_summary: {
+                    title: "Perfect Day for Outdoor Activities! ☀️",
+                    summary: "Today brings comfortable temperatures with light clouds. UV levels will be moderate in the afternoon. Great conditions for a morning jog or evening walk.",
+                    highlights: [
+                        "Pleasant temperatures throughout the day",
+                        "Low chance of rain",
+                        "Good air quality"
+                    ],
+                    warnings: []
+                },
+                outfit: {
+                    summary: "Light layers recommended",
+                    details: "A light t-shirt with optional cardigan for evening. Sunglasses recommended.",
+                    accessories: ["Sunglasses", "Light jacket for evening"],
+                    layer_recommendation: "Single layer with backup"
+                },
+                activities: [
+                    { activity: "Morning Jog", suitability_score: 92, best_time: "7-9 AM", reasoning: "Cool temperatures, low UV" },
+                    { activity: "Outdoor Dining", suitability_score: 88, best_time: "6-8 PM", reasoning: "Pleasant evening weather" },
+                    { activity: "Cycling", suitability_score: 85, best_time: "4-6 PM", reasoning: "Good visibility, mild winds" }
+                ],
+                health: {
+                    uv_risk: "moderate",
+                    uv_advice: "Wear sunscreen if outdoors for extended periods",
+                    air_quality_risk: "low",
+                    air_quality_advice: "Air quality is good for all activities",
+                    general_health_tips: ["Stay hydrated", "Take breaks in shade during peak UV hours"]
+                }
+            };
+        }
+
+        // Mock subscription status
+        if (endpoint.includes('/subscriptions/status')) {
+            return {
+                has_active_subscription: true,
+                is_premium: true,
+                subscription: { plan: 'yearly' },
+                features: {
+                    extended_forecast: true,
+                    ai_insights: true,
+                    minute_rain: true
+                }
+            };
+        }
+
+        return {};
     }
 
     // Auth
