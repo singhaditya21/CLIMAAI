@@ -342,8 +342,24 @@ class ClimaAI {
         }
     }
 
+    getWindDirection(degrees) {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const index = Math.round(degrees / 45) % 8;
+        return directions[index];
+    }
+
+    formatSunTime(isoString) {
+        if (!isoString) return '--:--';
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return '--:--';
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+
     renderCurrentWeather() {
-        const { current } = this.weatherData;
+        const { current, daily } = this.weatherData;
+        const today = daily?.[0] || {};
+        const windDir = this.getWindDirection(current.wind_direction ?? 0);
+
         const html = `
             <div class="weather-main">
                 <div class="weather-icon">${weatherUtils.getWeatherIcon(current.weather_code)}</div>
@@ -351,7 +367,7 @@ class ClimaAI {
                     <div class="temperature">${weatherUtils.formatTemperature(current.temperature)}</div>
                     <div class="weather-meta">
                         <span class="weather-description">${current.weather_description}</span>
-                        <span class="feels-like">Feels ${weatherUtils.formatTemperature(current.feels_like)}</span>
+                        <span class="temp-range">H:${Math.round(today.temperature_max ?? current.temperature)}° L:${Math.round(today.temperature_min ?? current.temperature - 5)}°</span>
                     </div>
                 </div>
             </div>
@@ -364,17 +380,17 @@ class ClimaAI {
                 <div class="detail-item">
                     <span class="detail-icon">💨</span>
                     <span class="detail-value">${Math.round(current.wind_speed)}</span>
-                    <span class="detail-label">Wind km/h</span>
+                    <span class="detail-label">${windDir} km/h</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-icon">☀️</span>
                     <span class="detail-value">${Math.round(current.uv_index)}</span>
-                    <span class="detail-label">UV Index</span>
+                    <span class="detail-label">UV</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-icon">👁️</span>
                     <span class="detail-value">${Math.round(current.visibility / 1000)}</span>
-                    <span class="detail-label">Vis. km</span>
+                    <span class="detail-label">Vis km</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-icon">🌡️</span>
@@ -384,8 +400,13 @@ class ClimaAI {
                 <div class="detail-item">
                     <span class="detail-icon">☁️</span>
                     <span class="detail-value">${current.cloud_cover ?? 0}%</span>
-                    <span class="detail-label">Clouds</span>
+                    <span class="detail-label">Cloud</span>
                 </div>
+            </div>
+            <div class="sun-times">
+                <div class="sun-item"><span>🌅</span> ${this.formatSunTime(today.sunrise)}</div>
+                <div class="sun-item"><span>🌇</span> ${this.formatSunTime(today.sunset)}</div>
+                <div class="sun-item feels"><span>🤚</span> Feels ${weatherUtils.formatTemperature(current.feels_like)}</div>
             </div>
         `;
         document.getElementById('currentWeather').innerHTML = html;
@@ -427,14 +448,14 @@ class ClimaAI {
 
     renderHourlyForecast() {
         const { hourly } = this.weatherData;
-        const next24 = hourly.slice(0, 24);
+        const next12 = hourly.slice(0, 12); // Show 12 hours for density
 
-        const html = next24.map(hour => `
-            <div class="hourly-item">
-                <div class="hourly-time">${weatherUtils.formatTime(hour.time)}</div>
+        const html = next12.map((hour, i) => `
+            <div class="hourly-item ${i === 0 ? 'now' : ''}">
+                <div class="hourly-time">${i === 0 ? 'Now' : weatherUtils.formatTime(hour.time)}</div>
                 <div class="hourly-icon">${weatherUtils.getWeatherIcon(hour.weather_code)}</div>
-                <div class="hourly-temp">${weatherUtils.formatTemperature(hour.temperature)}</div>
-                <div class="hourly-rain">${hour.precipitation_probability}%</div>
+                <div class="hourly-temp">${Math.round(hour.temperature)}°</div>
+                <div class="hourly-rain">${hour.precipitation_probability > 0 ? '💧' + hour.precipitation_probability + '%' : ''}</div>
             </div>
         `).join('');
 
@@ -444,13 +465,17 @@ class ClimaAI {
     renderDailyForecast() {
         const { daily } = this.weatherData;
 
-        const html = daily.map(day => `
+        const html = daily.map((day, i) => `
             <div class="daily-item">
-                <div class="daily-date">${weatherUtils.formatDate(day.date)}</div>
+                <div class="daily-date">${i === 0 ? 'Today' : weatherUtils.formatDate(day.date)}</div>
+                <div class="daily-precip">${day.precipitation_sum > 0 ? '💧' + Math.round(day.precipitation_sum) + 'mm' : ''}</div>
                 <div class="daily-icon">${weatherUtils.getWeatherIcon(day.weather_code)}</div>
                 <div class="daily-temps">
-                    <span class="temp-max">${weatherUtils.formatTemperature(day.temperature_max)}</span>
-                    <span class="temp-min">${weatherUtils.formatTemperature(day.temperature_min)}</span>
+                    <span class="temp-max">${Math.round(day.temperature_max)}°</span>
+                    <div class="temp-bar">
+                        <div class="temp-fill" style="width: ${((day.temperature_max - day.temperature_min) / 20) * 100}%"></div>
+                    </div>
+                    <span class="temp-min">${Math.round(day.temperature_min)}°</span>
                 </div>
             </div>
         `).join('');

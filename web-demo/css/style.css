@@ -334,41 +334,78 @@ body {
 }
 
 .theme-toggle {
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: rotate(20deg);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
 }
 
 .theme-icon {
-    font-size: 14px;
+    font-size: 12px;
 }
 
+/* Refresh Button - Premium Animated */
 .icon-btn {
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
+    position: relative;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    font-size: 14px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    font-size: 11px;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.icon-btn::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: conic-gradient(from 0deg, var(--primary-light), var(--accent-coral), var(--accent-amber), var(--primary-light));
+    border-radius: 10px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.icon-btn:hover::before {
+    opacity: 1;
+    animation: spin-gradient 2s linear infinite;
 }
 
 .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.6) 0%, rgba(168, 85, 247, 0.6) 100%);
+    border-color: transparent;
+    transform: scale(1.15);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+
+.icon-btn:active {
+    transform: scale(0.95) rotate(180deg);
+}
+
+@keyframes spin-gradient {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Current Weather - Ultra Compact Premium */
@@ -495,6 +532,37 @@ body {
     font-size: var(--font-sm);
     color: var(--text-secondary);
     font-weight: 300;
+}
+
+.temp-range {
+    font-size: var(--font-xs);
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+}
+
+/* Sun Times Row */
+.sun-times {
+    display: flex;
+    justify-content: space-around;
+    padding-top: var(--space-2);
+    margin-top: var(--space-2);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sun-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--font-xs);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sun-item span {
+    font-size: 10px;
+}
+
+.sun-item.feels {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 /* Weather Animations */
@@ -746,30 +814,42 @@ body {
     font-size: var(--font-sm);
     font-weight: 500;
     color: var(--text-primary);
-    margin-bottom: var(--space-1);
+    margin-bottom: 1px;
 }
 
 .hourly-rain {
-    font-size: 9px;
+    font-size: 8px;
     color: var(--accent-cyan);
     font-weight: 500;
+    min-height: 10px;
+}
+
+.hourly-item.now {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-color: var(--primary-light);
+}
+
+.hourly-item.now .hourly-time,
+.hourly-item.now .hourly-temp {
+    color: white;
 }
 
 /* Daily Forecast - Premium Cards */
 .daily-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-1);
 }
 
 .daily-item {
     background: var(--bg-glass);
     backdrop-filter: var(--card-blur);
-    border-radius: 14px;
-    padding: var(--space-3) var(--space-4);
-    display: flex;
+    border-radius: 10px;
+    padding: var(--space-2) var(--space-3);
+    display: grid;
+    grid-template-columns: 50px 30px 20px 1fr;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--space-2);
     border: 1px solid var(--glass-border);
     transition: all 0.3s ease;
 }
@@ -779,31 +859,52 @@ body {
 }
 
 .daily-date {
-    font-size: var(--font-sm);
+    font-size: var(--font-xs);
     font-weight: 500;
     color: var(--text-primary);
-    min-width: 50px;
+}
+
+.daily-precip {
+    font-size: 8px;
+    color: var(--accent-cyan);
+    white-space: nowrap;
 }
 
 .daily-icon {
-    font-size: 24px;
+    font-size: 16px;
 }
 
 .daily-temps {
     display: flex;
+    align-items: center;
     gap: var(--space-2);
-    font-size: var(--font-sm);
+    font-size: var(--font-xs);
     font-weight: 500;
-    min-width: 70px;
-    justify-content: flex-end;
 }
 
 .temp-max {
     color: var(--text-primary);
+    min-width: 22px;
+    text-align: right;
 }
 
 .temp-min {
     color: var(--text-tertiary);
+    min-width: 22px;
+}
+
+.temp-bar {
+    flex: 1;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.temp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-cyan) 0%, var(--accent-coral) 100%);
+    border-radius: 2px;
 }
 
 /* Bottom Navigation - Premium Glass Tab Bar */
