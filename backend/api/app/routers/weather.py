@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from ..models import User
 from ..schemas.weather import WeatherResponse
+from ..schemas.nowcast import NowcastResponse
 from ..services.weather_service import WeatherService
+from ..services.nowcast_service import NowcastService
 from ..services.auth import get_optional_user
 from ..services.subscription_service import SubscriptionService
 from ..database import get_db
@@ -176,3 +178,53 @@ async def get_air_quality(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         await weather_service.close()
+
+
+@router.get("/nowcast", response_model=NowcastResponse)
+async def get_nowcast(
+    latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
+    longitude: float = Query(..., ge=-180, le=180, description="Longitude"),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get minute-by-minute precipitation nowcast.
+    
+    Similar to AccuWeather's MinuteCast® - provides:
+    - 2-hour (120 minutes) precipitation forecast
+    - Minute-by-minute precipitation amount and probability
+    - Precipitation start/stop times
+    - Human-readable summary ("Rain starting in 15 minutes")
+    
+    **Premium feature** - Available to Premium and Pro subscribers.
+    Free users get a limited preview (30 minutes instead of 120).
+    """
+    nowcast_service = NowcastService()
+    
+    try:
+        # Get full nowcast
+        nowcast = await nowcast_service.get_nowcast(latitude, longitude)
+        
+        # Limit to 30 minutes for free users
+        is_premium = False
+        if current_user:
+            subscription_service = SubscriptionService()
+            sub_status = await subscription_service.check_subscription_status(current_user, db)
+            is_premium = sub_status.is_premium
+        
+        if not is_premium:
+            # Free tier: only 30 minutes
+            nowcast.minutes = nowcast.minutes[:30]
+            if nowcast.precipitation_start and nowcast.minutes:
+                # Check if start is beyond preview window
+                preview_end = nowcast.minutes[-1].time if nowcast.minutes else None
+                if preview_end and nowcast.precipitation_start > preview_end:
+                    nowcast.summary = "Upgrade to Premium for 2-hour precipitation forecast."
+        
+        return nowcast
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await nowcast_service.close()
+
