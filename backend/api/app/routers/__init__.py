@@ -8,6 +8,7 @@ from .subscriptions import router as subscriptions_router
 from .locations import router as locations_router
 from .alerts import router as alerts_router
 from .notifications import router as notifications_router
+from .health import router as health_router
 
 __all__ = [
     "users_router",
@@ -17,5 +18,5 @@ __all__ = [
     "locations_router",
     "alerts_router",
     "notifications_router",
+    "health_router",
 ]
-
