@@ -12,28 +12,34 @@ struct HourlyScrollView: View {
     @State private var scrollPosition: Int?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Hourly Forecast")
-                .font(.headline)
-                .foregroundColor(.primary)
-                .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 10) {
+            // Section header - refined
+            Text("HOURLY")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+                .tracking(1.5)
+                .padding(.horizontal, 16)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
+                LazyHStack(spacing: 8) {
                     ForEach(Array(forecast.prefix(24).enumerated()), id: \.element.id) { index, hour in
                         HourlyItemView(hour: hour, isNow: index == 0)
                             .id(index)
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
                 .scrollTargetLayout()
             }
             .scrollTargetBehavior(.viewAligned)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(.white.opacity(0.08), lineWidth: 1)
+                )
         )
     }
 }
@@ -43,43 +49,42 @@ struct HourlyItemView: View {
     let isNow: Bool
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             // Time
             Text(isNow ? "Now" : formatHour(hour.time))
-                .font(.caption)
-                .fontWeight(isNow ? .bold : .regular)
-                .foregroundColor(isNow ? .primary : .secondary)
+                .font(.system(size: 10, weight: isNow ? .semibold : .medium))
+                .foregroundColor(isNow ? .white : .secondary)
             
             // Weather icon
             Image(systemName: weatherIcon(for: hour.weatherCode))
-                .font(.title2)
+                .font(.system(size: 18))
                 .foregroundStyle(iconGradient(for: hour.weatherCode))
-                .frame(height: 30)
+                .frame(height: 22)
             
             // Temperature
             Text("\(Int(hour.temperature))°")
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(isNow ? .white : .primary)
             
             // Precipitation probability
             if hour.precipitationProbability > 0 {
-                HStack(spacing: 2) {
-                    Image(systemName: "drop.fill")
-                        .font(.caption2)
-                    Text("\(hour.precipitationProbability)%")
-                        .font(.caption2)
-                }
-                .foregroundColor(.blue)
+                Text("\(hour.precipitationProbability)%")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.cyan)
             } else {
                 Text(" ")
-                    .font(.caption2)
+                    .font(.system(size: 9))
             }
         }
-        .frame(width: 65)
-        .padding(.vertical, 12)
+        .frame(width: 48)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isNow ? Color.blue.opacity(0.15) : Color.clear)
+            Capsule()
+                .fill(isNow ? Color.indigo : Color.white.opacity(0.05))
+                .overlay(
+                    Capsule()
+                        .stroke(isNow ? Color.indigo.opacity(0.5) : Color.white.opacity(0.05), lineWidth: 1)
+                )
         )
     }
     

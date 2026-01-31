@@ -127,44 +127,58 @@ struct HomeView: View {
     }
     
     private func currentWeatherCard(weather: Weather) -> some View {
-        VStack(spacing: 16) {
-            // Temperature
-            HStack(alignment: .top, spacing: 8) {
+        VStack(spacing: 12) {
+            // Temperature - refined typography
+            VStack(spacing: 4) {
                 Text("\(Int(weather.temperature))°")
-                    .font(.system(size: 72, weight: .thin))
+                    .font(.system(size: 56, weight: .ultraLight, design: .rounded))
+                    .foregroundStyle(
+                        .linearGradient(
+                            colors: [.white, .white.opacity(0.7)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .tracking(-2)
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(weather.weatherDescription)
-                        .font(.title3)
-                    Text("Feels like \(Int(weather.feelsLike))°")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                Text(weather.weatherDescription)
+                    .font(.system(size: 15, weight: .medium))
+                    .tracking(0.5)
+                
+                Text("Feels like \(Int(weather.feelsLike))°")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.secondary)
             }
             
-            Divider()
+            // Subtle separator
+            Rectangle()
+                .fill(.white.opacity(0.1))
+                .frame(height: 1)
+                .padding(.horizontal, 20)
             
-            // Weather details grid
+            // Weather details - compact 2-row grid
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 16) {
+            ], spacing: 12) {
                 WeatherDetailItem(icon: "humidity.fill", label: "Humidity", value: "\(weather.humidity)%")
-                WeatherDetailItem(icon: "wind", label: "Wind", value: "\(Int(weather.windSpeed)) km/h")
-                WeatherDetailItem(icon: "drop.fill", label: "Rain", value: String(format: "%.1f mm", weather.precipitation))
-                WeatherDetailItem(icon: "sun.max.fill", label: "UV Index", value: "\(Int(weather.uvIndex))")
-                WeatherDetailItem(icon: "cloud.fill", label: "Clouds", value: "\(weather.cloudCover)%")
-                WeatherDetailItem(icon: "barometer", label: "Pressure", value: "\(Int(weather.pressure)) hPa")
-                WeatherDetailItem(icon: "eye.fill", label: "Visibility", value: String(format: "%.0f km", weather.visibility / 1000))
-                WeatherDetailItem(icon: "thermometer.medium", label: "Dew Point", value: "--")
+                WeatherDetailItem(icon: "wind", label: "Wind", value: "\(Int(weather.windSpeed))")
+                WeatherDetailItem(icon: "drop.fill", label: "Rain", value: String(format: "%.1f", weather.precipitation))
+                WeatherDetailItem(icon: "sun.max.fill", label: "UV", value: "\(Int(weather.uvIndex))")
             }
         }
-        .padding()
+        .padding(.vertical, 20)
+        .padding(.horizontal, 16)
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
         )
     }
     
