@@ -14,11 +14,49 @@ class ClimaAI {
         };
         this.isPremium = true;
 
+        // Theme: 'dark', 'light', 'system'
+        this.theme = localStorage.getItem('climaai-theme') || 'dark';
+
         this.init();
+    }
+
+    initTheme() {
+        this.applyTheme(this.theme);
+        this.updateThemeIcon();
+    }
+
+    applyTheme(theme) {
+        const appContainer = document.getElementById('appContainer');
+        if (theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            appContainer.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        } else {
+            appContainer.setAttribute('data-theme', theme);
+        }
+    }
+
+    cycleTheme() {
+        const themes = ['dark', 'light', 'system'];
+        const currentIndex = themes.indexOf(this.theme);
+        this.theme = themes[(currentIndex + 1) % themes.length];
+        localStorage.setItem('climaai-theme', this.theme);
+        this.applyTheme(this.theme);
+        this.updateThemeIcon();
+        this.showToast(`Theme: ${this.theme.charAt(0).toUpperCase() + this.theme.slice(1)}`);
+    }
+
+    updateThemeIcon() {
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+            if (this.theme === 'dark') icon.textContent = '🌙';
+            else if (this.theme === 'light') icon.textContent = '☀️';
+            else icon.textContent = '🔄';
+        }
     }
 
     init() {
         this.setupEventListeners();
+        this.initTheme();
 
         // Skip login - go directly to home screen with demo data
         this.showScreen('homeScreen');
@@ -49,6 +87,9 @@ class ClimaAI {
 
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => this.loadWeatherData());
+
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', () => this.cycleTheme());
 
         // Upgrade button
         document.getElementById('upgradeBtn').addEventListener('click', () => this.showUpgradePrompt());
@@ -304,10 +345,48 @@ class ClimaAI {
     renderCurrentWeather() {
         const { current } = this.weatherData;
         const html = `
-            <div class="weather-icon">${weatherUtils.getWeatherIcon(current.weather_code)}</div>
-            <div class="temperature">${weatherUtils.formatTemperature(current.temperature)}</div>
-            <div class="weather-description">${current.weather_description}</div>
-            <div class="feels-like">Feels like ${weatherUtils.formatTemperature(current.feels_like)}</div>
+            <div class="weather-main">
+                <div class="weather-icon">${weatherUtils.getWeatherIcon(current.weather_code)}</div>
+                <div class="weather-temp-group">
+                    <div class="temperature">${weatherUtils.formatTemperature(current.temperature)}</div>
+                    <div class="weather-meta">
+                        <span class="weather-description">${current.weather_description}</span>
+                        <span class="feels-like">Feels ${weatherUtils.formatTemperature(current.feels_like)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="weather-details-grid">
+                <div class="detail-item">
+                    <span class="detail-icon">💧</span>
+                    <span class="detail-value">${current.humidity}%</span>
+                    <span class="detail-label">Humidity</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-icon">💨</span>
+                    <span class="detail-value">${Math.round(current.wind_speed)}</span>
+                    <span class="detail-label">Wind km/h</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-icon">☀️</span>
+                    <span class="detail-value">${Math.round(current.uv_index)}</span>
+                    <span class="detail-label">UV Index</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-icon">👁️</span>
+                    <span class="detail-value">${Math.round(current.visibility / 1000)}</span>
+                    <span class="detail-label">Vis. km</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-icon">🌡️</span>
+                    <span class="detail-value">${Math.round(current.pressure)}</span>
+                    <span class="detail-label">hPa</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-icon">☁️</span>
+                    <span class="detail-value">${current.cloud_cover ?? 0}%</span>
+                    <span class="detail-label">Clouds</span>
+                </div>
+            </div>
         `;
         document.getElementById('currentWeather').innerHTML = html;
 
@@ -342,22 +421,8 @@ class ClimaAI {
     }
 
     renderQuickStats() {
-        const { current } = this.weatherData;
-        const stats = [
-            { icon: '💨', value: `${Math.round(current.wind_speed)} km/h`, label: 'Wind' },
-            { icon: '💧', value: `${current.humidity}%`, label: 'Humidity' },
-            { icon: '☀️', value: Math.round(current.uv_index), label: 'UV Index' }
-        ];
-
-        const html = stats.map(stat => `
-            <div class="stat-card">
-                <div class="stat-icon">${stat.icon}</div>
-                <div class="stat-value">${stat.value}</div>
-                <div class="stat-label">${stat.label}</div>
-            </div>
-        `).join('');
-
-        document.getElementById('quickStats').innerHTML = html;
+        // Stats now rendered inline in currentWeather, hide this section
+        document.getElementById('quickStats').style.display = 'none';
     }
 
     renderHourlyForecast() {
