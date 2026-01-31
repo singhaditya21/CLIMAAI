@@ -1,17 +1,21 @@
 """
 Weather API router.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from typing import Optional
 from ..models import User
 from ..schemas.weather import WeatherResponse
 from ..schemas.nowcast import NowcastResponse
+from ..schemas.radar_alerts import RadarFramesResponse, RadarFrame, AlertsListResponse, WeatherAlertResponse
 from ..services.weather_service import WeatherService
 from ..services.nowcast_service import NowcastService
+from ..services.radar_service import RadarService
+from ..services.alerts_service import AlertsService
 from ..services.auth import get_optional_user
 from ..services.subscription_service import SubscriptionService
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
 
 router = APIRouter(prefix="/weather", tags=["weather"])
 
@@ -228,3 +232,196 @@ async def get_nowcast(
     finally:
         await nowcast_service.close()
 
+
+@router.get("/radar/frames", response_model=RadarFramesResponse)
+async def get_radar_frames():
+    """
+    Get available radar frames for animation.
+    
+    Returns list of past (actual) and nowcast (predicted) radar frames.
+    Use the tile_url_template to construct tile URLs:
+    {host}{path}/{size}/{z}/{x}/{y}/{color}/{options}.png
+    
+    Example: https://tilecache.rainviewer.com/v2/radar/1706695200/256/5/16/11/2/1_1.png
+    """
+    radar_service = RadarService()
+    
+    try:
+        frames = await radar_service.get_radar_frames()
+        
+        # Add datetime strings for convenience
+        past_frames = [
+            RadarFrame(
+                time=f.time,
+                path=f.path,
+                datetime_str=datetime.utcfromtimestamp(f.time).isoformat() + "Z"
+            )
+            for f in frames.past
+        ]
+        
+        nowcast_frames = [
+            RadarFrame(
+                time=f.time,
+                path=f.path,
+                datetime_str=datetime.utcfromtimestamp(f.time).isoformat() + "Z"
+            )
+            for f in frames.nowcast
+        ]
+        
+        return RadarFramesResponse(
+            host=frames.host,
+            generated=frames.generated,
+            past=past_frames,
+            nowcast=nowcast_frames,
+            tile_url_template="{host}{path}/{size}/{z}/{x}/{y}/{color}/{options}.png"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await radar_service.close()
+
+
+@router.get("/radar/tile/{path:path}/{z}/{x}/{y}")
+async def get_radar_tile(
+    path: str,
+    z: int,
+    x: int,
+    y: int,
+    size: int = Query(256, enum=[256, 512]),
+    color: int = Query(2, ge=0, le=4, description="Color scheme: 0=B/W, 1=Original, 2=NOAA, 3=Black, 4=White")
+):
+    """
+    Proxy radar tile from RainViewer.
+    
+    This endpoint proxies radar tiles to avoid CORS issues.
+    Tiles are cached for 5 minutes.
+    """
+    radar_service = RadarService()
+    
+    try:
+        tile_data = await radar_service.get_tile(
+            path=f"/{path}",
+            z=z, x=x, y=y,
+            size=size,
+            color=color
+        )
+        
+        return Response(
+            content=tile_data,
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=300"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await radar_service.close()
+
+
+@router.get("/alerts", response_model=AlertsListResponse)
+async def get_weather_alerts(
+    latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
+    longitude: float = Query(..., ge=-180, le=180, description="Longitude")
+):
+    """
+    Get active severe weather alerts for a location.
+    
+    Uses NWS API - currently US only.
+    Returns alerts sorted by priority (most urgent first).
+    
+    Alert types include:
+    - Tornado Warning
+    - Severe Thunderstorm Warning
+    - Flash Flood Warning
+    - Winter Storm Warning
+    - Heat Advisory
+    - And more...
+    """
+    alerts_service = AlertsService()
+    
+    try:
+        alerts_response = await alerts_service.get_alerts_by_point(latitude, longitude)
+        
+        # Convert to response schema
+        alert_list = [
+            WeatherAlertResponse(
+                id=a.id,
+                event=a.event,
+                headline=a.headline,
+                description=a.description,
+                instruction=a.instruction,
+                severity=a.severity.value,
+                urgency=a.urgency.value,
+                certainty=a.certainty.value,
+                onset=a.onset,
+                expires=a.expires,
+                sender=a.sender,
+                areas=a.areas,
+                priority_score=a.priority_score
+            )
+            for a in alerts_response.alerts
+        ]
+        
+        return AlertsListResponse(
+            alerts=alert_list,
+            location=alerts_response.location,
+            updated=alerts_response.updated,
+            total_count=alerts_response.total_count,
+            has_severe=alerts_response.has_severe
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await alerts_service.close()
+
+
+@router.get("/alerts/state/{state}", response_model=AlertsListResponse)
+async def get_state_weather_alerts(
+    state: str
+):
+    """
+    Get active severe weather alerts for a US state.
+    
+    State should be a two-letter code (e.g., "NY", "CA", "TX").
+    """
+    if len(state) != 2:
+        raise HTTPException(status_code=400, detail="State must be a two-letter code")
+    
+    alerts_service = AlertsService()
+    
+    try:
+        alerts_response = await alerts_service.get_alerts_by_state(state.upper())
+        
+        alert_list = [
+            WeatherAlertResponse(
+                id=a.id,
+                event=a.event,
+                headline=a.headline,
+                description=a.description,
+                instruction=a.instruction,
+                severity=a.severity.value,
+                urgency=a.urgency.value,
+                certainty=a.certainty.value,
+                onset=a.onset,
+                expires=a.expires,
+                sender=a.sender,
+                areas=a.areas,
+                priority_score=a.priority_score
+            )
+            for a in alerts_response.alerts
+        ]
+        
+        return AlertsListResponse(
+            alerts=alert_list,
+            location={"state": state.upper()},
+            updated=alerts_response.updated,
+            total_count=alerts_response.total_count,
+            has_severe=alerts_response.has_severe
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await alerts_service.close()
