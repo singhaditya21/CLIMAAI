@@ -19,9 +19,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.climaai.app.ads.BannerAdView
 import com.climaai.app.data.*
+import com.climaai.app.ui.components.*
 import com.climaai.app.ui.viewmodel.WeatherState
 import com.climaai.app.ui.viewmodel.WeatherViewModel
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,7 +40,36 @@ fun HomeScreen(
     val location by viewModel.location.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     
+    // NEW: Cache and refresh state
+    val lastUpdatedText by viewModel.lastUpdatedText.collectAsState()
+    val isFromCache by viewModel.isFromCache.collectAsState()
+    val canRefresh by viewModel.canRefresh.collectAsState()
+    val rateLimitMessage by viewModel.rateLimitMessage.collectAsState()
+    
+    // Snackbar for rate limit messages
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Show snackbar when rate limited
+    LaunchedEffect(rateLimitMessage) {
+        rateLimitMessage?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearRateLimitMessage()
+        }
+    }
+    
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = Color(0xFF1E3A5F),
+                    contentColor = Color.White
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -46,6 +78,27 @@ fun HomeScreen(
                             location?.name ?: "ClimaAI",
                             style = MaterialTheme.typography.titleMedium
                         )
+                        // NEW: Last updated indicator
+                        lastUpdatedText?.let { text ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (isFromCache) {
+                                    Icon(
+                                        Icons.Default.CloudOff,
+                                        contentDescription = "Cached",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = Color.White.copy(alpha = 0.5f)
+                                    )
+                                }
+                                Text(
+                                    text = if (isFromCache) "Cached • $text" else "Updated $text",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
                     }
                 },
                 navigationIcon = {
@@ -54,6 +107,25 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    // NEW: Refresh button with cooldown state
+                    IconButton(
+                        onClick = { viewModel.forceRefresh() },
+                        enabled = canRefresh && !isRefreshing
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Refresh,
+                                "Refresh",
+                                tint = if (canRefresh) Color.White else Color.White.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, "Settings")
                     }
@@ -77,6 +149,18 @@ fun HomeScreen(
                 )
                 .padding(padding)
         ) {
+            // Animated weather background particles
+            val currentWeather = (weatherState as? WeatherState.Success)?.data?.current
+            currentWeather?.let {
+                AnimatedWeatherBackground(
+                    weatherCode = it.weatherCode,
+                    isDay = it.isDay,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            
+            Box(modifier = Modifier.fillMaxSize()
+        ) {
             when (val state = weatherState) {
                 is WeatherState.Loading -> {
                     CircularProgressIndicator(
@@ -89,9 +173,19 @@ fun HomeScreen(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Icon(
+                            Icons.Default.CloudOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = Color.White.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(state.message, color = Color.White)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.refresh() }) {
+                        Button(
+                            onClick = { viewModel.refresh() },
+                            enabled = canRefresh
+                        ) {
                             Text("Retry")
                         }
                     }
@@ -100,7 +194,8 @@ fun HomeScreen(
                     WeatherContent(
                         weather = state.data,
                         isRefreshing = isRefreshing,
-                        onRefresh = { viewModel.refresh() },
+                        canRefresh = canRefresh,
+                        onRefresh = { viewModel.forceRefresh() },
                         onNavigateToForecast = onNavigateToForecast,
                         onNavigateToAI = onNavigateToAI
                     )
@@ -110,68 +205,89 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WeatherContent(
     weather: WeatherResponse,
     isRefreshing: Boolean,
+    canRefresh: Boolean,
     onRefresh: () -> Unit,
     onNavigateToForecast: () -> Unit,
     onNavigateToAI: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Current Weather Card
-        item {
-            CurrentWeatherCard(weather.current)
-        }
-        
-        // Quick Stats Row
-        item {
-            QuickStatsRow(weather.current, weather.airQuality)
-        }
-        
-        // Hourly Forecast
-        item {
-            HourlyForecastSection(weather.hourly)
-        }
-        
-        // AI Insights Preview
-        item {
-            AIInsightsPreviewCard(onClick = onNavigateToAI)
-        }
-        
-        // Daily Forecast Preview
-        item {
-            DailyForecastPreview(
-                daily = weather.daily.take(5),
-                onViewAll = onNavigateToForecast
-            )
-        }
-        
-        // Air Quality Card
-        weather.airQuality?.let { aq ->
-            item {
-                AirQualityCard(aq)
+    // Pull-to-refresh with cooldown
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            if (canRefresh) {
+                onRefresh()
             }
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Current Weather Card
+            item {
+                CurrentWeatherCard(weather.current)
+            }
+            
+            // Quick Stats Row
+            item {
+                QuickStatsRow(weather.current, weather.airQuality)
+            }
+            
+            // Hourly Forecast
+            item {
+                HourlyForecastSection(weather.hourly)
+            }
+            
+            // AI Insights Preview
+            item {
+                AIInsightsPreviewCard(onClick = onNavigateToAI)
+            }
+            
+            // Daily Forecast Preview
+            item {
+                DailyForecastPreview(
+                    daily = weather.daily.take(5),
+                    onViewAll = onNavigateToForecast
+                )
+            }
+            
+            // Air Quality Card
+            weather.airQuality?.let { aq ->
+                item {
+                    AirQualityCard(aq)
+                }
+            }
+            
+            // Banner Ad (for free users only)
+            item {
+                BannerAdView(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    isPremium = false // TODO: Pass actual isPremium from ViewModel
+                )
+            }
+            
+            // Bottom spacing
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
-        
-        // Bottom spacing
-        item { Spacer(modifier = Modifier.height(24.dp)) }
     }
 }
 
 @Composable
 private fun CurrentWeatherCard(current: CurrentWeather) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(24.dp)
+    GlassmorphicCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cardEntrance(delay = 0),
+        cornerRadius = 24.dp,
+        glowColor = Color(0xFF60A5FA)
     ) {
         Column(
             modifier = Modifier
@@ -179,34 +295,41 @@ private fun CurrentWeatherCard(current: CurrentWeather) {
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Weather icon
-            Icon(
-                imageVector = getWeatherIcon(current.weatherCode),
-                contentDescription = current.weatherDescription,
-                modifier = Modifier.size(80.dp),
+            // Animated weather icon with glow
+            AnimatedWeatherIcon(
+                weatherCode = current.weatherCode,
+                isDay = current.isDay,
+                size = 100.dp,
                 tint = Color(0xFF87CEEB)
             )
             
-            // Temperature
-            Text(
-                text = "${current.temperature.toInt()}°",
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Animated temperature counter
+            AnimatedTemperature(
+                temperature = current.temperature,
                 fontSize = 72.sp,
                 fontWeight = FontWeight.Light,
                 color = Color.White
             )
             
-            // Description
-            Text(
+            // Description with fade in
+            FadeInText(
                 text = current.weatherDescription,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.8f)
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.9f),
+                delay = 200
             )
             
+            Spacer(modifier = Modifier.height(4.dp))
+            
             // Feels like
-            Text(
+            FadeInText(
                 text = "Feels like ${current.feelsLike.toInt()}°",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.6f)
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                delay = 400
             )
         }
     }
@@ -244,14 +367,14 @@ private fun StatCard(
     icon: ImageVector,
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    delay: Int = 0
 ) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+    GlassStatCard(
+        modifier = modifier
+            .cardEntrance(delay = delay)
+            .bounceOnAppear(),
+        accentColor = Color(0xFF60A5FA)
     ) {
         Column(
             modifier = Modifier
@@ -283,11 +406,10 @@ private fun StatCard(
 
 @Composable
 private fun HourlyForecastSection(hourly: List<HourlyWeather>) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+    GlassmorphicCard(
+        modifier = Modifier.cardEntrance(delay = 100),
+        cornerRadius = 16.dp,
+        animatedBorder = false
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -320,11 +442,21 @@ private fun HourlyItem(hour: HourlyWeather) {
             color = Color.White.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Icon(
-            imageVector = getWeatherIcon(hour.weatherCode),
-            contentDescription = null,
-            tint = Color(0xFF87CEEB),
-            modifier = Modifier.size(28.dp)
+        AnimatedWeatherIcon(
+            weatherCode = hour.weatherCode,
+            isDay = hour.isDay,
+            size = 32.dp,
+            tint = Color(0xFF87CEEB)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "${hour.temperature.toInt()}°",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+            color = Color.White
+        )
+    }
+}
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -338,12 +470,19 @@ private fun HourlyItem(hour: HourlyWeather) {
 
 @Composable
 private fun AIInsightsPreviewCard(onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF6366F1).copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+    val haptic = rememberHapticFeedback()
+    
+    GlassmorphicCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cardEntrance(delay = 200)
+            .clickableWithHaptic(HapticType.LIGHT) {
+                haptic(HapticType.MEDIUM)
+                onClick()
+            },
+        cornerRadius = 16.dp,
+        glowColor = Color(0xFF6366F1),
+        backgroundColor = Color(0xFF6366F1).copy(alpha = 0.2f)
     ) {
         Row(
             modifier = Modifier
@@ -351,12 +490,17 @@ private fun AIInsightsPreviewCard(onClick: () -> Unit) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = "AI",
-                tint = Color(0xFFA78BFA),
-                modifier = Modifier.size(40.dp)
-            )
+            // Pulsing AI icon
+            Box(
+                modifier = Modifier.bounceOnAppear()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "AI",
+                    tint = Color(0xFFA78BFA),
+                    modifier = Modifier.size(40.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -385,11 +529,10 @@ private fun DailyForecastPreview(
     daily: List<DailyWeather>,
     onViewAll: () -> Unit
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+    GlassmorphicCard(
+        modifier = Modifier.cardEntrance(delay = 300),
+        cornerRadius = 16.dp,
+        animatedBorder = false
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -410,7 +553,7 @@ private fun DailyForecastPreview(
             daily.forEachIndexed { index, day ->
                 DailyForecastRow(day, index)
                 if (index < daily.lastIndex) {
-                    Divider(
+                    HorizontalDivider(
                         color = Color.White.copy(alpha = 0.1f),
                         modifier = Modifier.padding(vertical = 8.dp)
                     )

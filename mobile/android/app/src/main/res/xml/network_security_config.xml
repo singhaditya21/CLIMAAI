@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration for ClimaAI
+    Play Store Requirement: Secure communications
+-->
+<network-security-config>
+    <!-- Default: Only allow secure HTTPS connections -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Debug only: Allow localhost for development -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
+    
+    <!-- Production domains with certificate pinning -->
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- ClimaAI Backend -->
+        <domain includeSubdomains="true">api.climaai.com</domain>
+        <domain includeSubdomains="true">climaai.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- Free Weather APIs (HTTPS only) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.open-meteo.com</domain>
+        <domain includeSubdomains="true">air-quality-api.open-meteo.com</domain>
+        <domain includeSubdomains="true">nominatim.openstreetmap.org</domain>
+        <domain includeSubdomains="true">api.rainviewer.com</domain>
+        <domain includeSubdomains="true">tilecache.rainviewer.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- Map Tiles -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">tile.openweathermap.org</domain>
+        <domain includeSubdomains="true">server.arcgisonline.com</domain>
+        <domain includeSubdomains="true">basemaps.cartocdn.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

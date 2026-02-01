@@ -68,7 +68,7 @@ fun ClimaAITheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = PremiumTypography,
         content = content
     )
 }

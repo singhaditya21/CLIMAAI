@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ClimaAI</string>
+    <string name="tile_name">Weather</string>
+    <string name="complication_temp_name">Temperature</string>
+    <string name="complication_condition_name">Conditions</string>
+</resources>

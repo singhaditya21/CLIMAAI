@@ -9,4 +9,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:previewImage="@drawable/widget_preview_large"
-    android:description="@string/widget_large_description" />
+    android:description="@string/widget_large_description"
+    android:configure="com.climaai.app.widget.WidgetConfigActivity" />

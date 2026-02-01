@@ -14,23 +14,48 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.climaai.app.data.NotificationPrefsManager
 import com.climaai.app.ui.viewmodel.WeatherViewModel
+import com.climaai.app.work.WorkScheduler
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: WeatherViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToAppearance: () -> Unit = {},
+    onNavigateToPaywall: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
     val isPremium by viewModel.isPremium.collectAsState()
     val subscriptionStatus by viewModel.subscriptionStatus.collectAsState()
     
+    // Notification preferences
+    val notificationPrefs = remember { NotificationPrefsManager(context) }
+    val dailySummaryEnabled by notificationPrefs.dailySummaryEnabled.collectAsState(initial = true)
+    val dailySummaryHour by notificationPrefs.dailySummaryHour.collectAsState(initial = 7)
+    val rainAlertsEnabled by notificationPrefs.rainAlertsEnabled.collectAsState(initial = true)
+    val severeWeatherEnabled by notificationPrefs.severeWeatherEnabled.collectAsState(initial = true)
+    val uvAlertsEnabled by notificationPrefs.uvAlertsEnabled.collectAsState(initial = false)
+    val pollenAlertsEnabled by notificationPrefs.pollenAlertsEnabled.collectAsState(initial = false)
+    
     // Settings state
     var temperatureUnit by remember { mutableStateOf("celsius") }
-    var notificationsEnabled by remember { mutableStateOf(true) }
     var darkMode by remember { mutableStateOf("auto") }
+    var showTimePicker by remember { mutableStateOf(false) }
+    
+    // Time picker state
+    val timePickerState = rememberTimePickerState(
+        initialHour = dailySummaryHour,
+        initialMinute = 0,
+        is24Hour = true
+    )
     
     Scaffold(
         topBar = {
@@ -79,14 +104,126 @@ fun SettingsScreen(
                     )
                 }
                 
-                // Notifications Section
+                // Appearance Section
+                SettingsSection(title = "Appearance") {
+                    SettingsNavigationRow(
+                        icon = Icons.Default.Palette,
+                        title = "Customize Look",
+                        subtitle = if (isPremium) "Theme, colors, fonts & more" else "Unlock with Premium",
+                        isPremium = !isPremium,
+                        onClick = {
+                            if (isPremium) {
+                                onNavigateToAppearance()
+                            } else {
+                                onNavigateToPaywall()
+                            }
+                        }
+                    )
+                }
+                
+                // Notifications Section - Enhanced
                 SettingsSection(title = "Notifications") {
+                    // Daily Summary
                     SettingsToggleRow(
-                        icon = Icons.Default.Notifications,
-                        title = "Weather Alerts",
-                        subtitle = "Severe weather, rain, UV warnings",
-                        checked = notificationsEnabled,
-                        onCheckedChange = { notificationsEnabled = it }
+                        icon = Icons.Default.WbSunny,
+                        title = "Daily Summary",
+                        subtitle = "Weather briefing at ${formatHour(dailySummaryHour)}",
+                        checked = dailySummaryEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch {
+                                notificationPrefs.setDailySummaryEnabled(enabled)
+                                if (enabled) {
+                                    WorkScheduler.scheduleDailySummary(context, dailySummaryHour)
+                                } else {
+                                    WorkScheduler.cancelDailySummary(context)
+                                }
+                            }
+                        }
+                    )
+                    
+                    if (dailySummaryEnabled) {
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                        SettingsOptionRow(
+                            icon = Icons.Default.Schedule,
+                            title = "Summary Time",
+                            value = formatHour(dailySummaryHour),
+                            onClick = { showTimePicker = true }
+                        )
+                    }
+                    
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    
+                    // Rain Alerts
+                    SettingsToggleRow(
+                        icon = Icons.Default.WaterDrop,
+                        title = "Rain Alerts",
+                        subtitle = "Notify when rain is expected soon",
+                        checked = rainAlertsEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch {
+                                notificationPrefs.setRainAlertsEnabled(enabled)
+                            }
+                        }
+                    )
+                    
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    
+                    // Severe Weather Alerts
+                    SettingsToggleRow(
+                        icon = Icons.Default.Warning,
+                        title = "Severe Weather",
+                        subtitle = "Storms, extreme conditions",
+                        checked = severeWeatherEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch {
+                                notificationPrefs.setSevereWeatherEnabled(enabled)
+                            }
+                        }
+                    )
+                    
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    
+                    // UV Alerts
+                    SettingsToggleRow(
+                        icon = Icons.Default.WbSunny,
+                        title = "UV Warnings",
+                        subtitle = "Alert when UV index is high",
+                        checked = uvAlertsEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch {
+                                notificationPrefs.setUVAlertsEnabled(enabled)
+                            }
+                        }
+                    )
+                    
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    
+                    // Pollen Alerts
+                    SettingsToggleRow(
+                        icon = Icons.Default.Grass,
+                        title = "Pollen Alerts",
+                        subtitle = "Notify on high pollen days",
+                        checked = pollenAlertsEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch {
+                                notificationPrefs.setPollenAlertsEnabled(enabled)
+                            }
+                        }
+                    )
+                }
+                
+                // Widget Section
+                SettingsSection(title = "Widgets") {
+                    SettingsInfoRow(
+                        icon = Icons.Default.Widgets,
+                        title = "Add Widget",
+                        value = ""
+                    )
+                    Text(
+                        text = "Long-press your home screen and select Widgets to add ClimaAI widgets",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
                 
@@ -117,13 +254,13 @@ fun SettingsScreen(
                         title = "Version",
                         value = "1.0.0"
                     )
-                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     SettingsInfoRow(
                         icon = Icons.Default.Policy,
                         title = "Privacy Policy",
                         value = ""
                     )
-                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     SettingsInfoRow(
                         icon = Icons.Default.Description,
                         title = "Terms of Service",
@@ -134,6 +271,46 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+    
+    // Time Picker Dialog
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select Summary Time") },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            notificationPrefs.setDailySummaryHour(timePickerState.hour)
+                            if (dailySummaryEnabled) {
+                                WorkScheduler.scheduleDailySummary(context, timePickerState.hour)
+                            }
+                        }
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+private fun formatHour(hour: Int): String {
+    return when {
+        hour == 0 -> "12:00 AM"
+        hour < 12 -> "$hour:00 AM"
+        hour == 12 -> "12:00 PM"
+        else -> "${hour - 12}:00 PM"
     }
 }
 
@@ -155,7 +332,7 @@ private fun SubscriptionCard(isPremium: Boolean, currentPlan: String?) {
             Icon(
                 imageVector = if (isPremium) Icons.Default.Star else Icons.Default.StarBorder,
                 contentDescription = null,
-                tint = if (isPremium) Color(0xFFFBBF24) else Color(0xFFFBBF24),
+                tint = Color(0xFFFBBF24),
                 modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -329,3 +506,64 @@ private fun SettingsInfoRow(
         }
     }
 }
+
+@Composable
+private fun SettingsNavigationRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    isPremium: Boolean = false,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isPremium) Color(0xFFA78BFA) else Color(0xFF60A5FA),
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White
+                )
+                if (isPremium) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        color = Color(0xFFA78BFA).copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "PRO",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            color = Color(0xFFA78BFA),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.6f)
+            )
+        }
+        Icon(
+            imageVector = if (isPremium) Icons.Default.Lock else Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = if (isPremium) Color(0xFFA78BFA) else Color.White.copy(alpha = 0.4f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+

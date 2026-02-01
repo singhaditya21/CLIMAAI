@@ -8,18 +8,20 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
-    <!-- Optional: for background location updates -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Foreground service for widgets (Android 12+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".ClimaAIApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ClimaAI"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false">
         
         <activity
             android:name=".MainActivity"
@@ -31,6 +33,86 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Widget Configuration Activity -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ClimaAI">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        
+        <!-- ============================================================ -->
+        <!-- Weather Widgets -->
+        <!-- ============================================================ -->
+        
+        <!-- Small Weather Widget (2x1) -->
+        <receiver
+            android:name=".widget.SmallWeatherWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_small_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/small_weather_widget_info" />
+        </receiver>
+        
+        <!-- Medium Weather Widget (3x2) -->
+        <receiver
+            android:name=".widget.MediumWeatherWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_medium_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/medium_weather_widget_info" />
+        </receiver>
+        
+        <!-- Large Weather Widget (4x3) -->
+        <receiver
+            android:name=".widget.LargeWeatherWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_large_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/large_weather_widget_info" />
+        </receiver>
+        
+        <!-- Extra Large Weather Widget (4x4) with 7-day forecast -->
+        <receiver
+            android:name=".widget.ExtraLargeWeatherWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_xlarge_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/xlarge_weather_widget_info" />
+        </receiver>
+        
+        <!-- ============================================================ -->
+        <!-- Boot Receiver for re-scheduling work after device restart -->
+        <!-- ============================================================ -->
+        
+        <receiver
+            android:name=".work.BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
         
         <!-- Google Play Billing -->
         <meta-data

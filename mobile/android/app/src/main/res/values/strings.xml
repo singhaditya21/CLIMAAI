@@ -11,4 +11,6 @@
     <string name="widget_small_name">ClimaAI Small</string>
     <string name="widget_medium_name">ClimaAI Medium</string>
     <string name="widget_large_name">ClimaAI Large</string>
+    <string name="widget_xlarge_name">ClimaAI XL</string>
+    <string name="widget_xlarge_description">Complete weather with 7-day forecast</string>
 </resources>
