@@ -159,46 +159,46 @@ fun HomeScreen(
                 )
             }
             
-            Box(modifier = Modifier.fillMaxSize()
-        ) {
-            when (val state = weatherState) {
-                is WeatherState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color.White
-                    )
-                }
-                is WeatherState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.CloudOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = Color.White.copy(alpha = 0.5f)
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = weatherState) {
+                    is WeatherState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = Color.White
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(state.message, color = Color.White)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.refresh() },
-                            enabled = canRefresh
+                    }
+                    is WeatherState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("Retry")
+                            Icon(
+                                Icons.Default.CloudOff,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = Color.White.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(state.message, color = Color.White)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { viewModel.refresh() },
+                                enabled = canRefresh
+                            ) {
+                                Text("Retry")
+                            }
                         }
                     }
-                }
-                is WeatherState.Success -> {
-                    WeatherContent(
-                        weather = state.data,
-                        isRefreshing = isRefreshing,
-                        canRefresh = canRefresh,
-                        onRefresh = { viewModel.forceRefresh() },
-                        onNavigateToForecast = onNavigateToForecast,
-                        onNavigateToAI = onNavigateToAI
-                    )
+                    is WeatherState.Success -> {
+                        WeatherContent(
+                            weather = state.data,
+                            isRefreshing = isRefreshing,
+                            canRefresh = canRefresh,
+                            onRefresh = { viewModel.forceRefresh() },
+                            onNavigateToForecast = onNavigateToForecast,
+                            onNavigateToAI = onNavigateToAI
+                        )
+                    }
                 }
             }
         }
@@ -447,16 +447,6 @@ private fun HourlyItem(hour: HourlyWeather) {
             isDay = hour.isDay,
             size = 32.dp,
             tint = Color(0xFF87CEEB)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "${hour.temperature.toInt()}°",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium,
-            color = Color.White
-        )
-    }
-}
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(

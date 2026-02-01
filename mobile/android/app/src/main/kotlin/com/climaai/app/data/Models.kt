@@ -76,7 +76,8 @@ data class AirQuality(
 data class Location(
     val latitude: Double,
     val longitude: Double,
-    val elevation: Double?
+    val elevation: Double?,
+    val name: String? = null
 )
 
 // AI Models

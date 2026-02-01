@@ -228,7 +228,7 @@ object FeatureGate {
      * Flow for observing premium status changes.
      */
     fun isPremiumFlow(): Flow<Boolean>? {
-        return billingManager?.subscriptionState?.map { it.isPremium }
+        return billingManager?.subscriptionStatus?.map { it.isPro }
     }
     
     /**

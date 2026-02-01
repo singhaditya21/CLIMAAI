@@ -17,13 +17,17 @@ import androidx.navigation.compose.rememberNavController
 import com.climaai.app.ui.navigation.AppNavigation
 import com.climaai.app.ui.theme.ClimaAITheme
 import com.climaai.app.ui.viewmodel.WeatherViewModel
+import com.climaai.app.ui.viewmodel.AuthViewModel
+import com.climaai.app.ui.viewmodel.SubscriptionViewModel
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 
 class MainActivity : ComponentActivity() {
     
-    private val viewModel: WeatherViewModel by viewModels()
+    private val weatherViewModel: WeatherViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
+    private val subscriptionViewModel: SubscriptionViewModel by viewModels()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     
     private val locationPermissionLauncher = registerForActivityResult(
@@ -38,7 +42,7 @@ class MainActivity : ComponentActivity() {
             }
             else -> {
                 // Use default location
-                viewModel.setLocation(37.7749, -122.4194, "San Francisco")
+                weatherViewModel.setLocation(37.7749, -122.4194, "San Francisco")
             }
         }
     }
@@ -60,7 +64,9 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     AppNavigation(
                         navController = navController,
-                        viewModel = viewModel
+                        weatherViewModel = weatherViewModel,
+                        authViewModel = authViewModel,
+                        subscriptionViewModel = subscriptionViewModel
                     )
                 }
             }
@@ -108,26 +114,26 @@ class MainActivity : ComponentActivity() {
                     null
                 ).addOnSuccessListener { location ->
                     if (location != null) {
-                        viewModel.setLocation(location.latitude, location.longitude)
+                        weatherViewModel.setLocation(location.latitude, location.longitude)
                     } else {
                         // Fall back to last known location
                         fusedLocationClient.lastLocation.addOnSuccessListener { lastLocation ->
                             if (lastLocation != null) {
-                                viewModel.setLocation(lastLocation.latitude, lastLocation.longitude)
+                                weatherViewModel.setLocation(lastLocation.latitude, lastLocation.longitude)
                             } else {
                                 // Use default
-                                viewModel.setLocation(37.7749, -122.4194, "San Francisco")
+                                weatherViewModel.setLocation(37.7749, -122.4194, "San Francisco")
                             }
                         }
                     }
                 }.addOnFailureListener { e ->
                     Log.e("MainActivity", "Failed to get location", e)
-                    viewModel.setLocation(37.7749, -122.4194, "San Francisco")
+                    weatherViewModel.setLocation(37.7749, -122.4194, "San Francisco")
                 }
             }
         } catch (e: SecurityException) {
             Log.e("MainActivity", "Location permission denied", e)
-            viewModel.setLocation(37.7749, -122.4194, "San Francisco")
+            weatherViewModel.setLocation(37.7749, -122.4194, "San Francisco")
         }
     }
 }

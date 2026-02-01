@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand Colors -->
+    <color name="primary">#FF60A5FA</color>
+    <color name="primary_dark">#FF3B82F6</color>
+    <color name="primary_light">#FF93C5FD</color>
+    <color name="secondary">#FFA78BFA</color>
+    
+    <!-- Background Colors -->
+    <color name="background_dark">#FF0D1B2A</color>
+    <color name="background_medium">#FF1E3A5F</color>
+    <color name="surface">#FF1A2F4A</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#FF10B981</color>
+    <color name="warning">#FFFBBF24</color>
+    <color name="error">#FFEF4444</color>
+    
+    <!-- Transparent -->
+    <color name="transparent">#00000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>
