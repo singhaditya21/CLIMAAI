@@ -17,11 +17,13 @@ private val Context.dataStore by preferencesDataStore("climaai_prefs")
  * Weather repository with caching layer.
  * Implements cache-first strategy with rate limiting.
  */
-class WeatherRepository(private val context: Context) {
+class WeatherRepository(
+    private val context: Context,
+    private val api: ClimaAIApi = ApiClient.api,
+    private val cache: WeatherCacheDao = WeatherCacheDatabase.getInstance(context).weatherCacheDao(),
+    private val refreshTracker: RefreshTracker = RefreshTracker(context)
+) {
     
-    private val api = ApiClient.api
-    private val cache = WeatherCacheDatabase.getInstance(context).weatherCacheDao()
-    private val refreshTracker = RefreshTracker(context)
     private val gson = Gson()
     
     companion object {
