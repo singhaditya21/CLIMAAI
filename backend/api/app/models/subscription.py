@@ -2,7 +2,7 @@
 Subscription model for tracking premium features.
 """
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.types import Uuid
 from sqlalchemy.orm import relationship
 import uuid
 import enum
@@ -31,8 +31,8 @@ class SubscriptionPlan(str, enum.Enum):
 class Subscription(Base):
     __tablename__ = "subscriptions"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Subscription details
     platform = Column(SQLEnum(SubscriptionPlatform), nullable=False)

@@ -2,7 +2,7 @@
 User model with authentication and preferences.
 """
 from sqlalchemy import Column, String, Boolean, JSON, Integer
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.types import Uuid
 from sqlalchemy.orm import relationship
 import uuid
 from ..database import Base
@@ -11,7 +11,7 @@ from ..database import Base
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=True)  # Can be null for OAuth
     full_name = Column(String(255))

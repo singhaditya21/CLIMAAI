@@ -3,7 +3,7 @@ Mock Nowcast Service - Realistic minute-by-minute precipitation simulation.
 """
 import random
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from enum import Enum
 
 
