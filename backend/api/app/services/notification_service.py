@@ -217,19 +217,23 @@ class NotificationService:
             devices = result.fetchall()
             
             success_count = 0
+            successful_tokens = []
             for device_token, platform in devices:
                 success = await self.send_notification(platform, device_token, title, body, data)
                 if success:
                     success_count += 1
-                    
-                    # Update last_used_at
-                    await db.execute(
-                        f"""
-                        UPDATE device_tokens
-                        SET last_used_at = NOW()
-                        WHERE token = '{device_token}'
-                        """
-                    )
+                    successful_tokens.append(device_token)
+
+            if successful_tokens:
+                # Update last_used_at for all successful tokens in one query
+                tokens_list = ", ".join([f"'{token}'" for token in successful_tokens])
+                await db.execute(
+                    f"""
+                    UPDATE device_tokens
+                    SET last_used_at = NOW()
+                    WHERE token IN ({tokens_list})
+                    """
+                )
             
             await db.commit()
             return success_count
