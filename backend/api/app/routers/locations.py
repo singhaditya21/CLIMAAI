@@ -3,7 +3,7 @@ Location search and management router.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from typing import List
 import httpx
 from ..models import User
@@ -92,22 +92,15 @@ async def get_favorite_locations(
     Get user's saved favorite locations.
     """
     try:
-        result = await db.execute(
-            select(
-                "id", "name", "latitude", "longitude", "is_default", "created_at"
-            ).select_from("favorite_locations")
-            .where("user_id" == current_user.id)
-            .order_by("is_default DESC", "created_at DESC")
-        )
-        
         # Manual query since we're not using full ORM models for this table
-        query = f"""
+        # Using text() with parameters prevents SQL injection and ensures valid SQL for UUIDs
+        stmt = text("""
             SELECT id, name, latitude, longitude, is_default, created_at
             FROM favorite_locations
-            WHERE user_id = {current_user.id}
+            WHERE user_id = :user_id
             ORDER BY is_default DESC, created_at DESC
-        """
-        result = await db.execute(query)
+        """)
+        result = await db.execute(stmt, {"user_id": current_user.id})
         rows = result.fetchall()
         
         favorites = []
