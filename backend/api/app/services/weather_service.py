@@ -19,6 +19,8 @@ from ..schemas.weather import (
 
 settings = get_settings()
 
+_weather_service: Optional['WeatherService'] = None
+
 
 class WeatherService:
     """Service for fetching and managing weather data."""
@@ -51,9 +53,9 @@ class WeatherService:
         99: "Thunderstorm with heavy hail",
     }
     
-    def __init__(self):
-        self.redis_client: Optional[redis.Redis] = None
-        self.http_client = httpx.AsyncClient(timeout=30.0)
+    def __init__(self, http_client: Optional[httpx.AsyncClient] = None, redis_client: Optional[redis.Redis] = None):
+        self.redis_client: Optional[redis.Redis] = redis_client
+        self.http_client = http_client or httpx.AsyncClient(timeout=30.0)
     
     async def _get_redis(self) -> redis.Redis:
         """Get or create Redis client."""
@@ -395,3 +397,19 @@ class WeatherService:
             return "Last Quarter 🌗"
         else:
             return "Waning Crescent 🌘"
+
+
+def get_weather_service() -> WeatherService:
+    """Get the global WeatherService instance."""
+    global _weather_service
+    if _weather_service is None:
+        _weather_service = WeatherService()
+    return _weather_service
+
+
+async def close_weather_service():
+    """Close the global WeatherService instance."""
+    global _weather_service
+    if _weather_service:
+        await _weather_service.close()
+        _weather_service = None
