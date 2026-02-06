@@ -43,8 +43,8 @@ async def get_current_weather(
     weather_service = WeatherService()
     
     try:
-        # Get weather data
-        weather = await weather_service.get_current_weather(latitude, longitude)
+        # Get weather data (pass db for history tracking)
+        weather = await weather_service.get_current_weather(latitude, longitude, db=db)
         
         # If user is not premium, limit forecast days
         if current_user:

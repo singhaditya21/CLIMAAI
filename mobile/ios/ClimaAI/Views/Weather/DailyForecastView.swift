@@ -90,18 +90,31 @@ struct DailyForecastRow: View {
                 
                 Spacer()
                 
-                // Precipitation probability
-                if day.precipitationProbability > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "drop.fill")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                        Text("\(day.precipitationProbability)%")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                // Precipitation probability & Snow
+                VStack(alignment: .trailing, spacing: 2) {
+                    if day.precipitationProbability > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "drop.fill")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            Text("\(day.precipitationProbability)%")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    .frame(width: 60)
+
+                    if let snow = day.snowAccumulation, snow > 0.1 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "snowflake")
+                                .font(.caption)
+                                .foregroundColor(.cyan)
+                            Text("\(String(format: "%.1f", snow))mm")
+                                .font(.caption2)
+                                .foregroundColor(.cyan)
+                        }
+                    }
                 }
+                .frame(width: 60)
                 
                 // Temperature range
                 HStack(spacing: 8) {

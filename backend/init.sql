@@ -55,6 +55,21 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_apple_txn ON subscriptions(apple_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_google_token ON subscriptions(google_purchase_token);
 
+-- Weather History table
+CREATE TABLE IF NOT EXISTS weather_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    latitude FLOAT NOT NULL,
+    longitude FLOAT NOT NULL,
+    temperature FLOAT,
+    pressure_msl FLOAT,
+    humidity FLOAT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_weather_history_loc_time ON weather_history(latitude, longitude, created_at);
+
+
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -72,6 +87,11 @@ CREATE TRIGGER update_users_updated_at
 
 CREATE TRIGGER update_subscriptions_updated_at
     BEFORE UPDATE ON subscriptions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_weather_history_updated_at
+    BEFORE UPDATE ON weather_history
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

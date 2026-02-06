@@ -196,7 +196,8 @@ async def get_flu_risk(
 @router.get("/migraine-risk")
 async def get_migraine_risk(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get migraine trigger risk based on weather conditions.
@@ -210,12 +211,17 @@ async def get_migraine_risk(
     health_service = HealthIndexService()
     
     try:
-        # Get current weather
-        weather = await weather_service.get_current_weather(latitude, longitude)
+        # Get current weather (and save history)
+        weather = await weather_service.get_current_weather(latitude, longitude, db=db)
+
+        # Get real pressure history from DB
+        history_records = await weather_service.get_weather_history(latitude, longitude, hours=24, db=db)
         
-        # Use hourly pressure for history (simulated since we don't track history)
-        # In production, would use Redis to track pressure over 24h
-        pressure_history = [weather.current.pressure] * 24  # Placeholder
+        if history_records:
+            pressure_history = [h.pressure_msl for h in history_records if h.pressure_msl is not None]
+        else:
+            # Fallback if no history yet (first call)
+            pressure_history = [weather.current.pressure]
         
         migraine_risk = health_service.calculate_migraine_risk(
             current_pressure=weather.current.pressure,
