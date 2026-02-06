@@ -328,12 +328,31 @@ private fun CurrentWeatherCard(current: CurrentWeather) {
             Spacer(modifier = Modifier.height(4.dp))
             
             // Feels like
-            FadeInText(
-                text = "Feels like ${current.feelsLike.toInt()}°",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.6f),
-                delay = 400
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FadeInText(
+                    text = "Feels like ${current.feelsLike.toInt()}°",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.6f),
+                    delay = 400
+                )
+
+                current.feelsLikeShade?.let { shade ->
+                    Text(
+                        text = "•",
+                        color = Color.White.copy(alpha = 0.3f),
+                        fontSize = 14.sp
+                    )
+                    FadeInText(
+                        text = "Shade ${shade.toInt()}°",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.6f),
+                        delay = 450
+                    )
+                }
+            }
         }
     }
 }
@@ -589,23 +608,45 @@ private fun DailyForecastRow(day: DailyWeather, dayIndex: Int) {
         
         Spacer(modifier = Modifier.weight(1f))
         
-        if (day.precipitationProbability > 0) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.WaterDrop,
-                    contentDescription = null,
-                    tint = Color(0xFF60A5FA),
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    text = "${day.precipitationProbability}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF60A5FA)
-                )
+        Column(horizontalAlignment = Alignment.End) {
+            if (day.precipitationProbability > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.WaterDrop,
+                        contentDescription = null,
+                        tint = Color(0xFF60A5FA),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "${day.precipitationProbability}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF60A5FA)
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(16.dp))
+
+            day.snowAccumulation?.let { snow ->
+                if (snow > 0.1) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AcUnit,
+                            contentDescription = null,
+                            tint = Color(0xFF22D3EE),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = String.format("%.1f mm", snow),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 10.sp,
+                            color = Color(0xFF22D3EE)
+                        )
+                    }
+                }
+            }
         }
         
+        Spacer(modifier = Modifier.width(16.dp))
+
         Text(
             text = "${day.temperatureMin.toInt()}°",
             style = MaterialTheme.typography.bodyMedium,

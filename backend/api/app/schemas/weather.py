@@ -10,6 +10,7 @@ class CurrentWeather(BaseModel):
     """Current weather conditions."""
     temperature: float = Field(..., description="Temperature in degrees")
     feels_like: float = Field(..., description="Apparent temperature")
+    feels_like_shade: Optional[float] = Field(None, description="Apparent temperature in shade")
     humidity: int = Field(..., ge=0, le=100, description="Relative humidity %")
     dew_point: Optional[float] = Field(None, description="Dew point temperature")
     wind_speed: float = Field(..., description="Wind speed")
@@ -30,6 +31,7 @@ class HourlyWeather(BaseModel):
     time: datetime
     temperature: float
     feels_like: float
+    feels_like_shade: Optional[float] = None
     precipitation_probability: int = Field(..., ge=0, le=100)
     precipitation: float
     weather_code: int
@@ -49,6 +51,7 @@ class DailyWeather(BaseModel):
     sunrise: str
     sunset: str
     precipitation_sum: float
+    snow_accumulation: float = Field(0, description="Snow accumulation in mm")
     precipitation_probability: int = Field(..., ge=0, le=100)
     weather_code: int
     weather_description: str

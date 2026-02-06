@@ -145,9 +145,19 @@ struct HomeView: View {
                     .font(.system(size: 15, weight: .medium))
                     .tracking(0.5)
                 
-                Text("Feels like \(Int(weather.feelsLike))°")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 8) {
+                    Text("Feels like \(Int(weather.feelsLike))°")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.secondary)
+
+                    if let shade = weather.feelsLikeShade {
+                        Text("•")
+                            .foregroundColor(.secondary.opacity(0.5))
+                        Text("Shade \(Int(shade))°")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             
             // Subtle separator

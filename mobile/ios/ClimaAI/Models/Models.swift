@@ -21,6 +21,7 @@ struct CurrentWeather: Codable, Identifiable {
     var id: String { UUID().uuidString }
     let temperature: Double
     let feelsLike: Double
+    let feelsLikeShade: Double?
     let humidity: Int
     let windSpeed: Double
     let windDirection: Int
@@ -37,6 +38,7 @@ struct CurrentWeather: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case temperature
         case feelsLike = "feels_like"
+        case feelsLikeShade = "feels_like_shade"
         case humidity
         case windSpeed = "wind_speed"
         case windDirection = "wind_direction"
@@ -56,6 +58,7 @@ struct HourlyWeather: Codable, Identifiable {
     let time: Date
     let temperature: Double
     let feelsLike: Double
+    let feelsLikeShade: Double?
     let precipitationProbability: Int
     let precipitation: Double
     let weatherCode: Int
@@ -69,6 +72,7 @@ struct HourlyWeather: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case time, temperature
         case feelsLike = "feels_like"
+        case feelsLikeShade = "feels_like_shade"
         case precipitationProbability = "precipitation_probability"
         case precipitation
         case weatherCode = "weather_code"
@@ -89,6 +93,7 @@ struct DailyWeather: Codable, Identifiable {
     let sunrise: String
     let sunset: String
     let precipitationSum: Double
+    let snowAccumulation: Double?
     let precipitationProbability: Int
     let weatherCode: Int
     let weatherDescription: String
@@ -102,6 +107,7 @@ struct DailyWeather: Codable, Identifiable {
         case temperatureMin = "temperature_min"
         case sunrise, sunset
         case precipitationSum = "precipitation_sum"
+        case snowAccumulation = "snow_accumulation"
         case precipitationProbability = "precipitation_probability"
         case weatherCode = "weather_code"
         case weatherDescription = "weather_description"

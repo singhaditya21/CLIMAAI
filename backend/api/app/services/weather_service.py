@@ -8,6 +8,9 @@ import math
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta, date
 import redis.asyncio as redis
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from ..models import WeatherHistory
 from ..config import get_settings
 from ..schemas.weather import (
     CurrentWeather,
@@ -91,6 +94,10 @@ class WeatherService:
         """Get human-readable weather description from WMO code."""
         return self.WEATHER_CODES.get(code, "Unknown")
     
+    def _round_coord(self, coord: float) -> float:
+        """Round coordinates to ~1km grid (2 decimal places) for history."""
+        return round(coord, 2)
+
     def _calculate_aqi(self, pm2_5: float, pm10: float, no2: float, o3: float) -> Tuple[int, str, str]:
         """
         Calculate AQI using simplified US EPA standard.
@@ -124,11 +131,33 @@ class WeatherService:
         
         return min(aqi, 500), category, health
     
+    async def get_weather_history(
+        self,
+        latitude: float,
+        longitude: float,
+        hours: int,
+        db: AsyncSession
+    ) -> List[WeatherHistory]:
+        """Get historical weather data."""
+        # Query using rounded coordinates to handle GPS drift
+        lat_rounded = self._round_coord(latitude)
+        lon_rounded = self._round_coord(longitude)
+
+        stmt = select(WeatherHistory).where(
+            WeatherHistory.latitude == lat_rounded,
+            WeatherHistory.longitude == lon_rounded,
+            WeatherHistory.created_at >= datetime.utcnow() - timedelta(hours=hours)
+        ).order_by(WeatherHistory.created_at.asc())
+
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
     async def get_current_weather(
         self,
         latitude: float,
         longitude: float,
-        use_cache: bool = True
+        use_cache: bool = True,
+        db: Optional[AsyncSession] = None
     ) -> WeatherResponse:
         """
         Get current weather, hourly, and daily forecasts.
@@ -179,6 +208,7 @@ class WeatherService:
                 "sunrise",
                 "sunset",
                 "precipitation_sum",
+                "snowfall_sum",
                 "precipitation_probability_max",
                 "weather_code",
                 "wind_speed_10m_max",
@@ -204,6 +234,7 @@ class WeatherService:
         current = CurrentWeather(
             temperature=current_data.get("temperature_2m", 0),
             feels_like=current_data.get("apparent_temperature", 0),
+            feels_like_shade=current_data.get("apparent_temperature", 0),  # OpenMeteo is shade-based
             humidity=current_data.get("relative_humidity_2m", 0),
             dew_point=current_data.get("dew_point_2m"),
             wind_speed=current_data.get("wind_speed_10m", 0),
@@ -227,6 +258,7 @@ class WeatherService:
                 time=datetime.fromisoformat(hourly_data["time"][i]),
                 temperature=hourly_data["temperature_2m"][i],
                 feels_like=hourly_data["apparent_temperature"][i],
+                feels_like_shade=hourly_data["apparent_temperature"][i],
                 precipitation_probability=hourly_data["precipitation_probability"][i] or 0,
                 precipitation=hourly_data["precipitation"][i],
                 weather_code=hourly_data["weather_code"][i],
@@ -258,6 +290,7 @@ class WeatherService:
                 sunrise=daily_data["sunrise"][i],
                 sunset=daily_data["sunset"][i],
                 precipitation_sum=daily_data["precipitation_sum"][i],
+                snow_accumulation=daily_data.get("snowfall_sum", [])[i] or 0,
                 precipitation_probability=daily_data["precipitation_probability_max"][i] or 0,
                 weather_code=daily_data["weather_code"][i],
                 weather_description=self._get_weather_description(daily_data["weather_code"][i]),
@@ -283,6 +316,21 @@ class WeatherService:
             cached=False,
         )
         
+        # Save history if DB session is provided
+        if db:
+            try:
+                history_entry = WeatherHistory(
+                    latitude=self._round_coord(latitude),
+                    longitude=self._round_coord(longitude),
+                    temperature=current.temperature,
+                    pressure_msl=current.pressure,
+                    humidity=current.humidity,
+                )
+                db.add(history_entry)
+                # No commit here, handled by dependency
+            except Exception as e:
+                print(f"Failed to save weather history: {e}")
+
         # Cache the response
         await self._set_cached_data(cache_key, weather_response.model_dump(mode="json"))
         

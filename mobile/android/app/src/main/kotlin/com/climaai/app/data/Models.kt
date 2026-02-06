@@ -17,6 +17,7 @@ data class WeatherResponse(
 data class CurrentWeather(
     val temperature: Double,
     @SerializedName("feels_like") val feelsLike: Double,
+    @SerializedName("feels_like_shade") val feelsLikeShade: Double?,
     val humidity: Int,
     @SerializedName("wind_speed") val windSpeed: Double,
     @SerializedName("wind_direction") val windDirection: Int,
@@ -35,6 +36,7 @@ data class HourlyWeather(
     val time: Date,
     val temperature: Double,
     @SerializedName("feels_like") val feelsLike: Double,
+    @SerializedName("feels_like_shade") val feelsLikeShade: Double?,
     @SerializedName("precipitation_probability") val precipitationProbability: Int,
     val precipitation: Double,
     @SerializedName("weather_code") val weatherCode: Int,
@@ -53,6 +55,7 @@ data class DailyWeather(
     val sunrise: String,
     val sunset: String,
     @SerializedName("precipitation_sum") val precipitationSum: Double,
+    @SerializedName("snow_accumulation") val snowAccumulation: Double?,
     @SerializedName("precipitation_probability") val precipitationProbability: Int,
     @SerializedName("weather_code") val weatherCode: Int,
     @SerializedName("weather_description") val weatherDescription: String,
