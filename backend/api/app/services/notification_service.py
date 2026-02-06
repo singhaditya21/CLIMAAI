@@ -3,6 +3,7 @@ Push notifications service for iOS (APNs) and Android (FCM).
 """
 from typing import Optional, List
 from datetime import datetime
+from functools import lru_cache
 import httpx
 import jwt
 import time
@@ -10,6 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_settings
 
 settings = get_settings()
+
+
+@lru_cache(maxsize=None)
+def _read_file_cached(path: str) -> str:
+    """Read file content with caching."""
+    with open(path, 'r') as f:
+        return f.read()
 
 
 class NotificationService:
@@ -35,8 +43,7 @@ class NotificationService:
             return None
         
         try:
-            with open(self.apns_key_path, 'r') as f:
-                apns_key = f.read()
+            apns_key = _read_file_cached(self.apns_key_path)
             
             headers = {
                 "alg": "ES256",
