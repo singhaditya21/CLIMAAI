@@ -7,7 +7,7 @@ from ..models import User
 from ..schemas.weather import WeatherResponse
 from ..schemas.nowcast import NowcastResponse
 from ..schemas.radar_alerts import RadarFramesResponse, RadarFrame, AlertsListResponse, WeatherAlertResponse
-from ..services.weather_service import WeatherService
+from ..services.weather_service import WeatherService, get_weather_service
 from ..services.nowcast_service import NowcastService
 from ..services.radar_service import RadarService
 from ..services.alerts_service import AlertsService
@@ -25,7 +25,8 @@ async def get_current_weather(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
     longitude: float = Query(..., ge=-180, le=180, description="Longitude"),
     current_user: Optional[User] = Depends(get_optional_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get current weather and forecast.
@@ -40,7 +41,6 @@ async def get_current_weather(
     - 16-day forecast
     - Detailed air quality breakdown
     """
-    weather_service = WeatherService()
     
     try:
         # Get weather data
@@ -62,8 +62,6 @@ async def get_current_weather(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/hourly", response_model=dict)
@@ -72,7 +70,8 @@ async def get_hourly_forecast(
     longitude: float = Query(..., ge=-180, le=180),
     hours: int = Query(24, ge=1, le=168, description="Number of hours (max 168 for premium)"),
     current_user: Optional[User] = Depends(get_optional_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get hourly forecast.
@@ -94,8 +93,6 @@ async def get_hourly_forecast(
             detail=f"Free tier limited to {max_hours} hours. Upgrade to premium for extended forecast."
         )
     
-    weather_service = WeatherService()
-    
     try:
         weather = await weather_service.get_current_weather(latitude, longitude)
         return {
@@ -105,8 +102,6 @@ async def get_hourly_forecast(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/daily", response_model=dict)
@@ -115,7 +110,8 @@ async def get_daily_forecast(
     longitude: float = Query(..., ge=-180, le=180),
     days: int = Query(7, ge=1, le=16, description="Number of days (max 16 for premium)"),
     current_user: Optional[User] = Depends(get_optional_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get daily forecast.
@@ -137,8 +133,6 @@ async def get_daily_forecast(
             detail=f"Free tier limited to {max_days} days. Upgrade to premium for extended forecast."
         )
     
-    weather_service = WeatherService()
-    
     try:
         weather = await weather_service.get_current_weather(latitude, longitude)
         return {
@@ -148,21 +142,19 @@ async def get_daily_forecast(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/air-quality", response_model=dict)
 async def get_air_quality(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get air quality data.
     
     Available to all users.
     """
-    weather_service = WeatherService()
     
     try:
         air_quality = await weather_service._get_air_quality(latitude, longitude)
@@ -180,8 +172,6 @@ async def get_air_quality(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/nowcast", response_model=NowcastResponse)

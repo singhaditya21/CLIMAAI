@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 import time
 from .config import get_settings
 from .database import init_db
+from .services.weather_service import get_weather_service, close_weather_service
 from .routers import (
     users_router,
     weather_router,
@@ -34,10 +35,16 @@ async def lifespan(app: FastAPI):
     await init_db()
     print("✅ Database initialized")
     
+    # Initialize weather service
+    get_weather_service()
+    print("✅ Weather service initialized")
+
     yield
     
     # Shutdown
     print("👋 Shutting down ClimaAI API...")
+    await close_weather_service()
+    print("✅ Weather service closed")
 
 
 app = FastAPI(
