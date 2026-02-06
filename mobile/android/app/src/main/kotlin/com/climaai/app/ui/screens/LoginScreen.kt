@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.climaai.app.ui.viewmodel.AuthState
 import com.climaai.app.ui.viewmodel.AuthViewModel
+import com.climaai.app.ui.viewmodel.ForgotPasswordState
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,12 +38,16 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val authState by authViewModel.authState.collectAsState()
+    val forgotPasswordState by authViewModel.forgotPasswordState.collectAsState()
     
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var forgotPasswordEmail by remember { mutableStateOf("") }
 
     // Handle auth state changes
     LaunchedEffect(authState) {
@@ -53,6 +59,72 @@ fun LoginScreen(
             }
             else -> {}
         }
+    }
+
+    // Handle forgot password state
+    LaunchedEffect(forgotPasswordState) {
+        when (forgotPasswordState) {
+            is ForgotPasswordState.Success -> {
+                showForgotPasswordDialog = false
+                Toast.makeText(context, "Password reset link sent to email", Toast.LENGTH_LONG).show()
+                authViewModel.resetForgotPasswordState()
+            }
+            is ForgotPasswordState.Error -> {
+                Toast.makeText(context, (forgotPasswordState as ForgotPasswordState.Error).message, Toast.LENGTH_LONG).show()
+                authViewModel.resetForgotPasswordState()
+            }
+            else -> {}
+        }
+    }
+
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showForgotPasswordDialog = false
+                authViewModel.resetForgotPasswordState()
+            },
+            title = { Text("Reset Password") },
+            text = {
+                Column {
+                    Text("Enter your email address to receive a password reset link.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = forgotPasswordEmail,
+                        onValueChange = { forgotPasswordEmail = it },
+                        label = { Text("Email") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (forgotPasswordEmail.isNotBlank()) {
+                            authViewModel.forgotPassword(forgotPasswordEmail)
+                        }
+                    },
+                    enabled = forgotPasswordState !is ForgotPasswordState.Loading
+                ) {
+                    if (forgotPasswordState is ForgotPasswordState.Loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Send Link")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showForgotPasswordDialog = false
+                        authViewModel.resetForgotPasswordState()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Box(
@@ -229,7 +301,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { /* TODO: Forgot password */ }) {
+                TextButton(onClick = { showForgotPasswordDialog = true }) {
                     Text(
                         "Forgot Password?",
                         color = Color(0xFF667EEA),

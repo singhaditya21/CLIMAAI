@@ -1,8 +1,7 @@
 """
 User model with authentication and preferences.
 """
-from sqlalchemy import Column, String, Boolean, JSON, Integer
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, JSON, Integer, DateTime, Uuid
 from sqlalchemy.orm import relationship
 import uuid
 from ..database import Base
@@ -11,7 +10,7 @@ from ..database import Base
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=True)  # Can be null for OAuth
     full_name = Column(String(255))
@@ -20,6 +19,10 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     
+    # Password Reset
+    reset_token = Column(String(100), nullable=True, index=True)
+    reset_token_expires = Column(DateTime(timezone=True), nullable=True)
+
     # Device info
     device_token = Column(String(500))  # For push notifications
     platform = Column(String(20))  # ios, android

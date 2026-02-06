@@ -14,7 +14,7 @@ from ..schemas.subscription import (
 from ..services.auth import get_current_user
 from ..services.subscription_service import SubscriptionService
 
-router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
+router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 
 
 @router.get("/status", response_model=SubscriptionStatusResponse)

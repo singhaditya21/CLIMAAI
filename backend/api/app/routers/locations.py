@@ -13,7 +13,7 @@ from ..config import get_settings
 
 settings = get_settings()
 
-router = APIRouter(prefix="/locations", tags=["locations"])
+router = APIRouter(prefix="/api/locations", tags=["locations"])
 
 
 # Simple model for database storage (not using ORM for this simple table)

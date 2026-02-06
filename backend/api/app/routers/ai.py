@@ -12,7 +12,7 @@ from ..services.subscription_service import SubscriptionService
 from ..database import get_db
 from typing import List
 
-router = APIRouter(prefix="/ai", tags=["ai-insights"])
+router = APIRouter(prefix="/api", tags=["ai-insights"])
 
 
 async def require_premium(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

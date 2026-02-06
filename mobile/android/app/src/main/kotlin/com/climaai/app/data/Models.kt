@@ -171,6 +171,10 @@ data class UserLogin(
     val password: String
 )
 
+data class ForgotPasswordRequest(
+    val email: String
+)
+
 data class UserRegister(
     val email: String,
     val password: String,
