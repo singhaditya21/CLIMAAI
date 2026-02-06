@@ -6,10 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..database import get_db
 from ..models import User
-from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse
+from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse, ForgotPasswordRequest
 from ..services.auth import hash_password, verify_password, create_access_token, get_current_user
+import uuid
+from datetime import datetime, timedelta
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -47,6 +49,37 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         access_token=access_token,
         user=UserResponse.model_validate(user)
     )
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Request a password reset email.
+    """
+    # Check if user exists
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        # Generate token
+        token = str(uuid.uuid4())
+
+        # Save token
+        user.reset_token = token
+        # Using utcnow() is deprecated in newer python but safe here or use timezone aware
+        user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+
+        await db.commit()
+
+        # Log email (mock sending)
+        print(f"📧 [Mock Email] Password reset for {request.email}. Token: {token}")
+        print(f"   Link: https://climaai.app/reset-password?token={token}")
+
+    # Always return success to prevent email enumeration
+    return {"message": "If an account exists with this email, a password reset link has been sent."}
 
 
 @router.post("/login", response_model=TokenResponse)

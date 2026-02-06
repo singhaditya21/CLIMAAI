@@ -35,6 +35,9 @@ interface ClimaAIApi {
         @Field("username") email: String,
         @Field("password") password: String
     ): Response<TokenResponse>
+
+    @POST("/api/auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<Map<String, String>>
     
     @GET("/api/auth/me")
     suspend fun getCurrentUser(): Response<User>

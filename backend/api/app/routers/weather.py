@@ -17,7 +17,7 @@ from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
-router = APIRouter(prefix="/weather", tags=["weather"])
+router = APIRouter(prefix="/api/weather", tags=["weather"])
 
 
 @router.get("/current", response_model=WeatherResponse)

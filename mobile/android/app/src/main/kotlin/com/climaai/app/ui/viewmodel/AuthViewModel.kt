@@ -27,6 +27,13 @@ data class OnboardingState(
     val currentPage: Int = 0
 )
 
+sealed class ForgotPasswordState {
+    object Idle : ForgotPasswordState()
+    object Loading : ForgotPasswordState()
+    object Success : ForgotPasswordState()
+    data class Error(val message: String) : ForgotPasswordState()
+}
+
 /**
  * ViewModel for authentication and onboarding
  */
@@ -34,6 +41,9 @@ class AuthViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    private val _forgotPasswordState = MutableStateFlow<ForgotPasswordState>(ForgotPasswordState.Idle)
+    val forgotPasswordState: StateFlow<ForgotPasswordState> = _forgotPasswordState.asStateFlow()
 
     private val _onboardingState = MutableStateFlow(OnboardingState())
     val onboardingState: StateFlow<OnboardingState> = _onboardingState.asStateFlow()
@@ -102,7 +112,7 @@ class AuthViewModel : ViewModel() {
                 val user = UserRegister(
                     email = email,
                     password = password,
-                    name = name
+                    fullName = name
                 )
                 val response = ApiClient.api.register(user)
 
@@ -201,5 +211,31 @@ class AuthViewModel : ViewModel() {
         if (_authState.value is AuthState.Error) {
             _authState.value = AuthState.Idle
         }
+    }
+
+    fun forgotPassword(email: String) {
+        viewModelScope.launch {
+            _forgotPasswordState.value = ForgotPasswordState.Loading
+            try {
+                val request = ForgotPasswordRequest(email)
+                val response = ApiClient.api.forgotPassword(request)
+                if (response.isSuccessful) {
+                    _forgotPasswordState.value = ForgotPasswordState.Success
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    _forgotPasswordState.value = ForgotPasswordState.Error(
+                        errorBody ?: "Failed to send reset email."
+                    )
+                }
+            } catch (e: Exception) {
+                _forgotPasswordState.value = ForgotPasswordState.Error(
+                    e.message ?: "Network error."
+                )
+            }
+        }
+    }
+
+    fun resetForgotPasswordState() {
+        _forgotPasswordState.value = ForgotPasswordState.Idle
     }
 }

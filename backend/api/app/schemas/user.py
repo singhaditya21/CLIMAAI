@@ -44,6 +44,11 @@ class UserLogin(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot password request."""
+    email: EmailStr
+
+
 class UserUpdate(BaseModel):
     """Schema for user updates."""
     full_name: Optional[str] = None
