@@ -45,6 +45,7 @@ fun HomeScreen(
     val isFromCache by viewModel.isFromCache.collectAsState()
     val canRefresh by viewModel.canRefresh.collectAsState()
     val rateLimitMessage by viewModel.rateLimitMessage.collectAsState()
+    val isPremium by viewModel.isPremium.collectAsState()
     
     // Snackbar for rate limit messages
     val snackbarHostState = remember { SnackbarHostState() }
@@ -194,6 +195,7 @@ fun HomeScreen(
                             weather = state.data,
                             isRefreshing = isRefreshing,
                             canRefresh = canRefresh,
+                            isPremium = isPremium,
                             onRefresh = { viewModel.forceRefresh() },
                             onNavigateToForecast = onNavigateToForecast,
                             onNavigateToAI = onNavigateToAI
@@ -211,6 +213,7 @@ private fun WeatherContent(
     weather: WeatherResponse,
     isRefreshing: Boolean,
     canRefresh: Boolean,
+    isPremium: Boolean,
     onRefresh: () -> Unit,
     onNavigateToForecast: () -> Unit,
     onNavigateToAI: () -> Unit
@@ -270,7 +273,7 @@ private fun WeatherContent(
             item {
                 BannerAdView(
                     modifier = Modifier.padding(vertical = 8.dp),
-                    isPremium = false // TODO: Pass actual isPremium from ViewModel
+                    isPremium = isPremium
                 )
             }
             
