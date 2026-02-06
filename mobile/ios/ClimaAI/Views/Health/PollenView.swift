@@ -103,7 +103,7 @@ struct PollenView: View {
         }
     }
     
-    private func pollenTypeRow(icon: String, name: String, level: String, value: Double) -> some View {
+    private func pollenTypeRow(icon: String, name: String, level: String, value: Int) -> some View {
         HStack {
             Image(systemName: icon)
                 .font(.title2)
@@ -112,7 +112,7 @@ struct PollenView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.subheadline)
-                Text("\(Int(value)) grains/m³")
+                Text("Index: \(value)/5")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -140,11 +140,17 @@ struct PollenView: View {
                 .font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
-                tipRow(icon: "clock", text: "Peak pollen hours: 5-10 AM")
-                tipRow(icon: "eye", text: "Wear sunglasses to protect eyes")
-                tipRow(icon: "house", text: "Keep windows closed during high pollen")
-                tipRow(icon: "shower", text: "Shower after outdoor activities")
-                tipRow(icon: "pills", text: "Take antihistamines before symptoms start")
+                if let recommendations = weatherViewModel.pollen?.healthRecommendations, !recommendations.isEmpty {
+                    ForEach(recommendations, id: \.self) { tip in
+                        tipRow(icon: "info.circle", text: tip)
+                    }
+                } else {
+                    tipRow(icon: "clock", text: "Peak pollen hours: 5-10 AM")
+                    tipRow(icon: "eye", text: "Wear sunglasses to protect eyes")
+                    tipRow(icon: "house", text: "Keep windows closed during high pollen")
+                    tipRow(icon: "shower", text: "Shower after outdoor activities")
+                    tipRow(icon: "pills", text: "Take antihistamines before symptoms start")
+                }
             }
             .padding()
             .background(
@@ -168,8 +174,9 @@ struct PollenView: View {
     // MARK: - Helpers
     
     private func riskColor(for level: String) -> Color {
-        switch level.lowercased() {
-        case "low":
+        let normalized = level.lowercased().replacingOccurrences(of: "_", with: " ")
+        switch normalized {
+        case "low", "very low":
             return .green
         case "moderate":
             return .yellow
@@ -183,8 +190,9 @@ struct PollenView: View {
     }
     
     private func riskDescription(for level: String) -> String {
-        switch level.lowercased() {
-        case "low":
+        let normalized = level.lowercased().replacingOccurrences(of: "_", with: " ")
+        switch normalized {
+        case "low", "very low":
             return "Good conditions for allergy sufferers. Minimal precautions needed."
         case "moderate":
             return "Those with allergies may experience mild symptoms. Consider preventive measures."
@@ -197,20 +205,19 @@ struct PollenView: View {
         }
     }
     
-    // MARK: - Mock Data (replace with actual data)
+    // MARK: - Data Properties
     
     private var overallRiskLevel: String {
-        // TODO: Get from weatherViewModel.pollen
-        "Moderate"
+        weatherViewModel.pollen?.overall.level.replacingOccurrences(of: "_", with: " ").capitalized ?? "Unknown"
     }
     
-    private var grassLevel: String { "Low" }
-    private var treeLevel: String { "Moderate" }
-    private var weedLevel: String { "Low" }
+    private var grassLevel: String { weatherViewModel.pollen?.grass.level.replacingOccurrences(of: "_", with: " ").capitalized ?? "Unknown" }
+    private var treeLevel: String { weatherViewModel.pollen?.tree.level.replacingOccurrences(of: "_", with: " ").capitalized ?? "Unknown" }
+    private var weedLevel: String { weatherViewModel.pollen?.weed.level.replacingOccurrences(of: "_", with: " ").capitalized ?? "Unknown" }
     
-    private var grassPollen: Double { 15 }
-    private var treePollen: Double { 45 }
-    private var weedPollen: Double { 8 }
+    private var grassPollen: Int { weatherViewModel.pollen?.grass.index ?? 0 }
+    private var treePollen: Int { weatherViewModel.pollen?.tree.index ?? 0 }
+    private var weedPollen: Int { weatherViewModel.pollen?.weed.index ?? 0 }
 }
 
 #Preview {

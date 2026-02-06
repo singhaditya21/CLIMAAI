@@ -141,6 +141,34 @@ struct Location: Codable {
     let elevation: Double?
 }
 
+// MARK: - Pollen Models
+
+struct PollenResponse: Codable {
+    let date: String
+    let location: Location
+    let tree: PollenTypeData
+    let grass: PollenTypeData
+    let weed: PollenTypeData
+    let overall: PollenSummary
+    let healthRecommendations: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case date, location, tree, grass, weed, overall
+        case healthRecommendations = "health_recommendations"
+    }
+}
+
+struct PollenTypeData: Codable {
+    let level: String
+    let index: Int
+    let species: [String]
+}
+
+struct PollenSummary: Codable {
+    let level: String
+    let index: Int
+}
+
 // MARK: - Nowcast Models (MinuteCast equivalent)
 
 struct NowcastMinute: Codable, Identifiable {

@@ -19,6 +19,7 @@ class WeatherViewModel: ObservableObject {
     @Published var dailyForecast: [DailyWeather] = []
     @Published var airQuality: AirQuality?
     @Published var precipitationNowcast: PrecipitationNowcast?
+    @Published var pollen: PollenResponse?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var currentLocation: CLLocation?
@@ -101,6 +102,9 @@ class WeatherViewModel: ObservableObject {
             // Fetch precipitation nowcast
             await fetchPrecipitationNowcast(latitude: latitude, longitude: longitude)
             
+            // Fetch pollen data
+            await fetchPollen(latitude: latitude, longitude: longitude)
+
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -181,6 +185,23 @@ class WeatherViewModel: ObservableObject {
         }
     }
     
+    /// Fetch pollen data
+    func fetchPollen(latitude: Double, longitude: Double) async {
+        do {
+            let response: PollenResponse = try await apiClient.get(
+                "/api/v1/health/pollen/today",
+                queryItems: [
+                    URLQueryItem(name: "latitude", value: String(latitude)),
+                    URLQueryItem(name: "longitude", value: String(longitude))
+                ]
+            )
+
+            pollen = response
+        } catch {
+            print("Error fetching pollen: \(error)")
+        }
+    }
+
     /// Fetch location name from coordinates
     private func fetchLocationName(for location: CLLocation) async {
         if let name = await locationManager.getLocationName(for: location) {
