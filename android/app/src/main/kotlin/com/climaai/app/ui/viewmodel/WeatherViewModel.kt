@@ -6,8 +6,11 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.climaai.app.data.*
+import com.climaai.app.data.cache.ApiCallType
 import com.climaai.app.data.cache.CachePolicy
-import com.climaai.app.data.cache.RefreshStatus
+import com.climaai.app.data.cache.RefreshTracker
+import com.climaai.app.data.cache.UsageSummary
+import com.climaai.app.data.repository.OpenMeteoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -16,6 +19,7 @@ import java.util.Locale
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     
     private val repository = WeatherRepository(application)
+    private val refreshTracker = RefreshTracker(application)
     
     // Weather state
     private val _weatherState = MutableStateFlow<WeatherState>(WeatherState.Loading)
@@ -44,36 +48,43 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val isRefreshing = _isRefreshing.asStateFlow()
     
     // =========================================================================
-    // NEW: Cache & Refresh State
+    // Cache & Refresh State
     // =========================================================================
     
-    /** Timestamp of last successful data update */
     private val _lastUpdated = MutableStateFlow<Long?>(null)
     val lastUpdated = _lastUpdated.asStateFlow()
     
-    /** Whether data is from cache */
     private val _isFromCache = MutableStateFlow(false)
     val isFromCache = _isFromCache.asStateFlow()
     
-    /** Whether refresh is currently allowed (cooldown check) */
     private val _canRefresh = MutableStateFlow(true)
     val canRefresh = _canRefresh.asStateFlow()
     
-    /** Rate limit message to show user */
     private val _rateLimitMessage = MutableStateFlow<String?>(null)
     val rateLimitMessage = _rateLimitMessage.asStateFlow()
     
-    /** Human-readable "last updated" text */
     private val _lastUpdatedText = MutableStateFlow<String?>(null)
     val lastUpdatedText = _lastUpdatedText.asStateFlow()
     
+    // =========================================================================
+    // API Usage State
+    // =========================================================================
+    
+    private val _usageSummary = MutableStateFlow<UsageSummary?>(null)
+    val usageSummary = _usageSummary.asStateFlow()
+    
+    /** Data source label for current weather data */
+    private val _dataSource = MutableStateFlow("Open-Meteo")
+    val dataSource = _dataSource.asStateFlow()
+    
     init {
         checkSubscriptionStatus()
+        refreshUsageStats()
         // Update lastUpdatedText periodically
         viewModelScope.launch {
             while (true) {
                 updateLastUpdatedText()
-                kotlinx.coroutines.delay(30_000) // Update every 30s
+                kotlinx.coroutines.delay(30_000)
             }
         }
     }
@@ -85,21 +96,55 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
     
     /**
-     * Fetch weather with caching (normal flow).
+     * Fetch weather using Open-Meteo as primary source (standalone mode).
+     * Falls back to backend WeatherRepository if Open-Meteo fails.
      */
     fun fetchWeather(lat: Double, lon: Double) {
         viewModelScope.launch {
             _weatherState.value = WeatherState.Loading
             _isRefreshing.value = true
             
-            val result = repository.getWeather(
-                lat = lat,
-                lon = lon,
-                forceRefresh = false,
-                isPro = _isPremium.value
+            // Primary: Use Open-Meteo directly (no backend required)
+            val openMeteoResult = OpenMeteoRepository.getWeather(lat, lon)
+            
+            openMeteoResult.fold(
+                onSuccess = { weather ->
+                    // Track API calls
+                    refreshTracker.recordApiCall(ApiCallType.WEATHER)
+                    if (weather.airQuality != null) {
+                        refreshTracker.recordApiCall(ApiCallType.AIR_QUALITY)
+                    }
+                    refreshTracker.recordRefresh()
+                    
+                    val enrichedWeather = enrichLocationName(weather, lat, lon)
+                    
+                    _weatherState.value = WeatherState.Success(enrichedWeather)
+                    _lastUpdated.value = System.currentTimeMillis()
+                    _isFromCache.value = false
+                    _dataSource.value = "Open-Meteo"
+                    updateLastUpdatedText()
+                    refreshUsageStats()
+                    
+                    Log.d("WeatherViewModel", "Weather loaded from Open-Meteo")
+                    
+                    // Try to fetch AI insights from backend (graceful degradation)
+                    fetchAIInsights(lat, lon)
+                },
+                onFailure = { error ->
+                    Log.w("WeatherViewModel", "Open-Meteo failed, trying backend", error)
+                    
+                    // Fallback: Try backend WeatherRepository
+                    val backendResult = repository.getWeather(
+                        lat = lat,
+                        lon = lon,
+                        forceRefresh = false,
+                        isPro = _isPremium.value
+                    )
+                    _dataSource.value = "Backend"
+                    handleWeatherResult(backendResult, lat, lon)
+                }
             )
             
-            handleWeatherResult(result, lat, lon)
             _isRefreshing.value = false
             updateRefreshState()
         }
@@ -107,34 +152,90 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     
     /**
      * Force refresh (user-initiated pull-to-refresh).
-     * Respects rate limits and shows feedback.
      */
     fun forceRefresh() {
         val loc = _location.value ?: return
         
         viewModelScope.launch {
-            // Check if refresh is allowed
-            val status = repository.canRefresh(_isPremium.value)
-            if (!status.allowed) {
-                _rateLimitMessage.value = status.reason
-                _canRefresh.value = false
-                return@launch
-            }
-            
             _isRefreshing.value = true
             _rateLimitMessage.value = null
             
-            val result = repository.getWeather(
-                lat = loc.latitude,
-                lon = loc.longitude,
-                forceRefresh = true,
-                isPro = _isPremium.value
+            // Check rate limit
+            val status = refreshTracker.checkRefreshAllowed(_isPremium.value)
+            if (!status.allowed) {
+                _rateLimitMessage.value = status.reason
+                _canRefresh.value = false
+                _isRefreshing.value = false
+                return@launch
+            }
+            
+            // Primary: Use Open-Meteo directly
+            val openMeteoResult = OpenMeteoRepository.getWeather(loc.latitude, loc.longitude)
+            
+            openMeteoResult.fold(
+                onSuccess = { weather ->
+                    // Track API calls
+                    refreshTracker.recordApiCall(ApiCallType.WEATHER)
+                    if (weather.airQuality != null) {
+                        refreshTracker.recordApiCall(ApiCallType.AIR_QUALITY)
+                    }
+                    refreshTracker.recordRefresh()
+                    
+                    val enrichedWeather = enrichLocationName(weather, loc.latitude, loc.longitude)
+                    
+                    _weatherState.value = WeatherState.Success(enrichedWeather)
+                    _lastUpdated.value = System.currentTimeMillis()
+                    _isFromCache.value = false
+                    _dataSource.value = "Open-Meteo"
+                    updateLastUpdatedText()
+                    refreshUsageStats()
+                    
+                    // Try AI insights
+                    fetchAIInsights(loc.latitude, loc.longitude)
+                },
+                onFailure = { error ->
+                    // Fallback: Try backend
+                    val result = repository.getWeather(
+                        lat = loc.latitude,
+                        lon = loc.longitude,
+                        forceRefresh = true,
+                        isPro = _isPremium.value
+                    )
+                    _dataSource.value = "Backend"
+                    handleWeatherResult(result, loc.latitude, loc.longitude)
+                }
             )
             
-            handleWeatherResult(result, loc.latitude, loc.longitude)
             _isRefreshing.value = false
             updateRefreshState()
         }
+    }
+    
+    /**
+     * Enrich weather response with reverse-geocoded location name.
+     */
+    private suspend fun enrichLocationName(weather: WeatherResponse, lat: Double, lon: Double): WeatherResponse {
+        // First try Android Geocoder
+        val androidName = getLocationName(lat, lon)
+        if (androidName != "Current Location") {
+            return weather.copy(
+                location = weather.location.copy(name = androidName)
+            )
+        }
+        
+        // Fallback: Try Nominatim
+        val nominatimName = OpenMeteoRepository.getLocationName(lat, lon)
+        if (nominatimName != null) {
+            refreshTracker.recordApiCall(ApiCallType.GEOCODING)
+            refreshUsageStats()
+            return weather.copy(
+                location = weather.location.copy(name = nominatimName)
+            )
+        }
+        
+        return weather.copy(
+            location = weather.location.copy(name = _location.value?.name ?: "Current Location")
+        )
     }
     
     private suspend fun handleWeatherResult(result: WeatherResult, lat: Double, lon: Double) {
@@ -144,18 +245,16 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 _lastUpdated.value = result.cachedAt
                 _isFromCache.value = result.fromCache
                 updateLastUpdatedText()
+                refreshUsageStats()
                 
-                // Show rate limit message if applicable
                 if (result.rateLimited) {
                     _rateLimitMessage.value = result.rateLimitMessage
                 }
                 
-                // Show network error but with cached data
                 if (result.networkError) {
                     _rateLimitMessage.value = "Showing cached data. ${result.networkErrorMessage}"
                 }
                 
-                // Fetch AI insights (also cached)
                 fetchAIInsights(lat, lon)
             }
             is WeatherResult.Error -> {
@@ -166,7 +265,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
     
     private suspend fun updateRefreshState() {
-        val status = repository.canRefresh(_isPremium.value)
+        val status = refreshTracker.checkRefreshAllowed(_isPremium.value)
         _canRefresh.value = status.allowed
     }
     
@@ -179,9 +278,13 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     
-    /**
-     * Clear rate limit message (after user dismisses).
-     */
+    /** Refresh usage statistics for UI display */
+    fun refreshUsageStats() {
+        viewModelScope.launch {
+            _usageSummary.value = refreshTracker.getUsageSummary(_isPremium.value)
+        }
+    }
+    
     fun clearRateLimitMessage() {
         _rateLimitMessage.value = null
     }
@@ -195,7 +298,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     _aiInsightsState.value = AIInsightsState.Success(insights)
                 },
                 onFailure = { error ->
-                    _aiInsightsState.value = AIInsightsState.Error(error.message ?: "Unknown error")
+                    Log.w("WeatherViewModel", "AI insights unavailable: ${error.message}")
+                    _aiInsightsState.value = AIInsightsState.Error("AI insights unavailable (no backend)")
                 }
             )
         }

@@ -24,7 +24,7 @@
    - Click **Next**
 
 4. **Save Location**:
-   - Navigate to: `/Users/adityasingh/clima-ai/mobile/ios`
+   - Navigate to: `/Users/adityasingh/clima-ai/ios`
    - **IMPORTANT**: Uncheck "Create Git repository" (we already have one)
    - Click **Create**
 
@@ -46,7 +46,7 @@ Xcode created some default files we don't need:
 #### 3A: Add ClimaAIApp.swift
 1. Right-click on `ClimaAI` folder (blue icon) in Project Navigator
 2. **Add Files to "ClimaAI"...**
-3. Navigate to: `/Users/adityasingh/clima-ai/mobile/ios/ClimaAI/`
+3. Navigate to: `/Users/adityasingh/clima-ai/ios/ClimaAI/`
 4. Select `ClimaAIApp.swift`
 5. ✅ Check "Copy items if needed"
 6. ✅ Check "Add to targets: ClimaAI"
@@ -55,7 +55,7 @@ Xcode created some default files we don't need:
 #### 3B: Add ViewModels Folder
 1. Right-click on `ClimaAI` folder
 2. **Add Files to "ClimaAI"...**
-3. Navigate to: `/Users/adityasingh/clima-ai/mobile/ios/ClimaAI/`
+3. Navigate to: `/Users/adityasingh/clima-ai/ios/ClimaAI/`
 4. Select the **`ViewModels`** folder
 5. ✅ Check "Copy items if needed"
 6. ✅ Check "Create groups" (not folder references)
@@ -84,7 +84,7 @@ If these files already exist from your previous work:
 1. In Xcode, find `Info.plist` in Project Navigator
 2. Right-click → **Show in Finder**
 3. **Delete** the existing `Info.plist` from Finder
-4. **Copy** our `Info.plist` from `/Users/adityasingh/clima-ai/mobile/ios/ClimaAI/Info.plist`
+4. **Copy** our `Info.plist` from `/Users/adityasingh/clima-ai/ios/ClimaAI/Info.plist`
 5. **Paste** it into the same location
 6. Back in Xcode, clean and rebuild: **⌘⇧K** then **⌘B**
 
@@ -208,10 +208,10 @@ When the app launches:
 
 ```bash
 # Open Xcode from terminal
-open /Users/adityasingh/clima-ai/mobile/ios/ClimaAI.xcodeproj
+open /Users/adityasingh/clima-ai/ios/ClimaAI.xcodeproj
 
 # Or create it first, then:
-cd /Users/adityasingh/clima-ai/mobile/ios
+cd /Users/adityasingh/clima-ai/ios
 open .
 # Then create project in Xcode GUI
 ```

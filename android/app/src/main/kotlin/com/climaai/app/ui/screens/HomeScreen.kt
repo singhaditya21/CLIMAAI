@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.climaai.app.ads.BannerAdView
 import com.climaai.app.data.*
 import com.climaai.app.ui.components.*
 import com.climaai.app.ui.viewmodel.WeatherState
@@ -45,7 +44,7 @@ fun HomeScreen(
     val isFromCache by viewModel.isFromCache.collectAsState()
     val canRefresh by viewModel.canRefresh.collectAsState()
     val rateLimitMessage by viewModel.rateLimitMessage.collectAsState()
-    val isPremium by viewModel.isPremium.collectAsState()
+    val dataSource by viewModel.dataSource.collectAsState()
     
     // Snackbar for rate limit messages
     val snackbarHostState = remember { SnackbarHostState() }
@@ -98,6 +97,19 @@ fun HomeScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.5f)
                                 )
+                                // Data source badge
+                                Surface(
+                                    color = Color(0xFF34D399).copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "\uD83C\uDF10 $dataSource",
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 9.sp,
+                                        color = Color(0xFF34D399)
+                                    )
+                                }
                             }
                         }
                     }
@@ -142,9 +154,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF1E3A5F),
-                            Color(0xFF0D1B2A)
+                        colors = getWeatherAdaptiveColors(
+                            weatherCode = (weatherState as? WeatherState.Success)?.data?.current?.weatherCode ?: 0,
+                            isDay = (weatherState as? WeatherState.Success)?.data?.current?.isDay ?: true
                         )
                     )
                 )
@@ -195,7 +207,6 @@ fun HomeScreen(
                             weather = state.data,
                             isRefreshing = isRefreshing,
                             canRefresh = canRefresh,
-                            isPremium = isPremium,
                             onRefresh = { viewModel.forceRefresh() },
                             onNavigateToForecast = onNavigateToForecast,
                             onNavigateToAI = onNavigateToAI
@@ -213,7 +224,6 @@ private fun WeatherContent(
     weather: WeatherResponse,
     isRefreshing: Boolean,
     canRefresh: Boolean,
-    isPremium: Boolean,
     onRefresh: () -> Unit,
     onNavigateToForecast: () -> Unit,
     onNavigateToAI: () -> Unit
@@ -236,7 +246,10 @@ private fun WeatherContent(
         ) {
             // Current Weather Card
             item {
-                CurrentWeatherCard(weather.current)
+                CurrentWeatherCard(
+                    current = weather.current,
+                    daily = weather.daily
+                )
             }
             
             // Quick Stats Row
@@ -269,12 +282,21 @@ private fun WeatherContent(
                 }
             }
             
-            // Banner Ad (for free users only)
+            // Data Source Indicator (for demo)
             item {
-                BannerAdView(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    isPremium = isPremium
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Powered by free, open-source APIs",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.3f)
+                    )
+                }
             }
             
             // Bottom spacing
@@ -284,7 +306,12 @@ private fun WeatherContent(
 }
 
 @Composable
-private fun CurrentWeatherCard(current: CurrentWeather) {
+private fun CurrentWeatherCard(
+    current: CurrentWeather,
+    daily: List<DailyWeather> = emptyList()
+) {
+    val todayForecast = daily.firstOrNull()
+    
     GlassmorphicCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -327,9 +354,9 @@ private fun CurrentWeatherCard(current: CurrentWeather) {
             
             Spacer(modifier = Modifier.height(4.dp))
             
-            // Feels like
+            // Feels like + Hi/Lo
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FadeInText(
@@ -338,19 +365,68 @@ private fun CurrentWeatherCard(current: CurrentWeather) {
                     color = Color.White.copy(alpha = 0.6f),
                     delay = 400
                 )
-
-                current.feelsLikeShade?.let { shade ->
-                    Text(
-                        text = "•",
-                        color = Color.White.copy(alpha = 0.3f),
-                        fontSize = 14.sp
-                    )
+                todayForecast?.let { today ->
                     FadeInText(
-                        text = "Shade ${shade.toInt()}°",
+                        text = "H:${today.temperatureMax.toInt()}° L:${today.temperatureMin.toInt()}°",
                         fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.6f),
-                        delay = 450
+                        delay = 500
                     )
+                }
+            }
+            
+            // Sunrise/Sunset row
+            todayForecast?.let { today ->
+                if (today.sunrise.isNotEmpty() && today.sunset.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.06f))
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Sunrise
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("\u2600\uFE0F", fontSize = 14.sp)
+                            Text(
+                                text = formatTimeFromISO(today.sunrise),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color(0xFFFBBF24)
+                            )
+                        }
+                        // Sunset
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("\uD83C\uDF19", fontSize = 14.sp)
+                            Text(
+                                text = formatTimeFromISO(today.sunset),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color(0xFF93C5FD)
+                            )
+                        }
+                        // Wind direction
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = getWindDirectionArrow(current.windDirection),
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "${current.windSpeed.toInt()} km/h",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -608,45 +684,23 @@ private fun DailyForecastRow(day: DailyWeather, dayIndex: Int) {
         
         Spacer(modifier = Modifier.weight(1f))
         
-        Column(horizontalAlignment = Alignment.End) {
-            if (day.precipitationProbability > 0) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.WaterDrop,
-                        contentDescription = null,
-                        tint = Color(0xFF60A5FA),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "${day.precipitationProbability}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF60A5FA)
-                    )
-                }
+        if (day.precipitationProbability > 0) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.WaterDrop,
+                    contentDescription = null,
+                    tint = Color(0xFF60A5FA),
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "${day.precipitationProbability}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF60A5FA)
+                )
             }
-
-            day.snowAccumulation?.let { snow ->
-                if (snow > 0.1) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AcUnit,
-                            contentDescription = null,
-                            tint = Color(0xFF22D3EE),
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = String.format("%.1f mm", snow),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 10.sp,
-                            color = Color(0xFF22D3EE)
-                        )
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.width(16.dp))
         }
         
-        Spacer(modifier = Modifier.width(16.dp))
-
         Text(
             text = "${day.temperatureMin.toInt()}°",
             style = MaterialTheme.typography.bodyMedium,
@@ -726,5 +780,66 @@ private fun getWeatherIcon(code: Int): ImageVector {
         in 80..82 -> Icons.Default.Grain
         in 95..99 -> Icons.Default.Thunderstorm
         else -> Icons.Default.WbSunny
+    }
+}
+
+/**
+ * Weather-adaptive background gradient colors.
+ * Changes based on weather code and day/night for an immersive feel.
+ */
+private fun getWeatherAdaptiveColors(weatherCode: Int, isDay: Boolean): List<Color> {
+    return when {
+        // Clear sky
+        weatherCode == 0 && isDay -> listOf(Color(0xFF4A90D9), Color(0xFF1E5FA0))
+        weatherCode == 0 && !isDay -> listOf(Color(0xFF0F1B3D), Color(0xFF060D1F))
+        // Partly cloudy
+        weatherCode in 1..2 && isDay -> listOf(Color(0xFF5B8DB8), Color(0xFF2E6690))
+        weatherCode in 1..2 && !isDay -> listOf(Color(0xFF1A2744), Color(0xFF0D1525))
+        // Overcast
+        weatherCode == 3 && isDay -> listOf(Color(0xFF7A94AB), Color(0xFF4D6B82))
+        weatherCode == 3 && !isDay -> listOf(Color(0xFF252D3A), Color(0xFF141920))
+        // Fog
+        weatherCode in 45..48 -> listOf(Color(0xFF8899AA), Color(0xFF5D6D7E))
+        // Drizzle/Rain
+        weatherCode in 51..67 || weatherCode in 80..82 -> listOf(Color(0xFF3D5A73), Color(0xFF253847))
+        // Snow
+        weatherCode in 71..77 || weatherCode in 85..86 -> 
+            if (isDay) listOf(Color(0xFFB0C4D4), Color(0xFF8099AA))
+            else listOf(Color(0xFF404D5A), Color(0xFF2A333D))
+        // Thunderstorm
+        weatherCode in 95..99 -> listOf(Color(0xFF2A2A4A), Color(0xFF151528))
+        // Default: deep ocean blue
+        else -> listOf(Color(0xFF1E3A5F), Color(0xFF0D1B2A))
+    }
+}
+
+/**
+ * Format ISO 8601 time string to readable time (e.g. "06:32").
+ */
+private fun formatTimeFromISO(isoTime: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US)
+        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val date = inputFormat.parse(isoTime)
+        date?.let { outputFormat.format(it) } ?: isoTime.takeLast(5)
+    } catch (e: Exception) {
+        isoTime.takeLast(5) // Fallback: last 5 chars "HH:mm"
+    }
+}
+
+/**
+ * Get a directional arrow emoji based on wind direction in degrees.
+ */
+private fun getWindDirectionArrow(degrees: Int): String {
+    return when ((degrees + 22) / 45 % 8) {
+        0 -> "↑"  // N
+        1 -> "↗"  // NE
+        2 -> "→"  // E
+        3 -> "↘"  // SE
+        4 -> "↓"  // S
+        5 -> "↙"  // SW
+        6 -> "←"  // W
+        7 -> "↖"  // NW
+        else -> "↑"
     }
 }

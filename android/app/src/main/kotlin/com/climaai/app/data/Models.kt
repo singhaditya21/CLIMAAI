@@ -45,7 +45,8 @@ data class HourlyWeather(
     @SerializedName("wind_direction") val windDirection: Int,
     val humidity: Int,
     @SerializedName("cloud_cover") val cloudCover: Int,
-    @SerializedName("uv_index") val uvIndex: Double
+    @SerializedName("uv_index") val uvIndex: Double,
+    @SerializedName("is_day") val isDay: Boolean = true
 )
 
 data class DailyWeather(

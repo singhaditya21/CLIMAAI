@@ -24,6 +24,13 @@ class RefreshTracker(private val context: Context) {
         private val DAILY_COUNT_KEY = intPreferencesKey("daily_refresh_count")
         private val DAILY_RESET_KEY = longPreferencesKey("daily_reset_at")
         private val CONSECUTIVE_FAILURES_KEY = intPreferencesKey("consecutive_failures")
+        
+        // Per-API type counters
+        private val TOTAL_API_CALLS_KEY = intPreferencesKey("total_api_calls")
+        private val WEATHER_CALLS_KEY = intPreferencesKey("weather_api_calls_today")
+        private val AQI_CALLS_KEY = intPreferencesKey("aqi_api_calls_today")
+        private val GEOCODING_CALLS_KEY = intPreferencesKey("geocoding_api_calls_today")
+        private val API_CALLS_RESET_KEY = longPreferencesKey("api_calls_reset_at")
     }
     
     /**
@@ -66,6 +73,38 @@ class RefreshTracker(private val context: Context) {
                 val currentCount = prefs[DAILY_COUNT_KEY] ?: 0
                 prefs[DAILY_COUNT_KEY] = currentCount + 1
             }
+        }
+    }
+    
+    /**
+     * Record an API call by type (weather, aqi, geocoding).
+     * Increments both per-type daily counter and total lifetime counter.
+     */
+    suspend fun recordApiCall(type: ApiCallType) {
+        val now = System.currentTimeMillis()
+        
+        context.refreshDataStore.edit { prefs ->
+            // Reset daily API counters if new day
+            val apiResetAt = prefs[API_CALLS_RESET_KEY] ?: 0L
+            if (!isSameDay(apiResetAt, now)) {
+                prefs[WEATHER_CALLS_KEY] = 0
+                prefs[AQI_CALLS_KEY] = 0
+                prefs[GEOCODING_CALLS_KEY] = 0
+                prefs[API_CALLS_RESET_KEY] = now
+            }
+            
+            // Increment per-type counter
+            val key = when (type) {
+                ApiCallType.WEATHER -> WEATHER_CALLS_KEY
+                ApiCallType.AIR_QUALITY -> AQI_CALLS_KEY
+                ApiCallType.GEOCODING -> GEOCODING_CALLS_KEY
+            }
+            val current = prefs[key] ?: 0
+            prefs[key] = current + 1
+            
+            // Increment total lifetime counter
+            val total = prefs[TOTAL_API_CALLS_KEY] ?: 0
+            prefs[TOTAL_API_CALLS_KEY] = total + 1
         }
     }
     
@@ -186,12 +225,44 @@ class RefreshTracker(private val context: Context) {
         )
     }
     
+    /**
+     * Get comprehensive API usage summary for Settings UI.
+     */
+    suspend fun getUsageSummary(isPro: Boolean = false): UsageSummary {
+        val now = System.currentTimeMillis()
+        val data = context.refreshDataStore.data.first()
+        
+        // Check if daily API counters need reset
+        val apiResetAt = data[API_CALLS_RESET_KEY] ?: 0L
+        val isNewDay = !isSameDay(apiResetAt, now)
+        
+        return UsageSummary(
+            dailyRefreshes = getDailyCount(),
+            dailyLimit = if (isPro) CachePolicy.PRO_MAX_REFRESHES_PER_DAY else CachePolicy.MAX_REFRESHES_PER_DAY,
+            hourlyRefreshes = getHourlyCount(),
+            hourlyLimit = CachePolicy.MAX_REFRESHES_PER_HOUR,
+            weatherCallsToday = if (isNewDay) 0 else (data[WEATHER_CALLS_KEY] ?: 0),
+            aqiCallsToday = if (isNewDay) 0 else (data[AQI_CALLS_KEY] ?: 0),
+            geocodingCallsToday = if (isNewDay) 0 else (data[GEOCODING_CALLS_KEY] ?: 0),
+            totalLifetimeCalls = data[TOTAL_API_CALLS_KEY] ?: 0
+        )
+    }
+    
     private fun isSameDay(time1: Long, time2: Long): Boolean {
         val cal1 = Calendar.getInstance().apply { timeInMillis = time1 }
         val cal2 = Calendar.getInstance().apply { timeInMillis = time2 }
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
+}
+
+/**
+ * API call type for per-type tracking.
+ */
+enum class ApiCallType {
+    WEATHER,
+    AIR_QUALITY,
+    GEOCODING
 }
 
 /**
@@ -212,3 +283,21 @@ data class RefreshStats(
     val dailyCount: Int,
     val consecutiveFailures: Int
 )
+
+/**
+ * Comprehensive API usage summary for Settings UI.
+ */
+data class UsageSummary(
+    val dailyRefreshes: Int,
+    val dailyLimit: Int,
+    val hourlyRefreshes: Int,
+    val hourlyLimit: Int,
+    val weatherCallsToday: Int,
+    val aqiCallsToday: Int,
+    val geocodingCallsToday: Int,
+    val totalLifetimeCalls: Int
+) {
+    val totalCallsToday: Int get() = weatherCallsToday + aqiCallsToday + geocodingCallsToday
+    val dailyUsagePercent: Float get() = if (dailyLimit > 0) dailyRefreshes.toFloat() / dailyLimit else 0f
+    val hourlyUsagePercent: Float get() = if (hourlyLimit > 0) hourlyRefreshes.toFloat() / hourlyLimit else 0f
+}

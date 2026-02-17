@@ -143,7 +143,7 @@ fun AppNavigation(
         
         composable(Screen.AirQuality.route) {
             val weather by weatherViewModel.state.collectAsState()
-            val airQuality = (weather as? WeatherState.Success)?.data?.air_quality
+            val airQuality = (weather as? WeatherState.Success)?.data?.airQuality
             
             AirQualityDetailScreen(
                 airQuality = airQuality,

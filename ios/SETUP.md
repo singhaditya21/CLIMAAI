@@ -34,7 +34,7 @@ psql -U postgres -d climaai_db -f 002_add_features.sql
 
 ### 1. Open in Xcode
 ```bash
-cd /Users/adityasingh/clima-ai/mobile/ios
+cd /Users/adityasingh/clima-ai/ios
 open ClimaAI.xcodeproj
 ```
 

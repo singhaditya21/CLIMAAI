@@ -1,6 +1,9 @@
 package com.climaai.app.ui.screens
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,13 +14,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.climaai.app.data.NotificationPrefsManager
+import com.climaai.app.data.cache.UsageSummary
+import com.climaai.app.ui.components.AnimatedCounter
 import com.climaai.app.ui.viewmodel.WeatherViewModel
 import com.climaai.app.work.WorkScheduler
 import kotlinx.coroutines.launch
@@ -225,6 +236,12 @@ fun SettingsScreen(
                         color = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     )
+                }
+                
+                // API Usage Section
+                val usageSummary by viewModel.usageSummary.collectAsState()
+                usageSummary?.let { usage ->
+                    ApiUsageSection(usage)
                 }
                 
                 // Appearance Section
@@ -567,3 +584,185 @@ private fun SettingsNavigationRow(
     }
 }
 
+@Composable
+private fun ApiUsageSection(usage: UsageSummary) {
+    SettingsSection(title = "API Usage") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Daily usage indicator
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularUsageIndicator(
+                    progress = usage.dailyUsagePercent,
+                    label = "${usage.dailyRefreshes}",
+                    sublabel = "/ ${usage.dailyLimit}",
+                    size = 72.dp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Today",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+            
+            // Hourly usage indicator
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularUsageIndicator(
+                    progress = usage.hourlyUsagePercent,
+                    label = "${usage.hourlyRefreshes}",
+                    sublabel = "/ ${usage.hourlyLimit}",
+                    size = 72.dp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "This Hour",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+            
+            // Total lifetime calls
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(72.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        AnimatedCounter(
+                            value = usage.totalLifetimeCalls,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF60A5FA)
+                        )
+                        Text(
+                            text = "total",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "All Time",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+        }
+        
+        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+        
+        // Breakdown row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            ApiCallChip("\u2600\uFE0F Weather", usage.weatherCallsToday)
+            ApiCallChip("\uD83C\uDF2C AQI", usage.aqiCallsToday)
+            ApiCallChip("\uD83D\uDCCD Geo", usage.geocodingCallsToday)
+        }
+    }
+}
+
+@Composable
+private fun ApiCallChip(label: String, count: Int) {
+    Surface(
+        color = Color.White.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+            Text(
+                text = "$count",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF60A5FA)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CircularUsageIndicator(
+    progress: Float,
+    label: String,
+    sublabel: String,
+    size: Dp = 72.dp,
+    strokeWidth: Dp = 6.dp
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        label = "usageProgress"
+    )
+    
+    val progressColor = when {
+        animatedProgress < 0.50f -> Color(0xFF34D399) // green
+        animatedProgress < 0.80f -> Color(0xFFFBBF24) // yellow
+        else -> Color(0xFFEF4444) // red
+    }
+    
+    val trackColor = Color.White.copy(alpha = 0.1f)
+    
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(size)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = strokeWidth.toPx()
+            val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
+            val topLeft = Offset(stroke / 2, stroke / 2)
+            
+            // Track
+            drawArc(
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            
+            // Progress
+            drawArc(
+                color = progressColor,
+                startAngle = -90f,
+                sweepAngle = animatedProgress * 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+        }
+        
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = label,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = progressColor
+            )
+            Text(
+                text = sublabel,
+                fontSize = 10.sp,
+                color = Color.White.copy(alpha = 0.4f)
+            )
+        }
+    }
+}

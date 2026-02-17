@@ -513,7 +513,7 @@ android {
 ### Step 3: Build Release APK/AAB
 
 ```bash
-cd mobile/android
+cd android
 ./gradlew bundleRelease
 ```
 

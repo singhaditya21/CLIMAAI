@@ -33,7 +33,7 @@
 
 ```bash
 # Open the iOS directory in Finder
-open /Users/adityasingh/clima-ai/mobile/ios/
+open /Users/adityasingh/clima-ai/ios/
 
 # Then follow XCODE_SETUP.md to create the project
 ```
@@ -281,10 +281,10 @@ In Xcode:
 
 ```bash
 # Open Xcode project (after creating)
-open /Users/adityasingh/clima-ai/mobile/ios/ClimaAI.xcodeproj
+open /Users/adityasingh/clima-ai/ios/ClimaAI.xcodeproj
 
 # Validate Info.plist
-plutil -lint /Users/adityasingh/clima-ai/mobile/ios/ClimaAI/Info.plist
+plutil -lint /Users/adityasingh/clima-ai/ios/ClimaAI/Info.plist
 
 # Check provisioning profiles
 security find-identity -v -p codesigning

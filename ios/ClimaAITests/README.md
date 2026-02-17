@@ -31,7 +31,7 @@ This directory contains XCTest unit tests for the ClimaAI iOS app.
 
 ```bash
 # Navigate to project
-cd /Users/adityasingh/clima-ai/mobile/ios
+cd /Users/adityasingh/clima-ai/ios
 
 # Run all tests
 xcodebuild test \
