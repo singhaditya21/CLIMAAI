@@ -91,44 +91,51 @@ class NowcastService:
         Uses linear interpolation to smooth precipitation values
         between 15-minute intervals.
         """
-        minutes = []
-        
-        for i, (time_15, precip_15, prob_15) in enumerate(data_15min):
-            # Get next data point for interpolation
-            if i < len(data_15min) - 1:
-                next_time, next_precip, next_prob = data_15min[i + 1]
-            else:
-                next_precip, next_prob = precip_15, prob_15
-            
-            # Generate 15 minutes of data
-            for minute_offset in range(15):
-                # Stop if we've generated 2 hours (120 minutes)
-                if len(minutes) >= 120:
+        def generate_minutes():
+            count = 0
+            for i, (time_15, precip_15, prob_15) in enumerate(data_15min):
+                if count >= 120:
                     break
                 
-                # Linear interpolation
-                fraction = minute_offset / 15.0
-                interp_precip = precip_15 + (next_precip - precip_15) * fraction
-                interp_prob = int(prob_15 + (next_prob - prob_15) * fraction)
+                if i < len(data_15min) - 1:
+                    _, next_precip, next_prob = data_15min[i + 1]
+                else:
+                    next_precip, next_prob = precip_15, prob_15
+
+                precip_diff = next_precip - precip_15
+                prob_diff = next_prob - prob_15
+
+                # Determine how many items to yield from this 15-min block
+                to_yield = min(15, 120 - count)
                 
-                # Per-minute precipitation (divide 15-min total)
-                minute_precip = interp_precip / 15.0
+                # Optimization: Pre-calculate steps to avoid repeated division/multiplication
+                step_precip = precip_diff / 15.0
+                step_prob = prob_diff / 15.0
+                one_minute = timedelta(minutes=1)
                 
-                current_time = time_15 + timedelta(minutes=minute_offset)
-                intensity = self._classify_intensity(interp_precip)
+                curr_interp_precip = precip_15
+                curr_interp_prob = float(prob_15)
+                curr_time = time_15
                 
-                minutes.append(NowcastMinute(
-                    time=current_time,
-                    precipitation=round(minute_precip, 3),
-                    precipitation_probability=max(0, min(100, interp_prob)),
-                    intensity=intensity,
-                    is_precipitation=minute_precip > 0.01
-                ))
-            
-            if len(minutes) >= 120:
-                break
-        
-        return minutes[:120]  # Cap at 2 hours
+                for _ in range(to_yield):
+                    # Per-minute precipitation (divide 15-min total)
+                    minute_precip = curr_interp_precip / 15.0
+
+                    yield NowcastMinute(
+                        time=curr_time,
+                        precipitation=round(minute_precip, 3),
+                        precipitation_probability=max(0, min(100, int(curr_interp_prob))),
+                        intensity=self._classify_intensity(curr_interp_precip),
+                        is_precipitation=minute_precip > 0.01
+                    )
+
+                    curr_interp_precip += step_precip
+                    curr_interp_prob += step_prob
+                    curr_time += one_minute
+
+                count += to_yield
+
+        return list(generate_minutes())
     
     def _find_precipitation_window(
         self, 
