@@ -50,12 +50,12 @@
                             <!-- Traditional Login Form -->
                             <form id="loginForm">
                                 <div class="form-group">
-                                    <label>Email</label>
-                                    <input type="email" id="loginEmail" value="demo@climaai.com" required>
+                                    <label for="loginEmail">Email</label>
+                                    <input type="email" id="loginEmail" value="demo@climaai.com" autocomplete="email" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Password</label>
-                                    <input type="password" id="loginPassword" value="Test1234" required>
+                                    <label for="loginPassword">Password</label>
+                                    <input type="password" id="loginPassword" value="Test1234" autocomplete="current-password" required>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Sign In with Email</button>
                             </form>
@@ -69,7 +69,7 @@
                 <!-- Register Screen -->
                 <div class="screen hidden" id="registerScreen">
                     <div class="screen-header">
-                        <button class="back-btn" id="backToLogin">←</button>
+                        <button class="back-btn" id="backToLogin" aria-label="Back to Login">←</button>
                         <h1 class="app-logo">🌤️ ClimaAI</h1>
                         <p class="tagline">AI-Powered Weather Insights</p>
                     </div>
@@ -79,16 +79,16 @@
                             <h2>Create Account</h2>
                             <form id="registerForm">
                                 <div class="form-group">
-                                    <label>Full Name</label>
-                                    <input type="text" id="registerName" required>
+                                    <label for="registerName">Full Name</label>
+                                    <input type="text" id="registerName" autocomplete="name" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Email</label>
-                                    <input type="email" id="registerEmail" required>
+                                    <label for="registerEmail">Email</label>
+                                    <input type="email" id="registerEmail" autocomplete="email" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Password</label>
-                                    <input type="password" id="registerPassword" minlength="8" required>
+                                    <label for="registerPassword">Password</label>
+                                    <input type="password" id="registerPassword" minlength="8" autocomplete="new-password" required>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Sign Up</button>
                             </form>
@@ -105,10 +105,10 @@
                             <span class="location-name" id="locationName">Loading...</span>
                         </div>
                         <div class="header-actions">
-                            <button class="theme-toggle" id="themeToggle" title="Switch theme">
-                                <span class="theme-icon" id="themeIcon">🌙</span>
+                            <button class="theme-toggle" id="themeToggle" title="Switch theme" aria-label="Switch theme">
+                                <span class="theme-icon" id="themeIcon" aria-hidden="true">🌙</span>
                             </button>
-                            <button class="icon-btn" id="refreshBtn">🔄</button>
+                            <button class="icon-btn" id="refreshBtn" aria-label="Refresh weather">🔄</button>
                         </div>
                     </div>
 
