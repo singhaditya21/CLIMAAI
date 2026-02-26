@@ -13,6 +13,8 @@ from ..config import get_settings
 
 settings = get_settings()
 
+_nowcast_service: Optional['NowcastService'] = None
+
 
 class NowcastMinute(BaseModel):
     """Single minute precipitation data."""
@@ -45,9 +47,9 @@ class NowcastService:
     
     OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
     
-    def __init__(self):
-        self.redis_client: Optional[redis.Redis] = None
-        self.http_client = httpx.AsyncClient(timeout=30.0)
+    def __init__(self, http_client: Optional[httpx.AsyncClient] = None, redis_client: Optional[redis.Redis] = None):
+        self.redis_client: Optional[redis.Redis] = redis_client
+        self.http_client = http_client or httpx.AsyncClient(timeout=30.0)
     
     async def _get_redis(self) -> redis.Redis:
         """Get or create Redis client."""
@@ -284,3 +286,19 @@ class NowcastService:
             print(f"Redis cache set error: {e}")
         
         return result
+
+
+def get_nowcast_service() -> NowcastService:
+    """Get the global NowcastService instance."""
+    global _nowcast_service
+    if _nowcast_service is None:
+        _nowcast_service = NowcastService()
+    return _nowcast_service
+
+
+async def close_nowcast_service():
+    """Close the global NowcastService instance."""
+    global _nowcast_service
+    if _nowcast_service:
+        await _nowcast_service.close()
+        _nowcast_service = None
