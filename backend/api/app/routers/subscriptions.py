@@ -4,7 +4,7 @@ Subscription management router.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
-from ..models import User
+from ..models import User, SubscriptionPlan
 from ..schemas.subscription import (
     SubscriptionCreate,
     SubscriptionValidate,
@@ -13,6 +13,7 @@ from ..schemas.subscription import (
 )
 from ..services.auth import get_current_user
 from ..services.subscription_service import SubscriptionService
+from ..config import get_settings
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 
@@ -92,8 +93,46 @@ async def activate_subscription(
             
         else:  # Google
             # Validate Google purchase
-            # Note: In production, implement proper Google Play validation
-            transaction_id = subscription_data.receipt_data
+            settings = get_settings()
+
+            # Determine product ID based on plan
+            if subscription_data.plan == SubscriptionPlan.MONTHLY:
+                product_id = settings.GOOGLE_PRODUCT_ID_MONTHLY
+            else:
+                product_id = settings.GOOGLE_PRODUCT_ID_ANNUAL
+
+            purchase_token = subscription_data.receipt_data
+
+            # Call validation
+            try:
+                validation_response = await subscription_service.validate_google_purchase(
+                    package_name=settings.GOOGLE_PACKAGE_NAME,
+                    product_id=product_id,
+                    purchase_token=purchase_token
+                )
+            except ValueError as e:
+                # Configuration error
+                raise HTTPException(status_code=500, detail=str(e))
+            except Exception as e:
+                # API error
+                raise HTTPException(status_code=400, detail=f"Google validation failed: {str(e)}")
+
+            # Validate payment state (1=Received, 2=Free Trial)
+            payment_state = validation_response.get("paymentState")
+            if payment_state is not None and payment_state not in [1, 2]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Subscription not active (Payment State: {payment_state})"
+                )
+
+            # Validate expiry
+            expiry_ms = validation_response.get("expiryTimeMillis")
+            if expiry_ms:
+                import time
+                if int(expiry_ms) < time.time() * 1000:
+                    raise HTTPException(status_code=400, detail="Subscription expired")
+
+            transaction_id = purchase_token
         
         # Activate subscription
         subscription = await subscription_service.activate_subscription(

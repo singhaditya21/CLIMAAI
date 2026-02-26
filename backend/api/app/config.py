@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     # Subscription
     APPLE_BUNDLE_ID: str = "com.climaai.app"
     GOOGLE_PACKAGE_NAME: str = "com.climaai.app"
+    GOOGLE_PRODUCT_ID_MONTHLY: str = "climaai_pro_monthly"
+    GOOGLE_PRODUCT_ID_ANNUAL: str = "climaai_pro_yearly"
     
     # Receipt Validation
     APPLE_SHARED_SECRET: str = ""  # App Store Connect shared secret
