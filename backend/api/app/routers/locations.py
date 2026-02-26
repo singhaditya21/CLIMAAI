@@ -138,23 +138,29 @@ async def add_favorite_location(
     try:
         # If setting as default, unset other defaults first
         if is_default:
-            await db.execute(
-                f"""
+            stmt = text("""
                 UPDATE favorite_locations
                 SET is_default = FALSE
-                WHERE user_id = {current_user.id}
-                """
-            )
+                WHERE user_id = :user_id
+            """)
+            await db.execute(stmt, {"user_id": current_user.id})
         
         # Insert new favorite
-        query = f"""
+        stmt = text("""
             INSERT INTO favorite_locations (user_id, name, latitude, longitude, is_default)
-            VALUES ({current_user.id}, '{name}', {latitude}, {longitude}, {is_default})
+            VALUES (:user_id, :name, :latitude, :longitude, :is_default)
             ON CONFLICT (user_id, latitude, longitude) 
             DO UPDATE SET name = EXCLUDED.name, is_default = EXCLUDED.is_default
             RETURNING id, name, latitude, longitude, is_default, created_at
-        """
-        result = await db.execute(query)
+        """)
+
+        result = await db.execute(stmt, {
+            "user_id": current_user.id,
+            "name": name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "is_default": is_default
+        })
         await db.commit()
         
         row = result.fetchone()
@@ -186,12 +192,12 @@ async def delete_favorite_location(
     Remove a location from favorites.
     """
     try:
-        query = f"""
+        stmt = text("""
             DELETE FROM favorite_locations
-            WHERE id = {location_id} AND user_id = {current_user.id}
+            WHERE id = :location_id AND user_id = :user_id
             RETURNING id
-        """
-        result = await db.execute(query)
+        """)
+        result = await db.execute(stmt, {"location_id": location_id, "user_id": current_user.id})
         await db.commit()
         
         if result.rowcount == 0:
@@ -217,22 +223,21 @@ async def set_default_location(
     """
     try:
         # Unset all defaults
-        await db.execute(
-            f"""
+        stmt_unset = text("""
             UPDATE favorite_locations
             SET is_default = FALSE
-            WHERE user_id = {current_user.id}
-            """
-        )
+            WHERE user_id = :user_id
+        """)
+        await db.execute(stmt_unset, {"user_id": current_user.id})
         
         # Set new default
-        query = f"""
+        stmt_set = text("""
             UPDATE favorite_locations
             SET is_default = TRUE
-            WHERE id = {location_id} AND user_id = {current_user.id}
+            WHERE id = :location_id AND user_id = :user_id
             RETURNING id
-        """
-        result = await db.execute(query)
+        """)
+        result = await db.execute(stmt_set, {"location_id": location_id, "user_id": current_user.id})
         await db.commit()
         
         if result.rowcount == 0:
