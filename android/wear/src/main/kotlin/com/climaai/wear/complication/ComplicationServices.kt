@@ -37,7 +37,7 @@ class TemperatureComplicationService : ComplicationDataSourceService() {
         request: ComplicationRequest,
         listener: ComplicationRequestListener
     ) {
-        val weather = runBlocking { WearWeatherRepository.getWeather() }
+        val weather = runBlocking { WearWeatherRepository.getWeather(applicationContext) }
         
         val complicationData = when (request.complicationType) {
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
@@ -87,7 +87,7 @@ class ConditionComplicationService : ComplicationDataSourceService() {
         request: ComplicationRequest,
         listener: ComplicationRequestListener
     ) {
-        val weather = runBlocking { WearWeatherRepository.getWeather() }
+        val weather = runBlocking { WearWeatherRepository.getWeather(applicationContext) }
         
         val complicationData = when (request.complicationType) {
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
