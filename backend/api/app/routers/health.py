@@ -9,7 +9,7 @@ from ..schemas.pollen import PollenForecastResponse, PollenTypeResponse, DailyPo
 from ..services.pollen_service import PollenService
 from ..services.health_index_service import HealthIndexService
 from ..services.activity_service import ActivityForecastService, ActivityType
-from ..services.weather_service import WeatherService
+from ..services.weather_service import WeatherService, get_weather_service
 from ..services.auth import get_optional_user
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -151,7 +151,8 @@ async def get_todays_pollen(
 @router.get("/flu-risk")
 async def get_flu_risk(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get current flu risk assessment based on weather.
@@ -161,7 +162,6 @@ async def get_flu_risk(
     - Humidity (dry air increases transmission)
     - Seasonal patterns
     """
-    weather_service = WeatherService()
     health_service = HealthIndexService()
     
     try:
@@ -189,15 +189,14 @@ async def get_flu_risk(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/migraine-risk")
 async def get_migraine_risk(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get migraine trigger risk based on weather conditions.
@@ -207,7 +206,6 @@ async def get_migraine_risk(
     - Humidity extremes
     - Temperature changes
     """
-    weather_service = WeatherService()
     health_service = HealthIndexService()
     
     try:
@@ -246,14 +244,13 @@ async def get_migraine_risk(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/activities")
 async def get_all_activities(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get activity forecast for all outdoor activities.
@@ -261,7 +258,6 @@ async def get_all_activities(
     Returns scores for: running, cycling, golf, hiking, beach, skiing, tennis, photography.
     Sorted by today's score (best activities first).
     """
-    weather_service = WeatherService()
     activity_service = ActivityForecastService()
     
     try:
@@ -300,15 +296,14 @@ async def get_all_activities(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/activities/{activity}")
 async def get_activity_forecast(
     activity: str,
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service)
 ):
     """
     Get detailed forecast for a specific activity.
@@ -325,7 +320,6 @@ async def get_activity_forecast(
             detail=f"Invalid activity. Valid options: {', '.join(valid_activities)}"
         )
     
-    weather_service = WeatherService()
     activity_service = ActivityForecastService()
     
     try:
@@ -376,5 +370,3 @@ async def get_activity_forecast(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
