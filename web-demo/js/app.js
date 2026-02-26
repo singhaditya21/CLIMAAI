@@ -98,8 +98,14 @@ class ClimaAI {
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.add('hidden');
+            screen.setAttribute('aria-hidden', 'true');
+            // 'inert' ensures hidden screens are not focusable or interactive
+            screen.setAttribute('inert', '');
         });
-        document.getElementById(screenId).classList.remove('hidden');
+        const activeScreen = document.getElementById(screenId);
+        activeScreen.classList.remove('hidden');
+        activeScreen.removeAttribute('aria-hidden');
+        activeScreen.removeAttribute('inert');
         this.currentScreen = screenId;
     }
 
