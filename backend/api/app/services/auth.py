@@ -12,6 +12,7 @@ from sqlalchemy import select
 from ..config import get_settings
 from ..database import get_db
 from ..models import User
+import uuid
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -61,7 +62,12 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    result = await db.execute(select(User).where(User.id == user_id))
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise credentials_exception
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
     user = result.scalar_one_or_none()
     
     if user is None:
@@ -97,10 +103,12 @@ class OptionalAuth:
             user_id: str = payload.get("sub")
             if user_id is None:
                 return None
-        except JWTError:
+
+            user_uuid = uuid.UUID(user_id)
+        except (JWTError, ValueError):
             return None
         
-        result = await db.execute(select(User).where(User.id == user_id))
+        result = await db.execute(select(User).where(User.id == user_uuid))
         user = result.scalar_one_or_none()
         
         return user if user and user.is_active else None

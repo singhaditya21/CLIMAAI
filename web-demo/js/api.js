@@ -315,5 +315,11 @@ function formatDate(dateString) {
 }
 
 // Make API client global
-window.api = new APIClient();
-window.weatherUtils = { getWeatherIcon, formatTemperature, formatTime, formatDate };
+if (typeof window !== 'undefined') {
+    window.api = new APIClient();
+    window.weatherUtils = { getWeatherIcon, formatTemperature, formatTime, formatDate };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { APIClient, getWeatherIcon, formatTemperature, formatTime, formatDate };
+}

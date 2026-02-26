@@ -47,14 +47,16 @@ app.use((err, req, res, next) => {
     console.error('Error:', err);
     res.status(500).json({
         error: 'Internal server error',
-        message: err.message,
+        message: err.message || 'Internal server error',
     });
 });
 
-// Start server
-app.listen(port, () => {
-    console.log(`🚀 Payment service listening on port ${port}`);
-});
+// Start server only if run directly
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`🚀 Payment service listening on port ${port}`);
+    });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
@@ -62,3 +64,5 @@ process.on('SIGTERM', async () => {
     await pool.end();
     process.exit(0);
 });
+
+module.exports = app;

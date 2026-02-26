@@ -1,0 +1,19 @@
+{
+  "name": "web-demo",
+  "version": "1.0.0",
+  "description": "A web-based mobile interface to test and demonstrate the ClimaAI weather application.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:e2e": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "playwright": "^1.40.0"
+  }
+}

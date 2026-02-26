@@ -691,7 +691,14 @@ class ClimaAI {
 }
 
 // Initialize app
+// Initialize app
 let app;
-document.addEventListener('DOMContentLoaded', () => {
-    app = new ClimaAI();
-});
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        app = new ClimaAI();
+    });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { ClimaAI };
+}
