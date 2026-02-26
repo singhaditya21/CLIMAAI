@@ -23,14 +23,12 @@ struct RadarMapView: View {
     
     var body: some View {
         ZStack {
-            // Map background
-            Map(coordinateRegion: $region, interactionModes: [.pan, .zoom])
-                .overlay(
-                    // Radar tile overlay
-                    radarOverlay
-                        .opacity(0.7)
-                )
-                .ignoresSafeArea()
+            // Map background with Radar Overlay
+            RadarMapViewRepresentable(
+                region: $region,
+                timestamp: radarManager.currentTimestamp
+            )
+            .ignoresSafeArea()
             
             // Controls overlay
             VStack {
@@ -45,18 +43,6 @@ struct RadarMapView: View {
         }
         .onDisappear {
             radarManager.stopAnimation()
-        }
-    }
-    
-    // MARK: - Radar Overlay
-    
-    @ViewBuilder
-    private var radarOverlay: some View {
-        if let timestamp = radarManager.currentTimestamp {
-            RadarTileOverlay(
-                timestamp: timestamp,
-                region: region
-            )
         }
     }
     
@@ -276,30 +262,81 @@ struct RadarFrame: Codable {
     let path: String
 }
 
-// MARK: - Radar Tile Overlay
+// MARK: - Radar Map View Representable
 
-struct RadarTileOverlay: View {
-    let timestamp: Int
-    let region: MKCoordinateRegion
+struct RadarMapViewRepresentable: UIViewRepresentable {
+    @Binding var region: MKCoordinateRegion
+    let timestamp: Int?
     
-    var body: some View {
-        // This would use MKTileOverlay in production
-        // For now, show a placeholder gradient
-        LinearGradient(
-            colors: [
-                .clear,
-                .green.opacity(0.1),
-                .yellow.opacity(0.2),
-                .orange.opacity(0.1),
-                .clear
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView()
+        mapView.delegate = context.coordinator
+        mapView.region = region
+        mapView.showsUserLocation = true
+        mapView.isRotateEnabled = false // Radar maps are usually north-up
+        return mapView
+    }
+
+    func updateUIView(_ uiView: MKMapView, context: Context) {
+        // Update region if changed externally
+        // Only update if significantly different to avoid jitter during pan
+        let currentRegion = uiView.region
+        if abs(currentRegion.center.latitude - region.center.latitude) > 0.0001 ||
+           abs(currentRegion.center.longitude - region.center.longitude) > 0.0001 ||
+           abs(currentRegion.span.latitudeDelta - region.span.latitudeDelta) > 0.0001 {
+             uiView.setRegion(region, animated: true)
+        }
+
+        // Update overlay if timestamp changed
+        if let timestamp = timestamp {
+            if context.coordinator.lastTimestamp != timestamp {
+                // Remove existing tile overlays
+                let overlaysToRemove = uiView.overlays.filter { $0 is MKTileOverlay }
+                uiView.removeOverlays(overlaysToRemove)
+
+                // Add new overlay
+                let template = "https://tilecache.rainviewer.com/v2/radar/\(timestamp)/256/{z}/{x}/{y}/2/1_1.png"
+                let overlay = MKTileOverlay(urlTemplate: template)
+                overlay.canReplaceMapContent = false
+                uiView.addOverlay(overlay)
+
+                context.coordinator.lastTimestamp = timestamp
+            }
+        } else {
+            // Remove all overlays if no timestamp
+            let overlaysToRemove = uiView.overlays.filter { $0 is MKTileOverlay }
+            uiView.removeOverlays(overlaysToRemove)
+            context.coordinator.lastTimestamp = nil
+        }
     }
     
-    // Production implementation would use:
-    // https://tilecache.rainviewer.com/v2/radar/{timestamp}/256/{z}/{x}/{y}/2/1_1.png
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, MKMapViewDelegate {
+        var parent: RadarMapViewRepresentable
+        var lastTimestamp: Int?
+
+        init(_ parent: RadarMapViewRepresentable) {
+            self.parent = parent
+        }
+
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let tileOverlay = overlay as? MKTileOverlay {
+                let renderer = MKTileOverlayRenderer(tileOverlay: tileOverlay)
+                renderer.alpha = 0.7
+                return renderer
+            }
+            return MKOverlayRenderer(overlay: overlay)
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            DispatchQueue.main.async {
+                self.parent.region = mapView.region
+            }
+        }
+    }
 }
 
 #Preview {
