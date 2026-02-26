@@ -129,7 +129,8 @@ class SubscriptionService:
         platform: SubscriptionPlatform,
         plan: SubscriptionPlan,
         transaction_id: str,
-        db: AsyncSession
+        db: AsyncSession,
+        order_id: Optional[str] = None
     ) -> Subscription:
         """Activate a paid subscription."""
         now = datetime.utcnow()
@@ -159,6 +160,8 @@ class SubscriptionService:
                 trial_subscription.apple_transaction_id = transaction_id
             else:
                 trial_subscription.google_purchase_token = transaction_id
+                if order_id:
+                    trial_subscription.google_order_id = order_id
             
             await db.commit()
             await db.refresh(trial_subscription)
@@ -180,6 +183,8 @@ class SubscriptionService:
                 subscription.apple_transaction_id = transaction_id
             else:
                 subscription.google_purchase_token = transaction_id
+                if order_id:
+                    subscription.google_order_id = order_id
             
             db.add(subscription)
             await db.commit()

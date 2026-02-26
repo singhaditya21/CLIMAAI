@@ -4,7 +4,7 @@ Subscription management router.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
-from ..models import User
+from ..models import User, SubscriptionPlan
 from ..schemas.subscription import (
     SubscriptionCreate,
     SubscriptionValidate,
@@ -13,6 +13,8 @@ from ..schemas.subscription import (
 )
 from ..services.auth import get_current_user
 from ..services.subscription_service import SubscriptionService
+from ..services.receipt_validator import get_receipt_validator, Platform
+from ..config import get_settings
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 
@@ -69,6 +71,7 @@ async def activate_subscription(
     subscription_service = SubscriptionService()
     
     # Validate receipt based on platform
+    order_id = None
     try:
         if subscription_data.platform.value == "apple":
             # Validate Apple receipt
@@ -92,8 +95,29 @@ async def activate_subscription(
             
         else:  # Google
             # Validate Google purchase
-            # Note: In production, implement proper Google Play validation
-            transaction_id = subscription_data.receipt_data
+            settings = get_settings()
+            validator = get_receipt_validator()
+
+            # Determine product ID
+            if subscription_data.plan == SubscriptionPlan.MONTHLY:
+                product_id = settings.GOOGLE_PRODUCT_ID_MONTHLY
+            else:
+                product_id = settings.GOOGLE_PRODUCT_ID_ANNUAL
+
+            is_valid, receipt_info = await validator.validate_receipt(
+                platform=Platform.ANDROID,
+                receipt_data=subscription_data.receipt_data,
+                product_id=product_id
+            )
+
+            if not is_valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid Google receipt: {receipt_info.get('error')}"
+                )
+
+            order_id = receipt_info.get("order_id")
+            transaction_id = subscription_data.receipt_data  # Use token as transaction ID for consistency
         
         # Activate subscription
         subscription = await subscription_service.activate_subscription(
@@ -101,7 +125,8 @@ async def activate_subscription(
             subscription_data.platform,
             subscription_data.plan,
             transaction_id,
-            db
+            db,
+            order_id=order_id
         )
         
         return SubscriptionResponse.model_validate(subscription)
@@ -125,8 +150,6 @@ async def validate_subscription(
     
     Returns detailed subscription status including expiration and auto-renewal.
     """
-    from ..services.receipt_validator import get_receipt_validator, Platform
-    
     validator = get_receipt_validator()
     
     try:
