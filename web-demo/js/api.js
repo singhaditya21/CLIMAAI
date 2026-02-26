@@ -17,7 +17,7 @@ class APIClient {
 
     async request(endpoint, options = {}) {
         // Use mock data for demo mode
-        if (this.useMockData) {
+        if (this.useMockData && !options.forceReal) {
             return this.getMockData(endpoint);
         }
 
@@ -175,6 +175,17 @@ class APIClient {
                 full_name: fullName,
                 platform: 'web'
             })
+        });
+        this.setToken(response.access_token);
+        return response;
+    }
+
+    async googleLogin(code) {
+        const response = await this.request('/api/auth/google', {
+            method: 'POST',
+            auth: false,
+            body: JSON.stringify({ code }),
+            forceReal: true
         });
         this.setToken(response.access_token);
         return response;

@@ -180,39 +180,35 @@ class ClimaAI {
     }
 
     async handleGoogleSignIn() {
+        if (typeof google === 'undefined' || !google.accounts) {
+             this.showToast('Google Sign-In script not loaded', 'error');
+             return;
+        }
+
         try {
             this.showToast('🔐 Signing in with Google...', 'info');
 
-            // In production, this would trigger Google OAuth flow:
-            // 1. Redirect to Google OAuth consent screen
-            // 2. User grants permissions
-            // 3. Google redirects back with authorization code
-            // 4. Backend exchanges code for tokens
-            // 5. Backend creates/updates user and returns JWT
+            const client = google.accounts.oauth2.initCodeClient({
+                client_id: 'YOUR_GOOGLE_CLIENT_ID_HERE',
+                scope: 'email profile',
+                ux_mode: 'popup',
+                callback: async (response) => {
+                    if (response.code) {
+                        try {
+                            const apiResponse = await api.googleLogin(response.code);
+                            this.user = apiResponse.user;
+                            this.showToast('✅ Welcome! Signed in with Google', 'success');
+                            this.showScreen('homeScreen');
+                            this.loadWeatherData();
+                            this.checkSubscription();
+                        } catch (error) {
+                             this.showToast(error.message || 'Google Sign-In failed', 'error');
+                        }
+                    }
+                },
+            });
 
-            // For demo purposes, we'll simulate successful OAuth with demo account
-            setTimeout(async () => {
-                try {
-                    // Auto-login with demo account
-                    const response = await api.login('demo@climaai.com', 'Test1234');
-                    this.user = response.user;
-                    this.showToast('✅ Welcome! Signed in with Google', 'success');
-                    this.showScreen('homeScreen');
-                    this.loadWeatherData();
-                    this.checkSubscription();
-                } catch (error) {
-                    this.showToast('Google Sign-In succeeded! Welcome!', 'success');
-                    // Create a demo user object
-                    this.user = {
-                        email: 'google-user@gmail.com',
-                        full_name: 'Google User',
-                        is_premium: true
-                    };
-                    this.isPremium = true;
-                    this.showScreen('homeScreen');
-                    this.loadWeatherData();
-                }
-            }, 1500); // Simulate OAuth redirect delay
+            client.requestCode();
 
         } catch (error) {
             this.showToast(error.message || 'Google Sign-In failed', 'error');

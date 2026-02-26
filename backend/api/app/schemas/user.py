@@ -22,7 +22,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=100)
     full_name: Optional[str] = Field(None, max_length=255)
-    platform: str = Field(..., pattern="^(ios|android)$")
+    platform: str = Field(..., pattern="^(ios|android|web)$")
     device_token: Optional[str] = None
     
     @field_validator("password")
@@ -42,6 +42,12 @@ class UserLogin(BaseModel):
     """Schema for user login."""
     email: EmailStr
     password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    """Schema for Google login."""
+    code: str
+    redirect_uri: Optional[str] = None
 
 
 class ForgotPasswordRequest(BaseModel):
