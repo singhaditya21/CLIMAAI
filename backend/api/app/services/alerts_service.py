@@ -13,6 +13,8 @@ from ..config import get_settings
 
 settings = get_settings()
 
+_alerts_service: Optional['AlertsService'] = None
+
 
 class AlertSeverity(str, Enum):
     """NWS Alert severity levels."""
@@ -117,9 +119,9 @@ class AlertsService:
     NWS_API = "https://api.weather.gov"
     USER_AGENT = "ClimaAI/1.0 (contact@climaai.com)"  # Required by NWS
     
-    def __init__(self):
-        self.redis_client: Optional[redis.Redis] = None
-        self.http_client = httpx.AsyncClient(
+    def __init__(self, http_client: Optional[httpx.AsyncClient] = None, redis_client: Optional[redis.Redis] = None):
+        self.redis_client: Optional[redis.Redis] = redis_client
+        self.http_client = http_client or httpx.AsyncClient(
             timeout=30.0,
             headers={"User-Agent": self.USER_AGENT}
         )
@@ -301,3 +303,19 @@ class AlertsService:
                 return alert
         
         return None
+
+
+def get_alerts_service() -> AlertsService:
+    """Get the global AlertsService instance."""
+    global _alerts_service
+    if _alerts_service is None:
+        _alerts_service = AlertsService()
+    return _alerts_service
+
+
+async def close_alerts_service():
+    """Close the global AlertsService instance."""
+    global _alerts_service
+    if _alerts_service:
+        await _alerts_service.close()
+        _alerts_service = None
