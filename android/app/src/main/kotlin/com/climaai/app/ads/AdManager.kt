@@ -7,6 +7,10 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -44,15 +48,10 @@ object AdManager {
      * Call this in Application.onCreate()
      */
     fun initialize(context: Context) {
-        // In production:
-        // MobileAds.initialize(context) { initializationStatus ->
-        //     _isInitialized.value = true
-        //     Log.d(TAG, "AdMob initialized")
-        // }
-        
-        // Mock initialization
-        _isInitialized.value = true
-        Log.d(TAG, "AdManager initialized (mock)")
+        MobileAds.initialize(context) { initializationStatus ->
+            _isInitialized.value = true
+            Log.d(TAG, "AdMob initialized")
+        }
     }
     
     /**
@@ -118,25 +117,10 @@ fun BannerAdView(
     ) {
         AndroidView(
             factory = { ctx ->
-                // In production, replace with:
-                // AdView(ctx).apply {
-                //     setAdSize(AdSize.BANNER)
-                //     adUnitId = AdManager.BANNER_AD_UNIT_ID
-                //     loadAd(AdRequest.Builder().build())
-                // }
-                
-                // Mock banner view
-                FrameLayout(ctx).apply {
-                    setBackgroundColor(android.graphics.Color.parseColor("#2A2A2A"))
-                    addView(android.widget.TextView(ctx).apply {
-                        text = "Ad"
-                        setTextColor(android.graphics.Color.WHITE)
-                        textSize = 12f
-                        gravity = android.view.Gravity.CENTER
-                    }, FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    ))
+                AdView(ctx).apply {
+                    setAdSize(AdSize.BANNER)
+                    adUnitId = AdManager.BANNER_AD_UNIT_ID
+                    loadAd(AdRequest.Builder().build())
                 }
             },
             modifier = Modifier.fillMaxWidth()
