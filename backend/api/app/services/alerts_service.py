@@ -301,3 +301,19 @@ class AlertsService:
                 return alert
         
         return None
+
+_alerts_service: Optional['AlertsService'] = None
+
+def get_alerts_service() -> AlertsService:
+    """Get the global AlertsService instance."""
+    global _alerts_service
+    if _alerts_service is None:
+        _alerts_service = AlertsService()
+    return _alerts_service
+
+async def close_alerts_service():
+    """Close the global AlertsService instance."""
+    global _alerts_service
+    if _alerts_service:
+        await _alerts_service.close()
+        _alerts_service = None

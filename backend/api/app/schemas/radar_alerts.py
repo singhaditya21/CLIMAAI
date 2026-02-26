@@ -83,7 +83,7 @@ class WeatherAlertResponse(BaseModel):
 class AlertsListResponse(BaseModel):
     """List of weather alerts."""
     alerts: List[WeatherAlertResponse]
-    location: Dict[str, float]
+    location: Dict[str, str | float]
     updated: datetime
     total_count: int
     has_severe: bool
