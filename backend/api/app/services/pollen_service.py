@@ -13,6 +13,8 @@ from ..config import get_settings
 
 settings = get_settings()
 
+_pollen_service: Optional['PollenService'] = None
+
 
 class PollenLevel(str, Enum):
     """Pollen risk levels."""
@@ -353,3 +355,19 @@ class PollenService:
             last_updated=datetime.utcnow(),
             health_recommendations=health_recs
         )
+
+
+def get_pollen_service() -> PollenService:
+    """Get the global PollenService instance."""
+    global _pollen_service
+    if _pollen_service is None:
+        _pollen_service = PollenService()
+    return _pollen_service
+
+
+async def close_pollen_service():
+    """Close the global PollenService instance."""
+    global _pollen_service
+    if _pollen_service:
+        await _pollen_service.close()
+        _pollen_service = None

@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import date
 from ..models import User
 from ..schemas.pollen import PollenForecastResponse, PollenTypeResponse, DailyPollenResponse, PollenLevel
-from ..services.pollen_service import PollenService
+from ..services.pollen_service import PollenService, get_pollen_service
 from ..services.health_index_service import HealthIndexService
 from ..services.activity_service import ActivityForecastService, ActivityType
 from ..services.weather_service import WeatherService
@@ -21,7 +21,8 @@ router = APIRouter(prefix="/health", tags=["health"])
 async def get_pollen_forecast(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
     longitude: float = Query(..., ge=-180, le=180, description="Longitude"),
-    days: int = Query(5, ge=1, le=5, description="Forecast days (1-5)")
+    days: int = Query(5, ge=1, le=5, description="Forecast days (1-5)"),
+    pollen_service: PollenService = Depends(get_pollen_service)
 ):
     """
     Get pollen forecast for a location.
@@ -35,8 +36,6 @@ async def get_pollen_forecast(
     Uses Google Pollen API with 5K free calls/month.
     Falls back to seasonal mock data if API key not configured.
     """
-    pollen_service = PollenService()
-    
     try:
         pollen_data = await pollen_service.get_pollen_forecast(
             latitude=latitude,
@@ -87,22 +86,19 @@ async def get_pollen_forecast(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await pollen_service.close()
 
 
 @router.get("/pollen/today")
 async def get_todays_pollen(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    pollen_service: PollenService = Depends(get_pollen_service)
 ):
     """
     Get today's pollen levels (simplified view).
     
     Returns just today's levels and recommendations.
     """
-    pollen_service = PollenService()
-    
     try:
         pollen_data = await pollen_service.get_pollen_forecast(
             latitude=latitude,
@@ -144,8 +140,6 @@ async def get_todays_pollen(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await pollen_service.close()
 
 
 @router.get("/flu-risk")
