@@ -43,7 +43,19 @@ The ClimaAI repository is a comprehensive monorepo containing a full-stack weath
 | **README.md** | "Apple Watch & Wear OS Planned v1.1" | **FALSE**. Both are fully implemented. | Roadmap is outdated; features are shipped. |
 | **README.md** | "Backend Tests: `pytest tests/`" | **FALSE**. Directory `tests/` does not exist. | CI/CD pipeline would fail if it relies on this. |
 
-### 4. Recommendations
+### 4. Branch Analysis
+
+*   **Total Remote Branches**: 13
+*   **Branch Structure**:
+    *   `main`: Primary development branch.
+    *   `perf/`: Performance optimization branches (e.g., `weather-service-singleton`, `optimize-apns-key-read`).
+    *   `feature/`: Feature implementation branches (e.g., `forgot-password`).
+    *   `android-`: Android-specific branches.
+    *   `pollen-view-integration`: Likely a specific feature branch.
+    *   `validate-climaai-codebase`: Likely an analysis branch.
+    *   `update-project-summary`, `update-readme-verification`: Documentation updates.
+
+### 5. Recommendations
 
 1.  **Backend Testing**: Immediate priority to create a `tests/` directory and implement basic `pytest` coverage for critical services (`WeatherService`, `HealthIndexService`).
 2.  **Android Testing**: Establish a basic JUnit/Espresso test suite for the Android app.
