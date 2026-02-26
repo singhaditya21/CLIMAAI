@@ -9,7 +9,7 @@ from ..schemas.nowcast import NowcastResponse
 from ..schemas.radar_alerts import RadarFramesResponse, RadarFrame, AlertsListResponse, WeatherAlertResponse
 from ..services.weather_service import WeatherService, get_weather_service
 from ..services.nowcast_service import NowcastService
-from ..services.radar_service import RadarService
+from ..services.radar_service import RadarService, get_radar_service
 from ..services.alerts_service import AlertsService
 from ..services.auth import get_optional_user
 from ..services.subscription_service import SubscriptionService
@@ -224,7 +224,9 @@ async def get_nowcast(
 
 
 @router.get("/radar/frames", response_model=RadarFramesResponse)
-async def get_radar_frames():
+async def get_radar_frames(
+    radar_service: RadarService = Depends(get_radar_service)
+):
     """
     Get available radar frames for animation.
     
@@ -234,8 +236,6 @@ async def get_radar_frames():
     
     Example: https://tilecache.rainviewer.com/v2/radar/1706695200/256/5/16/11/2/1_1.png
     """
-    radar_service = RadarService()
-    
     try:
         frames = await radar_service.get_radar_frames()
         
@@ -268,8 +268,6 @@ async def get_radar_frames():
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await radar_service.close()
 
 
 @router.get("/radar/tile/{path:path}/{z}/{x}/{y}")
@@ -279,7 +277,8 @@ async def get_radar_tile(
     x: int,
     y: int,
     size: int = Query(256, enum=[256, 512]),
-    color: int = Query(2, ge=0, le=4, description="Color scheme: 0=B/W, 1=Original, 2=NOAA, 3=Black, 4=White")
+    color: int = Query(2, ge=0, le=4, description="Color scheme: 0=B/W, 1=Original, 2=NOAA, 3=Black, 4=White"),
+    radar_service: RadarService = Depends(get_radar_service)
 ):
     """
     Proxy radar tile from RainViewer.
@@ -287,8 +286,6 @@ async def get_radar_tile(
     This endpoint proxies radar tiles to avoid CORS issues.
     Tiles are cached for 5 minutes.
     """
-    radar_service = RadarService()
-    
     try:
         tile_data = await radar_service.get_tile(
             path=f"/{path}",
@@ -305,8 +302,6 @@ async def get_radar_tile(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await radar_service.close()
 
 
 @router.get("/alerts", response_model=AlertsListResponse)
