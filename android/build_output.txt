@@ -1,0 +1,22 @@
+Starting a Gradle Daemon (subsequent builds will be faster)
+Calculating task graph as no cached configuration is available for tasks: assembleDebug
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file '/app/android/app/build.gradle' line: 2
+
+* What went wrong:
+An exception occurred applying plugin request [id: 'com.android.application']
+> Failed to apply plugin 'com.android.internal.version-check'.
+   > Minimum supported Gradle version is 8.13. Current version is 8.8.
+     Try updating the 'distributionUrl' property in /app/android/gradle/wrapper/gradle-wrapper.properties to 'gradle-8.13-bin.zip'.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 44s
+Configuration cache entry stored.
