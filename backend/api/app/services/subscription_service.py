@@ -7,7 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..models import User, Subscription, SubscriptionStatus, SubscriptionPlatform, SubscriptionPlan
 from ..schemas.subscription import SubscriptionStatusResponse
+from ..config import get_settings
 import httpx
+import json
+import logging
+import asyncio
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionService:
@@ -205,17 +213,47 @@ class SubscriptionService:
     
     async def validate_google_purchase(self, package_name: str, product_id: str, purchase_token: str) -> dict:
         """
-        Validate Google Play purchase.
-        Note: This requires Google Play Developer API setup with OAuth2.
+        Validate Google Play purchase using Google Play Developer API.
+        Runs in a separate thread to avoid blocking the async event loop.
         """
-        # This is a placeholder. In production, use google-api-python-client
-        # with proper OAuth2 credentials
-        return {
-            "kind": "androidpublisher#productPurchase",
-            "purchaseState": 0,  # 0 = Purchased
-            "consumptionState": 0,
-            "autoRenewing": True
-        }
+        settings = get_settings()
+
+        if not settings.GOOGLE_SERVICE_ACCOUNT_JSON:
+            logger.warning("Google service account JSON not configured. Skipping validation.")
+            raise ValueError("Google service account credentials not configured")
+
+        def _validate_sync():
+            try:
+                service_account_info = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+                credentials = service_account.Credentials.from_service_account_info(
+                    service_account_info,
+                    scopes=['https://www.googleapis.com/auth/androidpublisher']
+                )
+
+                # Build the service
+                service = build('androidpublisher', 'v3', credentials=credentials, cache_discovery=True)
+
+                # Call the API
+                request = service.purchases().subscriptions().get(
+                    packageName=package_name,
+                    subscriptionId=product_id,
+                    token=purchase_token
+                )
+                return request.execute()
+            except Exception as e:
+                # Capture exception in the thread to propagate correctly
+                raise e
+
+        try:
+            # Run the synchronous Google API call in a separate thread
+            response = await asyncio.to_thread(_validate_sync)
+
+            logger.info(f"Google Play validation response: {response}")
+            return response
+
+        except Exception as e:
+            logger.error(f"Google Play validation failed: {str(e)}")
+            raise
     
     async def cancel_subscription(
         self,
