@@ -29,6 +29,20 @@ async def update_schema():
             except Exception as e:
                 print(f"Error adding reset_token_expires: {e}")
 
+            # Add verification_token
+            try:
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(100)"))
+                print("Added/Checked verification_token column")
+            except Exception as e:
+                print(f"Error adding verification_token: {e}")
+
+            # Add verification_token_expires
+            try:
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP WITH TIME ZONE"))
+                print("Added/Checked verification_token_expires column")
+            except Exception as e:
+                print(f"Error adding verification_token_expires: {e}")
+
         print("Schema update complete")
     except Exception as e:
         print(f"Connection error: {e}")

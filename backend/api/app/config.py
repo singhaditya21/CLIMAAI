@@ -47,6 +47,14 @@ class Settings(BaseSettings):
     # Feature flags
     ENABLE_AI_INSIGHTS: bool = True
     
+    # Email
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM: str = "noreply@climaai.com"
+    EMAIL_BACKEND: str = "console"  # console, smtp
+
     class Config:
         env_file = ".env"
         case_sensitive = True

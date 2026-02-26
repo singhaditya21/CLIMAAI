@@ -8,6 +8,7 @@ from ..database import get_db
 from ..models import User
 from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse, ForgotPasswordRequest
 from ..services.auth import hash_password, verify_password, create_access_token, get_current_user
+from ..services.email import email_service
 import uuid
 from datetime import datetime, timedelta
 
@@ -27,6 +28,9 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Generate verification token
+    verification_token = str(uuid.uuid4())
+
     # Create user
     user = User(
         email=user_data.email,
@@ -35,13 +39,22 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         platform=user_data.platform,
         device_token=user_data.device_token,
         is_active=True,
-        is_verified=True,  # Auto-verify for now, can add email verification later
+        is_verified=False,
+        verification_token=verification_token,
+        verification_token_expires=datetime.utcnow() + timedelta(hours=24)
     )
     
     db.add(user)
     await db.commit()
     await db.refresh(user)
     
+    # Send verification email
+    try:
+        await email_service.send_verification_email(user.email, verification_token)
+    except Exception:
+        # Log error but don't fail registration
+        pass
+
     # Create access token
     access_token = create_access_token(data={"sub": str(user.id)})
     
@@ -49,6 +62,63 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         access_token=access_token,
         user=UserResponse.model_validate(user)
     )
+
+
+@router.get("/verify-email", status_code=status.HTTP_200_OK)
+async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    """Verify email address with token."""
+    result = await db.execute(select(User).where(User.verification_token == token))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification token"
+        )
+
+    # Check expiry
+    # Convert DB timestamp to naive UTC for comparison if it's aware
+    expiry = user.verification_token_expires
+    if expiry and expiry.tzinfo:
+        expiry = expiry.replace(tzinfo=None)
+
+    if expiry and expiry < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification token expired"
+        )
+
+    user.is_verified = True
+    user.verification_token = None
+    user.verification_token_expires = None
+
+    await db.commit()
+
+    return {"message": "Email verified successfully"}
+
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification(
+    request: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Resend verification email."""
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    if user and not user.is_verified:
+        token = str(uuid.uuid4())
+        user.verification_token = token
+        user.verification_token_expires = datetime.utcnow() + timedelta(hours=24)
+
+        await db.commit()
+
+        try:
+            await email_service.send_verification_email(user.email, token)
+        except Exception:
+            pass
+
+    return {"message": "If the account exists and is unverified, a verification email has been sent."}
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)

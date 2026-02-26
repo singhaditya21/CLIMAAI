@@ -2,15 +2,14 @@
 Weather history model for tracking historical data.
 Required for trend-based health indices (e.g., Migraine pressure trends).
 """
-from sqlalchemy import Column, Float, String, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Float, String, Index, Uuid
 from ..database import Base
 import uuid
 
 class WeatherHistory(Base):
     __tablename__ = "weather_history"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
 
