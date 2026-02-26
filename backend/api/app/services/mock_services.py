@@ -2,6 +2,7 @@
 Mock Nowcast Service - Realistic minute-by-minute precipitation simulation.
 """
 import random
+import httpx
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta, date
 from enum import Enum
@@ -370,7 +371,7 @@ class MockAlertsGenerator:
         }
     ]
     
-    def generate_alerts(
+    async def generate_alerts(
         self,
         latitude: float,
         longitude: float,
@@ -392,7 +393,10 @@ class MockAlertsGenerator:
         now = reference_time or datetime.utcnow()
         
         # Determine area name based on coordinates
-        area = self._get_area_name(latitude, longitude)
+        try:
+            area = await self._resolve_area_name(latitude, longitude)
+        except Exception:
+            area = self._get_area_name_fallback(latitude, longitude)
         
         # 60% chance of no alerts for realism
         if scenario is None and random.random() < 0.6:
@@ -445,9 +449,47 @@ class MockAlertsGenerator:
         
         return [alert]
     
-    def _get_area_name(self, lat: float, lon: float) -> str:
-        """Get approximate area name from coordinates."""
-        # Simple lookup (in production, would use geocoding)
+    async def _resolve_area_name(self, lat: float, lon: float) -> str:
+        """Get area name from coordinates using Nominatim API."""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://nominatim.openstreetmap.org/reverse",
+                    params={
+                        "lat": lat,
+                        "lon": lon,
+                        "format": "json"
+                    },
+                    headers={
+                        "User-Agent": "ClimaAI/1.0"
+                    },
+                    timeout=5.0
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                # Try to get best available name
+                address = data.get("address", {})
+                city = address.get("city") or address.get("town") or address.get("village")
+                county = address.get("county")
+                state = address.get("state")
+
+                if city and state:
+                    return f"{city} Metro Area"
+                elif county and state:
+                    return f"{county}"
+                elif state:
+                    return f"{state} Region"
+                else:
+                    return "Local Area"
+
+        except Exception:
+            # Fallback to simple lookup
+            return self._get_area_name_fallback(lat, lon)
+
+    def _get_area_name_fallback(self, lat: float, lon: float) -> str:
+        """Get approximate area name from coordinates (fallback)."""
+        # Simple lookup
         areas = {
             (40.7, -74.0): "New York City Metro Area",
             (34.0, -118.2): "Los Angeles County",

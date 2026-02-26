@@ -123,7 +123,7 @@ async def get_complete_mock_weather(
                 detail=f"Invalid scenario: {scenario}. Valid options: {list(DemoScenario)}"
             )
     
-    return mock_service.get_complete_weather(lat, lon, scenario=demo_scenario)
+    return await mock_service.get_complete_weather(lat, lon, scenario=demo_scenario)
 
 
 @router.get("/current")
@@ -241,9 +241,10 @@ async def get_mock_alerts(
     (60% chance of no alerts for realism).
     """
     lat, lon = _resolve_coordinates(latitude, longitude, city)
+    alerts = await mock_service.get_alerts(lat, lon, alert_type=alert_type)
     return {
-        "alerts": mock_service.get_alerts(lat, lon, alert_type=alert_type),
-        "count": len(mock_service.get_alerts(lat, lon, alert_type=alert_type))
+        "alerts": alerts,
+        "count": len(alerts)
     }
 
 
@@ -311,7 +312,7 @@ async def get_mock_health(
     """
     lat, lon = _resolve_coordinates(latitude, longitude, city)
     
-    full = mock_service.get_complete_weather(lat, lon)
+    full = await mock_service.get_complete_weather(lat, lon)
     
     return {
         "flu_risk": full["health"]["flu_risk"],
@@ -330,21 +331,21 @@ async def get_mock_health(
 async def showcase_perfect_day(city: str = Query("san_francisco")):
     """Showcase: Perfect weather day scenario."""
     lat, lon = _resolve_coordinates(None, None, city)
-    return mock_service.get_complete_weather(lat, lon, scenario=DemoScenario.PERFECT_DAY)
+    return await mock_service.get_complete_weather(lat, lon, scenario=DemoScenario.PERFECT_DAY)
 
 
 @router.get("/showcase/severe-weather")
 async def showcase_severe_weather(city: str = Query("chicago")):
     """Showcase: Severe weather with alerts."""
     lat, lon = _resolve_coordinates(None, None, city)
-    return mock_service.get_complete_weather(lat, lon, scenario=DemoScenario.SEVERE_WEATHER)
+    return await mock_service.get_complete_weather(lat, lon, scenario=DemoScenario.SEVERE_WEATHER)
 
 
 @router.get("/showcase/allergy-season")
 async def showcase_allergy_season(city: str = Query("new_york")):
     """Showcase: High pollen scenario."""
     lat, lon = _resolve_coordinates(None, None, city)
-    return mock_service.get_complete_weather(lat, lon, scenario=DemoScenario.HIGH_POLLEN)
+    return await mock_service.get_complete_weather(lat, lon, scenario=DemoScenario.HIGH_POLLEN)
 
 
 # Helper function

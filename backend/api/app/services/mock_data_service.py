@@ -71,7 +71,7 @@ class MockDataService:
         self.activity_service = ActivityForecastService()
         self.health_service = HealthIndexService()
     
-    def get_complete_weather(
+    async def get_complete_weather(
         self,
         latitude: float,
         longitude: float,
@@ -140,7 +140,7 @@ class MockDataService:
             reference_date=now.date()
         )
         
-        alerts = self._get_scenario_alerts(scenario, latitude, longitude, now)
+        alerts = await self._get_scenario_alerts(scenario, latitude, longitude, now)
         
         # Calculate activity scores
         hourly_for_activities = [
@@ -257,14 +257,14 @@ class MockDataService:
         """Get radar animation frames."""
         return self.radar_gen.generate_radar_frames()
     
-    def get_alerts(
+    async def get_alerts(
         self,
         latitude: float,
         longitude: float,
         alert_type: Optional[str] = None
     ) -> List[Dict]:
         """Get weather alerts for a location."""
-        return self.alerts_gen.generate_alerts(
+        return await self.alerts_gen.generate_alerts(
             latitude, longitude, scenario=alert_type
         )
     
@@ -364,7 +364,7 @@ class MockDataService:
         }
         return mapping.get(demo)
     
-    def _get_scenario_alerts(
+    async def _get_scenario_alerts(
         self,
         scenario: Optional[DemoScenario],
         lat: float,
@@ -373,24 +373,24 @@ class MockDataService:
     ) -> List[Dict]:
         """Get alerts appropriate for the scenario."""
         if scenario == DemoScenario.SEVERE_WEATHER:
-            return self.alerts_gen.generate_alerts(lat, lon, "thunderstorm", now)
+            return await self.alerts_gen.generate_alerts(lat, lon, "thunderstorm", now)
         elif scenario == DemoScenario.WINTER_STORM:
-            return self.alerts_gen.generate_alerts(lat, lon, "winter", now)
+            return await self.alerts_gen.generate_alerts(lat, lon, "winter", now)
         elif scenario == DemoScenario.HEATWAVE:
-            return self.alerts_gen.generate_alerts(lat, lon, "heat", now)
+            return await self.alerts_gen.generate_alerts(lat, lon, "heat", now)
         elif scenario in [DemoScenario.PERFECT_DAY, DemoScenario.HIGH_POLLEN]:
             return []  # No alerts for nice weather
         else:
             # Random - 30% chance of alerts
-            return self.alerts_gen.generate_alerts(lat, lon, reference_time=now)
+            return await self.alerts_gen.generate_alerts(lat, lon, reference_time=now)
 
 
 # Convenience functions for quick access
-def get_mock_weather(latitude: float, longitude: float, scenario: str = None) -> Dict:
+async def get_mock_weather(latitude: float, longitude: float, scenario: str = None) -> Dict:
     """Quick function to get mock weather data."""
     service = MockDataService()
     demo_scenario = DemoScenario(scenario) if scenario else None
-    return service.get_complete_weather(latitude, longitude, scenario=demo_scenario)
+    return await service.get_complete_weather(latitude, longitude, scenario=demo_scenario)
 
 
 def get_demo_cities() -> List[Dict]:
