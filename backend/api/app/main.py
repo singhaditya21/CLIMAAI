@@ -10,6 +10,7 @@ import time
 from .config import get_settings
 from .database import init_db
 from .services.weather_service import get_weather_service, close_weather_service
+from .services.alerts_service import get_alerts_service, close_alerts_service
 from .routers import (
     users_router,
     weather_router,
@@ -39,12 +40,18 @@ async def lifespan(app: FastAPI):
     get_weather_service()
     print("✅ Weather service initialized")
 
+    # Initialize alerts service
+    get_alerts_service()
+    print("✅ Alerts service initialized")
+
     yield
     
     # Shutdown
     print("👋 Shutting down ClimaAI API...")
     await close_weather_service()
     print("✅ Weather service closed")
+    await close_alerts_service()
+    print("✅ Alerts service closed")
 
 
 app = FastAPI(
