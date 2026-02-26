@@ -13,17 +13,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Manages AdMob ads in the app.
- * 
- * Note: This is a mock implementation. In production:
- * 1. Add Google Mobile Ads SDK dependency
- * 2. Add AdMob App ID to AndroidManifest.xml
- * 3. Replace mock views with actual AdView implementations
  */
 object AdManager {
     
@@ -39,20 +41,17 @@ object AdManager {
     private val _adsEnabled = MutableStateFlow(true)
     val adsEnabled: StateFlow<Boolean> = _adsEnabled.asStateFlow()
     
+    private var interstitialAd: InterstitialAd? = null
+
     /**
      * Initialize the Mobile Ads SDK.
      * Call this in Application.onCreate()
      */
     fun initialize(context: Context) {
-        // In production:
-        // MobileAds.initialize(context) { initializationStatus ->
-        //     _isInitialized.value = true
-        //     Log.d(TAG, "AdMob initialized")
-        // }
-        
-        // Mock initialization
-        _isInitialized.value = true
-        Log.d(TAG, "AdManager initialized (mock)")
+        MobileAds.initialize(context) { initializationStatus ->
+            _isInitialized.value = true
+            Log.d(TAG, "AdMob initialized")
+        }
     }
     
     /**
@@ -67,30 +66,58 @@ object AdManager {
      * Load an interstitial ad.
      */
     fun loadInterstitial(context: Context, onLoaded: () -> Unit, onFailed: (String) -> Unit) {
-        // In production:
-        // InterstitialAd.load(context, INTERSTITIAL_AD_UNIT_ID, AdRequest.Builder().build(),
-        //     object : InterstitialAdLoadCallback() {
-        //         override fun onAdLoaded(ad: InterstitialAd) { ... }
-        //         override fun onAdFailedToLoad(error: LoadAdError) { ... }
-        //     }
-        // )
-        
-        // Mock: always succeed
-        onLoaded()
+        if (!_adsEnabled.value) {
+            onFailed("Ads are disabled")
+            return
+        }
+
+        val adRequest = AdRequest.Builder().build()
+        InterstitialAd.load(context, INTERSTITIAL_AD_UNIT_ID, adRequest,
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(ad: InterstitialAd) {
+                    Log.d(TAG, "Ad was loaded.")
+                    interstitialAd = ad
+                    onLoaded()
+                }
+
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    Log.d(TAG, "Ad failed to load: ${error.message}")
+                    interstitialAd = null
+                    onFailed(error.message)
+                }
+            }
+        )
     }
     
     /**
      * Show the interstitial ad.
      */
     fun showInterstitial(activity: Activity, onDismissed: () -> Unit) {
-        // In production:
-        // interstitialAd?.show(activity)
-        // interstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-        //     override fun onAdDismissedFullScreenContent() { onDismissed() }
-        // }
-        
-        // Mock: immediately dismiss
-        onDismissed()
+        val ad = interstitialAd
+        if (ad != null) {
+            // Clear reference to avoid reuse and allow loading next ad
+            interstitialAd = null
+
+            ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "Ad was dismissed.")
+                    onDismissed()
+                }
+
+                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                    Log.d(TAG, "Ad failed to show: ${adError.message}")
+                    onDismissed()
+                }
+
+                override fun onAdShowedFullScreenContent() {
+                    Log.d(TAG, "Ad showed fullscreen content.")
+                }
+            }
+            ad.show(activity)
+        } else {
+            Log.d(TAG, "The interstitial ad wasn't ready yet.")
+            onDismissed()
+        }
     }
 }
 
