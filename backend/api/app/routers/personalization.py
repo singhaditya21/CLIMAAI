@@ -14,6 +14,8 @@ from ..services.personalization_service import (
     UserEvent,
     UserPreferenceProfile
 )
+from ..services.auth import get_current_user
+from ..models import User
 
 
 router = APIRouter(prefix="/personalization", tags=["Personalization"])
@@ -36,7 +38,7 @@ class PersonalizedContentResponse(BaseModel):
 @router.post("/track")
 async def track_event(
     request: TrackEventRequest,
-    user_id: str = "demo_user"  # In production, get from auth
+    current_user: User = Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Track a user interaction event for personalization learning.
@@ -48,7 +50,7 @@ async def track_event(
     - setting_change: User changed a setting (data: {setting: "temperature_unit", value: "fahrenheit"})
     """
     event = UserEvent(
-        user_id=user_id,
+        user_id=str(current_user.id),
         event_type=request.event_type,
         event_data=request.event_data,
         weather_context=request.weather_context
@@ -61,10 +63,10 @@ async def track_event(
 
 @router.get("/profile")
 async def get_profile(
-    user_id: str = "demo_user"
+    current_user: User = Depends(get_current_user)
 ) -> UserPreferenceProfile:
     """Get the learned preference profile for a user"""
-    return await personalization_service.get_profile(user_id)
+    return await personalization_service.get_profile(str(current_user.id))
 
 
 @router.get("/recommendations")
@@ -73,7 +75,7 @@ async def get_recommendations(
     humidity: int = 50,
     uv_index: float = 5.0,
     precipitation_probability: int = 0,
-    user_id: str = "demo_user"
+    current_user: User = Depends(get_current_user)
 ) -> PersonalizedContentResponse:
     """
     Get personalized recommendations based on current weather and user preferences.
@@ -85,6 +87,7 @@ async def get_recommendations(
         "precipitation_probability": precipitation_probability
     }
     
+    user_id = str(current_user.id)
     recommendations = await personalization_service.get_personalized_recommendations(
         user_id, weather
     )
@@ -103,11 +106,11 @@ async def get_recommendations(
 @router.get("/should-notify")
 async def should_notify(
     notification_type: str,
-    user_id: str = "demo_user"
+    current_user: User = Depends(get_current_user)
 ) -> Dict[str, bool]:
     """Check if a user should receive a specific notification type"""
     should_send = await personalization_service.should_send_notification(
-        user_id, notification_type
+        str(current_user.id), notification_type
     )
     return {"should_send": should_send}
 
@@ -115,9 +118,10 @@ async def should_notify(
 @router.post("/profile/update")
 async def update_profile(
     updates: Dict[str, Any],
-    user_id: str = "demo_user"
+    current_user: User = Depends(get_current_user)
 ) -> UserPreferenceProfile:
     """Manually update user preference profile"""
+    user_id = str(current_user.id)
     profile = await personalization_service.get_profile(user_id)
     
     # Apply updates
