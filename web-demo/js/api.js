@@ -180,6 +180,16 @@ class APIClient {
         return response;
     }
 
+    async googleLogin(code) {
+        const response = await this.request('/users/google', {
+            method: 'POST',
+            auth: false,
+            body: JSON.stringify({ code })
+        });
+        this.setToken(response.access_token);
+        return response;
+    }
+
     async getCurrentUser() {
         return await this.request('/users/me');
     }
