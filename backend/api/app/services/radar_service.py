@@ -12,6 +12,8 @@ from ..config import get_settings
 
 settings = get_settings()
 
+_radar_service: Optional['RadarService'] = None
+
 
 class RadarFrame(BaseModel):
     """Single radar frame metadata."""
@@ -209,3 +211,19 @@ class RadarService:
             print(f"Redis cache set error: {e}")
         
         return tile_data
+
+
+def get_radar_service() -> RadarService:
+    """Get the global RadarService instance."""
+    global _radar_service
+    if _radar_service is None:
+        _radar_service = RadarService()
+    return _radar_service
+
+
+async def close_radar_service():
+    """Close the global RadarService instance."""
+    global _radar_service
+    if _radar_service:
+        await _radar_service.close()
+        _radar_service = None
