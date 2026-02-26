@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..models import User, Subscription, SubscriptionStatus, SubscriptionPlatform, SubscriptionPlan
 from ..schemas.subscription import SubscriptionStatusResponse
+from ..config import get_settings
 import httpx
 
 
@@ -191,11 +192,12 @@ class SubscriptionService:
         Validate Apple App Store receipt.
         Note: This is a simplified version. Production should use App Store Server API.
         """
+        settings = get_settings()
         url = "https://sandbox.itunes.apple.com/verifyReceipt" if sandbox else "https://buy.itunes.apple.com/verifyReceipt"
         
         payload = {
             "receipt-data": receipt_data,
-            "password": "your-app-specific-shared-secret",  # Configure in production
+            "password": settings.APPLE_SHARED_SECRET,
             "exclude-old-transactions": True
         }
         
