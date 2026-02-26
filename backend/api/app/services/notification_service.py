@@ -3,7 +3,6 @@ Push notifications service for iOS (APNs) and Android (FCM).
 """
 from typing import Optional, List
 from datetime import datetime
-from functools import lru_cache
 import httpx
 import jwt
 import time
@@ -11,13 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_settings
 
 settings = get_settings()
-
-
-@lru_cache(maxsize=None)
-def _read_file_cached(path: str) -> str:
-    """Read file content with caching."""
-    with open(path, 'r') as f:
-        return f.read()
 
 
 class NotificationService:
@@ -43,7 +35,8 @@ class NotificationService:
             return None
         
         try:
-            apns_key = _read_file_cached(self.apns_key_path)
+            with open(self.apns_key_path, 'r') as f:
+                apns_key = f.read()
             
             headers = {
                 "alg": "ES256",
@@ -224,23 +217,19 @@ class NotificationService:
             devices = result.fetchall()
             
             success_count = 0
-            successful_tokens = []
             for device_token, platform in devices:
                 success = await self.send_notification(platform, device_token, title, body, data)
                 if success:
                     success_count += 1
-                    successful_tokens.append(device_token)
 
-            if successful_tokens:
-                # Update last_used_at for all successful tokens in one query
-                tokens_list = ", ".join([f"'{token}'" for token in successful_tokens])
-                await db.execute(
-                    f"""
-                    UPDATE device_tokens
-                    SET last_used_at = NOW()
-                    WHERE token IN ({tokens_list})
-                    """
-                )
+                    # Update last_used_at
+                    await db.execute(
+                        f"""
+                        UPDATE device_tokens
+                        SET last_used_at = NOW()
+                        WHERE token = '{device_token}'
+                        """
+                    )
             
             await db.commit()
             return success_count
