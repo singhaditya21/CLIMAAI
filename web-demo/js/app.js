@@ -354,9 +354,12 @@ class ClimaAI {
         return directions[index];
     }
 
-    formatSunTime(isoString) {
-        if (!isoString) return '--:--';
-        const date = new Date(isoString);
+    formatSunTime(timeString) {
+        if (!timeString) return '--:--';
+        // Check for simple HH:MM format (mock data)
+        if (/^\d{1,2}:\d{2}$/.test(timeString)) return timeString;
+
+        const date = new Date(timeString);
         if (isNaN(date.getTime())) return '--:--';
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     }
@@ -408,6 +411,18 @@ class ClimaAI {
                     <span class="detail-icon">☁️</span>
                     <span class="detail-value">${current.cloud_cover ?? 0}%</span>
                     <span class="detail-label">Cloud</span>
+                </div>
+            </div>
+            <div class="sun-times" aria-label="Sun rise and set times">
+                <div class="sun-item">
+                    <span aria-hidden="true">🌅</span>
+                    <span>Sunrise</span>
+                    <span>${this.formatSunTime(today.sunrise)}</span>
+                </div>
+                <div class="sun-item">
+                    <span aria-hidden="true">🌇</span>
+                    <span>Sunset</span>
+                    <span>${this.formatSunTime(today.sunset)}</span>
                 </div>
             </div>
         `;
