@@ -1,0 +1,3 @@
+## 2024-05-24 - Add focus-visible styles for keyboard accessibility
+**Learning:** The web-demo lacked fundamental `:focus-visible` styling for its interactive elements, resulting in a poor experience for keyboard navigation. Additionally, disabled buttons had no visual distinction.
+**Action:** Implemented global `:focus-visible` outline styles and `.btn:disabled` opacity/cursor styles in the base `style.css` to cover standard buttons, inputs, links, and selects natively. Next time, always check if base interactive elements have these states defined first.
