@@ -1,0 +1,3 @@
+## 2024-03-01 - Keyboard Accessibility & Tab ARIA in Web Demo Navigation
+**Learning:** The web demo's mobile-style bottom navigation lacked keyboard-accessible focus states (`:focus-visible`) and proper ARIA roles for tab lists, making it difficult to use with screen readers or keyboard navigation.
+**Action:** Implemented a global `:focus-visible` utility class in CSS to ensure focus indicators are consistent across the web demo, and added standard `role="tablist"` / `role="tab"` with dynamic `aria-selected` attributes for app navigation. Future similar projects should include these out-of-the-box.

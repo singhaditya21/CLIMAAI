@@ -124,8 +124,10 @@ class ClimaAI {
             // Update nav buttons
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
                 if (btn.dataset.screen === screen) {
                     btn.classList.add('active');
+                    btn.setAttribute('aria-selected', 'true');
                 }
             });
 
