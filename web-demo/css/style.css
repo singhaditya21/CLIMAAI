@@ -1199,3 +1199,22 @@ body {
         padding: 0;
     }
 }
+/* Accessibility: Keyboard Navigation Focus and Disabled States */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+    border-radius: inherit;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+}
+
+.btn:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
