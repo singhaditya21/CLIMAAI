@@ -1199,3 +1199,30 @@ body {
         padding: 0;
     }
 }
+/* Accessibility: Keyboard Focus States */
+.btn:focus-visible,
+.nav-btn:focus-visible,
+.theme-toggle:focus-visible,
+.icon-btn:focus-visible,
+.back-btn:focus-visible,
+a:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+/* Specific focus border-radius adjustments */
+.btn:focus-visible,
+.nav-btn:focus-visible {
+    border-radius: 12px;
+}
+.theme-toggle:focus-visible,
+.icon-btn:focus-visible {
+    border-radius: 8px;
+}
+.back-btn:focus-visible {
+    border-radius: 50%;
+}
+select:focus-visible {
+    border-radius: 6px;
+}

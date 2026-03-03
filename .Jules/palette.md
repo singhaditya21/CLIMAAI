@@ -1,0 +1,3 @@
+## 2024-05-18 - Keyboard Navigation in Custom Components
+**Learning:** The custom button and navigation components in the app (`.btn`, `.nav-btn`, `.icon-btn`, `.back-btn`, `.theme-toggle`) entirely lacked visible focus states (`:focus-visible`), which makes the app unusable for keyboard-only users. By adding focus indicators that reuse the existing `var(--primary-light)` color and inheriting border-radius, we fix a critical accessibility issue while adhering to the app's native visual style without adding new design tokens.
+**Action:** Always verify keyboard focus states and tab order in custom interactive elements. When fixing them, match the `border-radius` and use existing primary color variables to keep the UI consistent.
