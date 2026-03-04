@@ -1,0 +1,3 @@
+## 2024-03-04 - Missing Focus Indicators on Custom Components
+**Learning:** The custom UI components (like `.btn`, navigation buttons, icon buttons) in the `web-demo` interface lacked explicit `:focus-visible` styles, making keyboard navigation difficult to track for users relying on keyboard accessibility. A standard pattern here is to use the existing `var(--primary-light)` CSS variable for focus indicators.
+**Action:** When adding or updating custom interactive components in this app, always ensure they include a `:focus-visible` state using `outline: 2px solid var(--primary-light) !important; outline-offset: 2px;`. This improves accessibility while keeping the design consistent without adding new design tokens.
