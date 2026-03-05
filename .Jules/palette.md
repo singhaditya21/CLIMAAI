@@ -1,0 +1,3 @@
+## 2026-03-05 - Added focus-visible states
+**Learning:** Found that custom UI components (like theme toggles and custom buttons) lacked explicit `:focus-visible` styles, making keyboard navigation difficult for accessibility.
+**Action:** Added a global `:focus-visible` rule in `style.css` that leverages modern browser's natural outline curving to match the element's border-radius natively (avoiding `border-radius: inherit` which incorrectly forces inheritance from the parent container) and uses the existing `--primary-light` color to maintain visual consistency while providing clear focus indicators for screen readers and keyboard users.
