@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing Focus Indicators & border-radius: inherit
+**Learning:** The web-demo application entirely lacked generic keyboard focus indicators (`:focus-visible`), relying only on a specific `box-shadow` hack for inputs, which hurts accessibility for keyboard navigation. I also learned not to apply `border-radius: inherit` for outline styling; modern browser `outline` natively curves to match the element's actual border-radius, while using `inherit` forces incorrect inheritance from parent containers.
+**Action:** When adding global `:focus-visible` styles, I'll rely on modern native outline behavior with `outline-offset` instead of legacy hacks, and ensure existing custom focus rings (like on inputs) are excluded to prevent double-focus rings.

@@ -81,6 +81,17 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Accessibility Focus States */
+:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+.form-group input:focus-visible {
+    /* Inputs already have a custom box-shadow focus state, prevent double ring */
+    outline: none;
+}
+
 /* Phone Container */
 .phone-container {
     perspective: 1000px;
