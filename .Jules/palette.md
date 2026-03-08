@@ -1,0 +1,3 @@
+## 2024-05-09 - Focus Visible Styling Constraints
+**Learning:** When applying global `:focus-visible` accessibility styles, it's critical to avoid using `border-radius: inherit` for focus outlines as it incorrectly forces inheritance from the parent container. Modern browsers natively curve outlines to match the element's `border-radius`. Additionally, elements that handle their own focus states (e.g., custom form inputs like `.form-group input`) must be explicitly excluded using `:not()` to prevent conflicting or duplicate focus rings.
+**Action:** Always use a standard outline (e.g., `outline: 2px solid var(--primary-light)`) with `outline-offset` instead of inherited border radius, and carefully exclude components with built-in custom focus styling.
