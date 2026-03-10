@@ -1199,3 +1199,8 @@ body {
         padding: 0;
     }
 }
+/* Global Accessibility - Keyboard Focus Styles */
+*:focus-visible:not(.form-group input) {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}

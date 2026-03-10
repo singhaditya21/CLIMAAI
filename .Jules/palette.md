@@ -1,0 +1,3 @@
+## 2025-03-10 - Modern Focus Outline Behavior
+**Learning:** When adding `:focus-visible` styles to custom UI components with `border-radius`, setting `border-radius: inherit` for the outline is a bad practice. It incorrectly forces inheritance from the parent container. Modern browsers now natively curve focus outlines to match the element's own `border-radius`.
+**Action:** Exclude elements that have their own focus states (e.g. `.form-group input`). Use existing CSS color variables like `var(--primary-light)` for the outline color to keep a consistent theme. Rely on the browser's native outline curving for custom `border-radius` elements.
