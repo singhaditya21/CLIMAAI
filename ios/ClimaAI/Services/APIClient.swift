@@ -257,4 +257,184 @@ class APIClient {
         let response: PlansResponse = try await performRequest(request)
         return response.plans
     }
+    
+    // MARK: - Alerts Endpoints
+    
+    func getAlerts(latitude: Double, longitude: Double, locationName: String = "your location") async throws -> AlertsResponse {
+        let endpoint = "/alerts?latitude=\(latitude)&longitude=\(longitude)&location_name=\(locationName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? locationName)"
+        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    func getAlertHistory() async throws -> AlertHistoryResponse {
+        let request = try createRequest(endpoint: "/alerts/history", requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    func dismissAlert(alertId: Int) async throws -> MessageResponse {
+        let request = try createRequest(endpoint: "/alerts/\(alertId)/dismiss", method: "POST", requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - Health Endpoints (Pollen, Flu Risk, Migraine, Activities)
+    
+    func getPollenForecast(latitude: Double, longitude: Double, days: Int = 5) async throws -> PollenForecastResponse {
+        let endpoint = "/health/pollen?latitude=\(latitude)&longitude=\(longitude)&days=\(days)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getTodaysPollen(latitude: Double, longitude: Double) async throws -> PollenTodayResponse {
+        let endpoint = "/health/pollen/today?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getFluRisk(latitude: Double, longitude: Double) async throws -> FluRiskResponse {
+        let endpoint = "/health/flu-risk?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getMigraineRisk(latitude: Double, longitude: Double) async throws -> MigraineRiskResponse {
+        let endpoint = "/health/migraine-risk?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getAllActivities(latitude: Double, longitude: Double) async throws -> AllActivitiesResponse {
+        let endpoint = "/health/activities?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getActivityForecast(activity: String, latitude: Double, longitude: Double) async throws -> ActivityDetailResponse {
+        let endpoint = "/health/activities/\(activity)?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - Notification Endpoints
+    
+    func registerDevice(token: String, platform: String = "ios", deviceInfo: [String: Any]? = nil) async throws -> DeviceRegisterResponse {
+        var body: [String: Any] = ["token": token, "platform": platform]
+        if let info = deviceInfo { body["device_info"] = info }
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+        let request = try createRequest(endpoint: "/notifications/register-device", method: "POST", body: bodyData, requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    func unregisterDevice(token: String) async throws -> MessageResponse {
+        let body = ["token": token]
+        let bodyData = try encoder.encode(body)
+        let request = try createRequest(endpoint: "/notifications/unregister-device", method: "POST", body: bodyData, requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    func getNotificationPreferences() async throws -> NotificationPreferencesWrapper {
+        let request = try createRequest(endpoint: "/notifications/preferences", requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    func updateNotificationPreferences(weatherAlerts: Bool? = nil, dailySummary: Bool? = nil, severeWeather: Bool? = nil) async throws -> NotificationPreferencesUpdateResponse {
+        var body: [String: Bool] = [:]
+        if let wa = weatherAlerts { body["weather_alerts"] = wa }
+        if let ds = dailySummary { body["daily_summary"] = ds }
+        if let sw = severeWeather { body["severe_weather"] = sw }
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+        let request = try createRequest(endpoint: "/notifications/preferences", method: "PUT", body: bodyData, requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    func sendTestNotification(title: String = "Test", message: String = "Test notification") async throws -> TestNotificationResponse {
+        let body = ["title": title, "message": message]
+        let bodyData = try encoder.encode(body)
+        let request = try createRequest(endpoint: "/notifications/test", method: "POST", body: bodyData, requiresAuth: true)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - Personalization Endpoints
+    
+    func trackEvent(eventType: String, eventData: [String: Any], weatherContext: [String: Any]? = nil) async throws -> MessageResponse {
+        var body: [String: Any] = ["event_type": eventType, "event_data": eventData]
+        if let ctx = weatherContext { body["weather_context"] = ctx }
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+        let request = try createRequest(endpoint: "/personalization/track", method: "POST", body: bodyData)
+        return try await performRequest(request)
+    }
+    
+    func getPersonalizationProfile(userId: String = "demo_user") async throws -> UserPreferenceProfileResponse {
+        let endpoint = "/personalization/profile?user_id=\(userId)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getPersonalizedRecommendations(temperature: Double, humidity: Int, uvIndex: Double, precipProbability: Int) async throws -> PersonalizedContentResponse {
+        let endpoint = "/personalization/recommendations?temperature=\(temperature)&humidity=\(humidity)&uv_index=\(uvIndex)&precipitation_probability=\(precipProbability)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func shouldNotify(notificationType: String, userId: String = "demo_user") async throws -> ShouldNotifyResponse {
+        let endpoint = "/personalization/should-notify?notification_type=\(notificationType)&user_id=\(userId)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - Precipitation Nowcast
+    
+    func getPrecipitationNowcast(latitude: Double, longitude: Double) async throws -> PrecipitationNowcastResponse {
+        let endpoint = "/api/v1/weather/nowcast?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - NWS Weather Alerts
+    
+    func getWeatherAlertsNWS(latitude: Double, longitude: Double) async throws -> NWSAlertsResponse {
+        let endpoint = "/api/weather/alerts?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getStateWeatherAlerts(state: String) async throws -> NWSStateAlertsResponse {
+        let endpoint = "/api/weather/alerts/\(state)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - Multi-Source Weather
+    
+    func getMultiSourceWeather(latitude: Double, longitude: Double, sources: String? = nil) async throws -> MultiSourceWeatherResponse {
+        var endpoint = "/api/weather/multi-source?latitude=\(latitude)&longitude=\(longitude)"
+        if let s = sources { endpoint += "&sources=\(s)" }
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getUVIndex(latitude: Double, longitude: Double) async throws -> UVIndexData {
+        let endpoint = "/api/weather/uv?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getMarineWeather(latitude: Double, longitude: Double) async throws -> MarineWeatherData {
+        let endpoint = "/api/weather/marine?latitude=\(latitude)&longitude=\(longitude)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    func getHistoricalWeather(latitude: Double, longitude: Double, startDate: String, endDate: String) async throws -> HistoricalWeatherData {
+        let endpoint = "/api/weather/historical?latitude=\(latitude)&longitude=\(longitude)&start_date=\(startDate)&end_date=\(endDate)"
+        let request = try createRequest(endpoint: endpoint)
+        return try await performRequest(request)
+    }
+    
+    // MARK: - Travel Risk (Premium)
+    
+    func getTravelRisk(latitude: Double, longitude: Double, destination: String = "your destination") async throws -> TravelRiskAnalysis {
+        let endpoint = "/api/travel-risk?latitude=\(latitude)&longitude=\(longitude)&destination=\(destination.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? destination)"
+        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
+        return try await performRequest(request)
+    }
 }

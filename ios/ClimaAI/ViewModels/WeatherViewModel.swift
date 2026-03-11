@@ -26,6 +26,18 @@ class WeatherViewModel: ObservableObject {
     @Published var locationName: String = "Current Location"
     @Published var favoriteLocations: [FavoriteLocation] = []
     
+    // MARK: - New API Published Properties
+    @Published var alerts: [AlertData] = []
+    @Published var fluRisk: FluRiskResponse?
+    @Published var migraineRisk: MigraineRiskResponse?
+    @Published var activityForecasts: [ActivityForecastItem] = []
+    @Published var notificationPrefs: NotificationPreferences?
+    @Published var nwsAlerts: [NWSAlert] = []
+    @Published var multiSourceWeather: MultiSourceWeatherResponse?
+    @Published var uvIndex: UVIndexData?
+    @Published var marineWeather: MarineWeatherData?
+    @Published var precipNowcastDetailed: PrecipitationNowcastResponse?
+    
     // MARK: - Private Properties
     private let apiClient: APIClient
     private let locationManager: LocationManager
@@ -104,6 +116,9 @@ class WeatherViewModel: ObservableObject {
             
             // Fetch pollen data
             await fetchPollen(latitude: latitude, longitude: longitude)
+            
+            // Fetch all additional data from new API endpoints
+            await fetchAdditionalData(latitude: latitude, longitude: longitude)
 
             isLoading = false
         } catch {
@@ -209,6 +224,139 @@ class WeatherViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Additional API Data (Non-blocking)
+    
+    /// Fetch all additional data from the new API endpoints
+    private func fetchAdditionalData(latitude: Double, longitude: Double) async {
+        async let alertsTask: () = fetchAlerts(latitude: latitude, longitude: longitude)
+        async let fluTask: () = fetchFluRisk(latitude: latitude, longitude: longitude)
+        async let migraineTask: () = fetchMigraineRisk(latitude: latitude, longitude: longitude)
+        async let activitiesTask: () = fetchActivities(latitude: latitude, longitude: longitude)
+        async let nwsTask: () = fetchNWSAlerts(latitude: latitude, longitude: longitude)
+        async let multiTask: () = fetchMultiSourceWeather(latitude: latitude, longitude: longitude)
+        async let uvTask: () = fetchUVIndex(latitude: latitude, longitude: longitude)
+        async let marineTask: () = fetchMarineWeather(latitude: latitude, longitude: longitude)
+        async let precipTask: () = fetchPrecipNowcastDetailed(latitude: latitude, longitude: longitude)
+        
+        // Await all concurrently (graceful failure — individual errors logged, not thrown)
+        _ = await (alertsTask, fluTask, migraineTask, activitiesTask, nwsTask, multiTask, uvTask, marineTask, precipTask)
+    }
+    
+    private func fetchAlerts(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getAlerts(latitude: latitude, longitude: longitude)
+            self.alerts = response.alerts
+        } catch {
+            print("Alerts unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchFluRisk(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getFluRisk(latitude: latitude, longitude: longitude)
+            self.fluRisk = response
+        } catch {
+            print("Flu risk unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchMigraineRisk(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getMigraineRisk(latitude: latitude, longitude: longitude)
+            self.migraineRisk = response
+        } catch {
+            print("Migraine risk unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchActivities(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getAllActivities(latitude: latitude, longitude: longitude)
+            self.activityForecasts = response.activities
+        } catch {
+            print("Activities unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchNWSAlerts(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getWeatherAlertsNWS(latitude: latitude, longitude: longitude)
+            self.nwsAlerts = response.alerts
+        } catch {
+            print("NWS alerts unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchMultiSourceWeather(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getMultiSourceWeather(latitude: latitude, longitude: longitude)
+            self.multiSourceWeather = response
+        } catch {
+            print("Multi-source weather unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchUVIndex(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getUVIndex(latitude: latitude, longitude: longitude)
+            self.uvIndex = response
+        } catch {
+            print("UV index unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchMarineWeather(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getMarineWeather(latitude: latitude, longitude: longitude)
+            self.marineWeather = response
+        } catch {
+            print("Marine weather unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchPrecipNowcastDetailed(latitude: Double, longitude: Double) async {
+        do {
+            let response = try await apiClient.getPrecipitationNowcast(latitude: latitude, longitude: longitude)
+            self.precipNowcastDetailed = response
+        } catch {
+            print("Precip nowcast detail unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    // MARK: - Notification Preferences
+    
+    func loadNotificationPreferences() async {
+        do {
+            let response = try await apiClient.getNotificationPreferences()
+            self.notificationPrefs = response.preferences
+        } catch {
+            print("Notification preferences unavailable: \(error.localizedDescription)")
+        }
+    }
+    
+    func updateNotificationPreferences(weatherAlerts: Bool? = nil, dailySummary: Bool? = nil, severeWeather: Bool? = nil) async {
+        do {
+            let response = try await apiClient.updateNotificationPreferences(
+                weatherAlerts: weatherAlerts,
+                dailySummary: dailySummary,
+                severeWeather: severeWeather
+            )
+            self.notificationPrefs = response.preferences
+        } catch {
+            print("Update notification preferences failed: \(error.localizedDescription)")
+        }
+    }
+    
+    // MARK: - Personalization
+    
+    func trackEvent(eventType: String, eventData: [String: Any]) async {
+        do {
+            _ = try await apiClient.trackEvent(eventType: eventType, eventData: eventData)
+        } catch {
+            print("Track event failed: \(error.localizedDescription)")
+        }
+    }
+    
     // MARK: - Favorite Locations
     
     /// Fetch user's favorite locations
@@ -267,6 +415,16 @@ class WeatherViewModel: ObservableObject {
         } catch {
             print("Error searching locations: \\(error)")
             return []
+        }
+    }
+    
+    // MARK: - Dismiss Alert
+    
+    func dismissAlert(alertId: Int) async {
+        do {
+            _ = try await apiClient.dismissAlert(alertId: alertId)
+        } catch {
+            print("Dismiss alert failed: \(error.localizedDescription)")
         }
     }
     
@@ -335,6 +493,12 @@ struct AirQualityResponse: Codable {
     }
 }
 
-struct MessageResponse: Codable {
-    let message: String
+struct PrecipitationNowcast: Codable {
+    let hasPrecipitation: Bool
+    let summary: String
+    
+    enum CodingKeys: String, CodingKey {
+        case hasPrecipitation = "has_precipitation"
+        case summary
+    }
 }

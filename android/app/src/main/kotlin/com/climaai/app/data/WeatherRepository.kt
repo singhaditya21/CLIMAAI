@@ -342,6 +342,443 @@ class WeatherRepository(private val context: Context) {
     }
     
     // =========================================================================
+    // Alerts
+    // =========================================================================
+    
+    suspend fun getAlerts(lat: Double, lon: Double, locationName: String = "your location"): Result<com.climaai.app.data.api.AlertsResponse> {
+        return try {
+            val response = api.getAlerts(lat, lon, locationName)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch alerts: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getAlerts error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getAlertHistory(): Result<com.climaai.app.data.api.AlertHistoryResponse> {
+        return try {
+            val response = api.getAlertHistory()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch alert history"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getAlertHistory error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun dismissAlert(alertId: Int): Result<Boolean> {
+        return try {
+            val response = api.dismissAlert(alertId)
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to dismiss alert"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "dismissAlert error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Health: Pollen, Flu, Migraine
+    // =========================================================================
+    
+    suspend fun getPollenForecast(lat: Double, lon: Double, days: Int = 5): Result<com.climaai.app.data.api.PollenForecastResponse> {
+        return try {
+            val response = api.getPollenForecast(lat, lon, days)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch pollen forecast"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getPollenForecast error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getTodaysPollen(lat: Double, lon: Double): Result<com.climaai.app.data.api.PollenTodayResponse> {
+        return try {
+            val response = api.getTodaysPollen(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch today's pollen"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getTodaysPollen error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getFluRisk(lat: Double, lon: Double): Result<com.climaai.app.data.api.FluRiskResponse> {
+        return try {
+            val response = api.getFluRisk(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch flu risk"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getFluRisk error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getMigraineRisk(lat: Double, lon: Double): Result<com.climaai.app.data.api.MigraineRiskResponse> {
+        return try {
+            val response = api.getMigraineRisk(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch migraine risk"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getMigraineRisk error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Activities
+    // =========================================================================
+    
+    suspend fun getAllActivities(lat: Double, lon: Double): Result<com.climaai.app.data.api.AllActivitiesResponse> {
+        return try {
+            val response = api.getAllActivities(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch activities"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getAllActivities error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getActivityForecast(activity: String, lat: Double, lon: Double): Result<com.climaai.app.data.api.ActivityDetailResponse> {
+        return try {
+            val response = api.getActivityForecast(activity, lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch activity forecast"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getActivityForecast error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Locations
+    // =========================================================================
+    
+    suspend fun searchLocations(query: String, limit: Int = 10): Result<com.climaai.app.data.api.LocationSearchResponse> {
+        return try {
+            val response = api.searchLocations(query, limit)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to search locations"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "searchLocations error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getFavoriteLocations(): Result<com.climaai.app.data.api.FavoriteLocationsResponse> {
+        return try {
+            val response = api.getFavoriteLocations()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch favorites"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getFavoriteLocations error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun addFavoriteLocation(name: String, lat: Double, lon: Double, isDefault: Boolean = false): Result<com.climaai.app.data.api.AddFavoriteResponse> {
+        return try {
+            val response = api.addFavoriteLocation(name, lat, lon, isDefault)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to add favorite"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "addFavoriteLocation error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun deleteFavoriteLocation(locationId: Int): Result<Boolean> {
+        return try {
+            val response = api.deleteFavoriteLocation(locationId)
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to delete favorite"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteFavoriteLocation error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun setDefaultLocation(locationId: Int): Result<Boolean> {
+        return try {
+            val response = api.setDefaultLocation(locationId)
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to set default location"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "setDefaultLocation error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Notifications
+    // =========================================================================
+    
+    suspend fun registerDevice(token: String, platform: String = "android", deviceInfo: Map<String, Any>? = null): Result<com.climaai.app.data.api.DeviceRegisterResponse> {
+        return try {
+            val body = mutableMapOf<String, Any>(
+                "token" to token,
+                "platform" to platform
+            )
+            deviceInfo?.let { body["device_info"] = it }
+            val response = api.registerDevice(body)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to register device"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "registerDevice error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun unregisterDevice(token: String): Result<Boolean> {
+        return try {
+            val response = api.unregisterDevice(mapOf("token" to token))
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to unregister device"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "unregisterDevice error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getNotificationPreferences(): Result<com.climaai.app.data.api.NotificationPreferencesResponse> {
+        return try {
+            val response = api.getNotificationPreferences()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to get notification preferences"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getNotificationPreferences error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updateNotificationPreferences(
+        weatherAlerts: Boolean? = null,
+        dailySummary: Boolean? = null,
+        severeWeather: Boolean? = null
+    ): Result<com.climaai.app.data.api.NotificationPreferencesUpdateResponse> {
+        return try {
+            val body = mutableMapOf<String, Boolean>()
+            weatherAlerts?.let { body["weather_alerts"] = it }
+            dailySummary?.let { body["daily_summary"] = it }
+            severeWeather?.let { body["severe_weather"] = it }
+            val response = api.updateNotificationPreferences(body)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to update notification preferences"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateNotificationPreferences error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Personalization
+    // =========================================================================
+    
+    suspend fun trackEvent(eventType: String, eventData: Map<String, Any>, weatherContext: Map<String, Any>? = null): Result<Boolean> {
+        return try {
+            val request = com.climaai.app.data.api.TrackEventRequest(eventType, eventData, weatherContext)
+            val response = api.trackEvent(request)
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Failed to track event"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "trackEvent error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getPersonalizedRecommendations(
+        temperature: Double,
+        humidity: Int,
+        uvIndex: Double,
+        precipProbability: Int
+    ): Result<com.climaai.app.data.api.PersonalizedContentResponse> {
+        return try {
+            val response = api.getPersonalizedRecommendations(temperature, humidity, uvIndex, precipProbability)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to get personalized recommendations"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getPersonalizedRecommendations error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Precipitation Nowcast
+    // =========================================================================
+    
+    suspend fun getPrecipitationNowcast(lat: Double, lon: Double): Result<com.climaai.app.data.api.PrecipitationNowcast> {
+        return try {
+            val response = api.getPrecipitationNowcast(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch precipitation nowcast"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getPrecipitationNowcast error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Travel Risk (Premium)
+    // =========================================================================
+    
+    suspend fun getTravelRisk(lat: Double, lon: Double, destination: String = "your destination"): Result<TravelRiskAnalysis> {
+        return try {
+            val response = api.getTravelRisk(lat, lon, destination)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch travel risk"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getTravelRisk error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // NWS Weather Alerts
+    // =========================================================================
+    
+    suspend fun getWeatherAlertsNWS(lat: Double, lon: Double): Result<com.climaai.app.data.api.NWSAlertsResponse> {
+        return try {
+            val response = api.getWeatherAlertsNWS(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch NWS alerts"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getWeatherAlertsNWS error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
+    // Multi-Source Weather
+    // =========================================================================
+    
+    suspend fun getMultiSourceWeather(lat: Double, lon: Double, sources: String? = null): Result<com.climaai.app.data.api.MultiSourceWeatherResponse> {
+        return try {
+            val response = api.getMultiSourceWeather(lat, lon, sources)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch multi-source weather"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getMultiSourceWeather error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getUVIndex(lat: Double, lon: Double): Result<com.climaai.app.data.api.UVIndexData> {
+        return try {
+            val response = api.getUVIndex(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch UV index"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getUVIndex error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getMarineWeather(lat: Double, lon: Double): Result<com.climaai.app.data.api.MarineWeatherData> {
+        return try {
+            val response = api.getMarineWeather(lat, lon)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch marine weather"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getMarineWeather error", e)
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getHistoricalWeather(lat: Double, lon: Double, startDate: String, endDate: String): Result<com.climaai.app.data.api.HistoricalWeatherData> {
+        return try {
+            val response = api.getHistoricalWeather(lat, lon, startDate, endDate)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch historical weather"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getHistoricalWeather error", e)
+            Result.failure(e)
+        }
+    }
+    
+    // =========================================================================
     // DataStore Helpers
     // =========================================================================
     

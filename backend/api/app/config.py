@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     # Feature flags
     ENABLE_AI_INSIGHTS: bool = True
     
+    # External Weather API Keys (for multi-source weather service)
+    OPENWEATHERMAP_API_KEY: str = ""   # https://openweathermap.org/api
+    WEATHERBIT_API_KEY: str = ""       # https://www.weatherbit.io/api
+    STORMGLASS_API_KEY: str = ""       # https://stormglass.io/
+    OPENUV_API_KEY: str = ""           # https://www.openuv.io/
+    METEOBLUE_API_KEY: str = ""        # https://www.meteoblue.com/en/weather-api
+    NOAA_API_KEY: str = ""             # https://www.ncdc.noaa.gov/cdo-web/webservices/v2
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

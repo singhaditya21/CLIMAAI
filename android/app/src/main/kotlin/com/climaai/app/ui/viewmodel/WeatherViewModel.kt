@@ -77,6 +77,43 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private val _dataSource = MutableStateFlow("Open-Meteo")
     val dataSource = _dataSource.asStateFlow()
     
+    // =========================================================================
+    // New API State Flows
+    // =========================================================================
+    
+    private val _alertsState = MutableStateFlow<List<com.climaai.app.data.api.AlertData>>(emptyList())
+    val alertsState = _alertsState.asStateFlow()
+    
+    private val _pollenState = MutableStateFlow<com.climaai.app.data.api.PollenTodayResponse?>(null)
+    val pollenState = _pollenState.asStateFlow()
+    
+    private val _precipNowcast = MutableStateFlow<com.climaai.app.data.api.PrecipitationNowcast?>(null)
+    val precipNowcast = _precipNowcast.asStateFlow()
+    
+    private val _fluRisk = MutableStateFlow<com.climaai.app.data.api.FluRiskResponse?>(null)
+    val fluRisk = _fluRisk.asStateFlow()
+    
+    private val _migraineRisk = MutableStateFlow<com.climaai.app.data.api.MigraineRiskResponse?>(null)
+    val migraineRisk = _migraineRisk.asStateFlow()
+    
+    private val _activities = MutableStateFlow<List<com.climaai.app.data.api.ActivityForecastItem>>(emptyList())
+    val activities = _activities.asStateFlow()
+    
+    private val _favoriteLocations = MutableStateFlow<List<com.climaai.app.data.api.FavoriteLocationData>>(emptyList())
+    val favoriteLocations = _favoriteLocations.asStateFlow()
+    
+    private val _nwsAlerts = MutableStateFlow<List<com.climaai.app.data.api.NWSAlert>>(emptyList())
+    val nwsAlerts = _nwsAlerts.asStateFlow()
+    
+    private val _multiSourceWeather = MutableStateFlow<com.climaai.app.data.api.MultiSourceWeatherResponse?>(null)
+    val multiSourceWeather = _multiSourceWeather.asStateFlow()
+    
+    private val _uvIndex = MutableStateFlow<com.climaai.app.data.api.UVIndexData?>(null)
+    val uvIndex = _uvIndex.asStateFlow()
+    
+    private val _marineWeather = MutableStateFlow<com.climaai.app.data.api.MarineWeatherData?>(null)
+    val marineWeather = _marineWeather.asStateFlow()
+    
     init {
         checkSubscriptionStatus()
         refreshUsageStats()
@@ -129,6 +166,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     
                     // Try to fetch AI insights from backend (graceful degradation)
                     fetchAIInsights(lat, lon)
+                    
+                    // Fetch additional data in parallel
+                    fetchAdditionalData(lat, lon)
                 },
                 onFailure = { error ->
                     Log.w("WeatherViewModel", "Open-Meteo failed, trying backend", error)
@@ -192,6 +232,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     
                     // Try AI insights
                     fetchAIInsights(loc.latitude, loc.longitude)
+                    
+                    // Fetch additional data in parallel
+                    fetchAdditionalData(loc.latitude, loc.longitude)
                 },
                 onFailure = { error ->
                     // Fallback: Try backend
@@ -208,6 +251,140 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             
             _isRefreshing.value = false
             updateRefreshState()
+        }
+    }
+    
+    /**
+     * Fetch additional data from all new API endpoints (non-blocking).
+     */
+    private fun fetchAdditionalData(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            // Fetch in parallel using multiple coroutines
+            launch { fetchAlerts(lat, lon) }
+            launch { fetchPollen(lat, lon) }
+            launch { fetchPrecipNowcast(lat, lon) }
+            launch { fetchHealthRisks(lat, lon) }
+            launch { fetchActivities(lat, lon) }
+            launch { fetchNWSAlerts(lat, lon) }
+            launch { fetchMultiSourceWeather(lat, lon) }
+            launch { fetchUVIndex(lat, lon) }
+            launch { fetchMarineWeather(lat, lon) }
+            launch { fetchFavoriteLocations() }
+        }
+    }
+    
+    private suspend fun fetchAlerts(lat: Double, lon: Double) {
+        repository.getAlerts(lat, lon).fold(
+            onSuccess = { response -> _alertsState.value = response.alerts },
+            onFailure = { Log.w("WeatherViewModel", "Alerts unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchPollen(lat: Double, lon: Double) {
+        repository.getTodaysPollen(lat, lon).fold(
+            onSuccess = { response -> _pollenState.value = response },
+            onFailure = { Log.w("WeatherViewModel", "Pollen unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchPrecipNowcast(lat: Double, lon: Double) {
+        repository.getPrecipitationNowcast(lat, lon).fold(
+            onSuccess = { response -> _precipNowcast.value = response },
+            onFailure = { Log.w("WeatherViewModel", "Precip nowcast unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchHealthRisks(lat: Double, lon: Double) {
+        repository.getFluRisk(lat, lon).fold(
+            onSuccess = { response -> _fluRisk.value = response },
+            onFailure = { Log.w("WeatherViewModel", "Flu risk unavailable: ${it.message}") }
+        )
+        repository.getMigraineRisk(lat, lon).fold(
+            onSuccess = { response -> _migraineRisk.value = response },
+            onFailure = { Log.w("WeatherViewModel", "Migraine risk unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchActivities(lat: Double, lon: Double) {
+        repository.getAllActivities(lat, lon).fold(
+            onSuccess = { response -> _activities.value = response.activities },
+            onFailure = { Log.w("WeatherViewModel", "Activities unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchNWSAlerts(lat: Double, lon: Double) {
+        repository.getWeatherAlertsNWS(lat, lon).fold(
+            onSuccess = { response -> _nwsAlerts.value = response.alerts },
+            onFailure = { Log.w("WeatherViewModel", "NWS alerts unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchMultiSourceWeather(lat: Double, lon: Double) {
+        repository.getMultiSourceWeather(lat, lon).fold(
+            onSuccess = { response -> _multiSourceWeather.value = response },
+            onFailure = { Log.w("WeatherViewModel", "Multi-source unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchUVIndex(lat: Double, lon: Double) {
+        repository.getUVIndex(lat, lon).fold(
+            onSuccess = { response -> _uvIndex.value = response },
+            onFailure = { Log.w("WeatherViewModel", "UV index unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchMarineWeather(lat: Double, lon: Double) {
+        repository.getMarineWeather(lat, lon).fold(
+            onSuccess = { response -> _marineWeather.value = response },
+            onFailure = { Log.w("WeatherViewModel", "Marine weather unavailable: ${it.message}") }
+        )
+    }
+    
+    private suspend fun fetchFavoriteLocations() {
+        repository.getFavoriteLocations().fold(
+            onSuccess = { response -> _favoriteLocations.value = response.favorites },
+            onFailure = { Log.w("WeatherViewModel", "Favorites unavailable: ${it.message}") }
+        )
+    }
+    
+    // =========================================================================
+    // Location Search & Favorites (public)
+    // =========================================================================
+    
+    fun searchLocations(query: String) {
+        viewModelScope.launch {
+            repository.searchLocations(query).fold(
+                onSuccess = { /* emit through a callback or flow as needed */ },
+                onFailure = { Log.w("WeatherViewModel", "Location search failed: ${it.message}") }
+            )
+        }
+    }
+    
+    fun addFavorite(name: String, lat: Double, lon: Double, isDefault: Boolean = false) {
+        viewModelScope.launch {
+            repository.addFavoriteLocation(name, lat, lon, isDefault).fold(
+                onSuccess = { fetchFavoriteLocations() },
+                onFailure = { Log.w("WeatherViewModel", "Add favorite failed: ${it.message}") }
+            )
+        }
+    }
+    
+    fun removeFavorite(locationId: Int) {
+        viewModelScope.launch {
+            repository.deleteFavoriteLocation(locationId).fold(
+                onSuccess = { fetchFavoriteLocations() },
+                onFailure = { Log.w("WeatherViewModel", "Remove favorite failed: ${it.message}") }
+            )
+        }
+    }
+    
+    // =========================================================================
+    // Personalization (public)
+    // =========================================================================
+    
+    fun trackUserEvent(eventType: String, eventData: Map<String, Any>) {
+        viewModelScope.launch {
+            repository.trackEvent(eventType, eventData)
         }
     }
     
@@ -256,6 +433,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 }
                 
                 fetchAIInsights(lat, lon)
+                fetchAdditionalData(lat, lon)
             }
             is WeatherResult.Error -> {
                 _weatherState.value = WeatherState.Error(result.message)
