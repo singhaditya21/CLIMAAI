@@ -51,6 +51,12 @@
     --space-6: 28px;
 }
 
+/* Accessibility */
+:focus-visible:not(.form-group input) {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 /* Light Theme */
 [data-theme="light"] {
     --bg-deep: #F5F7FA;

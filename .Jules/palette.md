@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid duplicate focus rings on inputs
+**Learning:** When applying global `:focus-visible` accessibility styles in the `web-demo` app, elements that already handle their own focus states (e.g., `.form-group input` using `box-shadow`) will show duplicate or conflicting focus rings.
+**Action:** Explicitly exclude elements like `.form-group input` using `:not(.form-group input)` when applying global focus styles to prevent duplicate focus rings.
