@@ -66,6 +66,17 @@
     --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+/* Global Focus Styles */
+*:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+.form-group input:focus-visible,
+.setting-select:focus-visible {
+    outline: none;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg-deep);
