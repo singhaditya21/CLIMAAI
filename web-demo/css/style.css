@@ -1199,3 +1199,14 @@ body {
         padding: 0;
     }
 }
+/* Accessibility - Global Focus States */
+:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+/* Prevent duplicate focus rings on elements with custom focus states */
+.form-group input:focus-visible,
+.setting-select:focus-visible {
+    outline: none;
+}
