@@ -1,0 +1,3 @@
+## 2024-05-18 - Global Focus-Visible Styling
+**Learning:** Adding global `:focus-visible` accessibility styles significantly improves keyboard navigation, but we must explicitly exclude elements that already handle their own focus states (e.g., `.form-group input`, `.setting-select`) to prevent duplicate or conflicting focus rings. Also, avoid using `border-radius: inherit` for focus outlines as it incorrectly forces inheritance from the parent container. Modern browsers natively curve outlines to match the element's border-radius.
+**Action:** Always test keyboard navigation (tabbing) across all interactive elements after adding focus styles, ensuring exclusions are properly set for custom inputs.

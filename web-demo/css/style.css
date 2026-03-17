@@ -81,6 +81,18 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Global Focus Styles for Keyboard Accessibility */
+:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+/* Prevent double focus rings on inputs that handle their own states */
+.form-group input:focus-visible,
+.setting-select:focus-visible {
+    outline: none;
+}
+
 /* Phone Container */
 .phone-container {
     perspective: 1000px;
