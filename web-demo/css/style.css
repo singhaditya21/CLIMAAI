@@ -81,6 +81,12 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Global Focus Styles for Accessibility */
+*:focus-visible:not(.form-group input):not(.setting-select) {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 /* Phone Container */
 .phone-container {
     perspective: 1000px;
