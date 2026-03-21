@@ -1,0 +1,3 @@
+## 2024-05-24 - Focus Outline Curvature Behavior
+**Learning:** When fixing missing keyboard focus indicators (`:focus-visible`), avoid using `border-radius: inherit` for focus outlines. It incorrectly forces inheritance from the parent container. Modern browsers natively curve outlines to match the element's `border-radius`.
+**Action:** Let the browser handle focus outline curvature natively; do not manually apply `border-radius: inherit` to `:focus-visible` pseudo-classes unless strictly necessary due to specific constraints. Use existing CSS color variables (e.g., `var(--primary-light)`) for consistent focus ring styling.

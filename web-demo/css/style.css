@@ -51,6 +51,18 @@
     --space-6: 28px;
 }
 
+/* Global Accessibility - Focus States */
+:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+/* Exclude elements that manage their own focus styles */
+.form-group input:focus-visible,
+.setting-select:focus-visible {
+    outline: none;
+}
+
 /* Light Theme */
 [data-theme="light"] {
     --bg-deep: #F5F7FA;
