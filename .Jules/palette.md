@@ -1,0 +1,3 @@
+## 2024-05-24 - Focus Visible Accessibility Styles
+**Learning:** When applying global `:focus-visible` accessibility styles, it's critical to explicitly exclude elements that already handle their own focus states (e.g., `.form-group input`, `.setting-select`) to prevent duplicate or conflicting focus rings.
+**Action:** When adding global focus styles to a design system, always audit existing interactive elements and use CSS exclusions (`:not()` or explicit `outline: none;`) for those with custom focus implementations.

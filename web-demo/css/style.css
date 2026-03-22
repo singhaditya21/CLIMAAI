@@ -1182,6 +1182,18 @@ body {
     color: var(--text-dark);
 }
 
+/* Accessibility: Focus visible styles for keyboard navigation */
+:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+/* Exclude elements that already handle their own focus states */
+.form-group input:focus-visible,
+.setting-select:focus-visible {
+    outline: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .phone-frame {
