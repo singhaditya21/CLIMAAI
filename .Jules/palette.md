@@ -1,0 +1,3 @@
+## 2024-03-24 - Handle explicit focus indicators effectively
+**Learning:** When adding global `:focus-visible` accessibility styles to an application, it is important to explicitly exclude specific elements that already implement their own custom focus states (such as `.form-group input` and `.setting-select` in this demo). Otherwise, the browser may render duplicate or conflicting focus rings, reducing the interface polish. Reusing existing CSS design tokens like `var(--primary-light)` ensures consistency.
+**Action:** Always verify if global `:focus-visible` rules clash with custom component focus states, and use `:not()` selectors to prevent redundant indicators.
