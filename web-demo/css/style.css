@@ -8,6 +8,12 @@
     box-sizing: border-box;
 }
 
+/* Accessibility */
+:focus-visible:not(.form-group input, .setting-select) {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 :root {
     /* Premium Color Palette */
     --primary: #6366F1;
