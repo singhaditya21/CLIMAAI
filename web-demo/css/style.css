@@ -66,6 +66,15 @@
     --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+*:focus {
+    outline: none;
+}
+
+*:focus-visible:not(.form-group input):not(.setting-select) {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg-deep);
@@ -1008,6 +1017,13 @@ body {
     font-size: 14px;
     background: white;
     cursor: pointer;
+    transition: all 0.3s;
+}
+
+.setting-select:focus-visible {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 /* Loading & Toast */
