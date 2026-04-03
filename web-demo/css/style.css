@@ -934,8 +934,11 @@ body {
     color: var(--text-tertiary);
 }
 
-.nav-btn:hover {
+.nav-btn:hover,
+.nav-btn:focus-visible {
     color: var(--text-secondary);
+    outline: none;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-btn.active {

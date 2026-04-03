@@ -1,0 +1,3 @@
+## 2024-05-24 - Targeted focus visible styles
+**Learning:** Adding `outline: none` globally is a risky accessibility anti-pattern. Instead of global overrides, focus styles should be applied to specific interactive components (like navigation buttons) that lack them, using existing hover behavior and color variables to maintain design consistency and safety.
+**Action:** Always identify specific interactive components that lack focus states and apply targeted inline class styles (`:focus-visible`) leveraging the design system's existing patterns rather than resorting to macro-level `*` selector overrides.
