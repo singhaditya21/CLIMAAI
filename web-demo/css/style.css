@@ -8,6 +8,15 @@
     box-sizing: border-box;
 }
 
+*:focus {
+    outline: none;
+}
+
+*:focus-visible:not(.form-group input):not(.setting-select) {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 :root {
     /* Premium Color Palette */
     --primary: #6366F1;

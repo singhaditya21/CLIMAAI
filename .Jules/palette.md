@@ -1,0 +1,3 @@
+## 2025-04-03 - Added Global Keyboard Focus Indicator
+**Learning:** The web app had missing visible focus indicators for keyboard users because of a blanket `outline: none` rule. It's critical to re-enable them specifically for keyboard interactions using `:focus-visible`. However, custom components like `.form-group input` and `.setting-select` may have their own designed focus states (e.g. `box-shadow`) which can visually clash with a global focus outline.
+**Action:** When applying global `*:focus-visible` outlines, ensure to explicitly exclude (`:not()`) components that manage their own accessible focus styles to avoid duplicate or conflicting visual states. Use `*:focus { outline: none; }` to hide default focus rings only when navigating via mouse/touch.
