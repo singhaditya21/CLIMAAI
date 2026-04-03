@@ -1,0 +1,3 @@
+## 2024-05-24 - Global Focus Styles and Specific Components
+**Learning:** When adding global `*:focus-visible` styles to improve keyboard navigation accessibility across an application, elements that already handle their own focus states (like custom inputs or selects using `box-shadow`) can end up with conflicting or duplicate focus rings (e.g., both an `outline` and a `box-shadow`).
+**Action:** When implementing global `:focus-visible` rules, explicitly exclude elements that manage their own focus using the `:not()` pseudo-class (e.g., `*:focus-visible:not(.custom-input)`), ensuring a clean and consistent focus experience without double rings.
