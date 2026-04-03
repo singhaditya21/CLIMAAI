@@ -1,0 +1,3 @@
+## 2024-05-24 - Native Focus Outlines vs Border Radius
+**Learning:** Modern browsers will automatically match a `outline` curve to the nearest `border-radius` of an element natively. Adding an explicit `border-radius: inherit` for custom focus styles overrides this behavior and forces it to explicitly match the parent element's class instead, which can lead to layout issues where the outline appears misshapen.
+**Action:** When implementing custom focus outlines, rely on standard native outline rendering to infer rounded corners. If custom focus requires complex rounding, verify there are no inheritance overrides.
