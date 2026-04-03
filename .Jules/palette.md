@@ -1,0 +1,3 @@
+## 2025-01-22 - Focus Styles for Custom UI Components
+**Learning:** When styling `:focus-visible` for custom UI components, modern browsers natively curve outlines to match the element's border-radius. Avoid using `border-radius: inherit` for focus outlines, as it incorrectly forces inheritance from the parent container rather than the element itself. Additionally, explicitly excluding elements that already handle their own focus (like form inputs) is necessary to prevent duplicate or conflicting focus rings when applying global `:focus-visible` styles.
+**Action:** Always test `:focus-visible` styles with keyboard navigation across all interactive elements, and rely on the browser's native outline rendering rather than trying to force inherited border-radii.
