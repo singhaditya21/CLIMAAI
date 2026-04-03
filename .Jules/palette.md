@@ -1,0 +1,3 @@
+## 2024-05-24 - Global Focus Visible Styling
+**Learning:** When applying global `:focus-visible` styles for better keyboard navigation accessibility, using `border-radius: inherit` for focus outlines can incorrectly force inheritance from the parent container. Modern browsers natively curve outlines to match the element's border-radius. Additionally, it is critical to explicitly exclude elements that already handle their own focus states (e.g., `:not(.form-group input):not(.setting-select)`) to prevent duplicate or conflicting focus rings.
+**Action:** When implementing global keyboard focus indicators, rely on the browser's native outline curving behavior and use `:not()` selectors to gracefully exclude custom form elements that manage their own focus presentation.
