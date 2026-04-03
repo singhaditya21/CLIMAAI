@@ -1,0 +1,3 @@
+## 2025-02-15 - Native Focus Outline Curves
+**Learning:** For custom focus outlines (`:focus-visible`), avoid using `border-radius: inherit` which can incorrectly force inheritance from the parent container. Modern browsers natively curve `outline` properties to match the element's actual `border-radius`.
+**Action:** When adding focus rings globally or on custom elements, specify `outline` and `outline-offset` values directly and let the browser handle the curvature automatically.
