@@ -1,0 +1,3 @@
+## 2024-05-24 - Async Button Loading States
+**Learning:** Adding visual loading feedback to primary call-to-action buttons (like login/register forms) prevents duplicate submissions and keeps the user informed during async operations. This is a critical interaction improvement that can be achieved entirely through Javascript DOM manipulation without needing new custom CSS.
+**Action:** When implementing form submissions, always disable the submit button and update its text content to indicate loading to provide immediate feedback to the user and prevent double-clicks.
