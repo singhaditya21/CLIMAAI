@@ -144,8 +144,15 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
 
         try {
+            // Set loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+            submitBtn.setAttribute('aria-busy', 'true');
+
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
             this.user = response.user;
@@ -155,6 +162,11 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            // Restore button state
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            submitBtn.removeAttribute('aria-busy');
         }
     }
 
@@ -163,8 +175,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
 
         try {
+            // Set loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing up...';
+            submitBtn.setAttribute('aria-busy', 'true');
+
             this.showToast('Creating account...', 'info');
             const response = await api.register(email, password, name);
             this.user = response.user;
@@ -174,6 +193,11 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            // Restore button state
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            submitBtn.removeAttribute('aria-busy');
         }
     }
 
