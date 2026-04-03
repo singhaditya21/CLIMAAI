@@ -1,0 +1,3 @@
+## 2026-04-03 - [Keyboard Focus Styles and Border Radius]
+**Learning:** When adding `:focus-visible` styles for custom UI components, modern browsers natively curve outlines to match the element's border-radius. Avoid using `border-radius: inherit` for focus outlines, as it incorrectly forces inheritance from the parent container. Also exclude elements that manage their own focus styles like `.form-group input` to avoid duplicate focus rings.
+**Action:** When fixing missing keyboard focus indicators (`:focus-visible`), use `outline` instead of border, and let the browser handle the curves automatically. Re-use existing CSS color variables like `var(--primary-light)`.

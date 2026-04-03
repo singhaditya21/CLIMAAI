@@ -229,6 +229,11 @@ body {
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
+.btn:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 .btn-google {
     background: white;
     color: #3c4043;
@@ -291,6 +296,12 @@ body {
     font-weight: 600;
 }
 
+.auth-switch a:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
 .back-btn {
     position: absolute;
     top: 50px;
@@ -303,6 +314,11 @@ body {
     height: 40px;
     border-radius: 50%;
     cursor: pointer;
+}
+
+.back-btn:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
 }
 
 /* Home Screen */
@@ -352,6 +368,11 @@ body {
     transform: scale(1.1);
 }
 
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
 .theme-icon {
     font-size: 12px;
 }
@@ -396,6 +417,11 @@ body {
 
 .icon-btn:active {
     transform: scale(0.95) rotate(180deg);
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
 }
 
 @keyframes spin-gradient {
@@ -932,6 +958,11 @@ body {
     border-radius: 12px;
     transition: all 0.3s ease;
     color: var(--text-tertiary);
+}
+
+.nav-btn:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
 }
 
 .nav-btn:hover {
