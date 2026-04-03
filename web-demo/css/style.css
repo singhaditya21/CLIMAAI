@@ -8,6 +8,21 @@
     box-sizing: border-box;
 }
 
+*:focus {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
+}
+
+/* Exclude elements that manage their own focus */
+.form-group input:focus-visible,
+.setting-select:focus-visible {
+    outline: none;
+}
+
 :root {
     /* Premium Color Palette */
     --primary: #6366F1;

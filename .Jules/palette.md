@@ -1,0 +1,3 @@
+## 2024-04-03 - Add global keyboard focus indicators
+**Learning:** Modern browsers may not render the focus outline when an element receives programmatic or mouse focus. This leads to issues for keyboard accessibility. A solution is to use `:focus-visible` to manage the outline explicitly. Also, ensure `.form-group input` and other elements that manage their own focus styles are excluded to avoid duplicate or conflicting outlines.
+**Action:** Always implement explicit `:focus-visible` states across global CSS while keeping specific component focus states intact. Use CSS variables to match existing theme styles natively.
