@@ -1,0 +1,3 @@
+## 2024-05-18 - Prevent Redundant Announcements for Icons
+**Learning:** In standard interactive components containing decorative emojis (like `<span class="nav-icon">🏠</span>` combined with `<span class="nav-label">Home</span>`), screen readers will announce both the emoji and the text label, causing duplicate, potentially confusing announcements.
+**Action:** Use `aria-hidden="true"` on wrapper elements containing decorative or redundant emojis when they exist alongside a clear, descriptive text label.
