@@ -144,8 +144,13 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = e.submitter;
+        const originalText = submitBtn.textContent;
 
         try {
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.textContent = 'Logging in...';
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
             this.user = response.user;
@@ -155,6 +160,10 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.removeAttribute('aria-busy');
+            submitBtn.textContent = originalText;
         }
     }
 
@@ -163,8 +172,13 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        const submitBtn = e.submitter;
+        const originalText = submitBtn.textContent;
 
         try {
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.textContent = 'Creating account...';
             this.showToast('Creating account...', 'info');
             const response = await api.register(email, password, name);
             this.user = response.user;
@@ -174,6 +188,10 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.removeAttribute('aria-busy');
+            submitBtn.textContent = originalText;
         }
     }
 
