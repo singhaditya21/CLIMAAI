@@ -1,0 +1,3 @@
+## 2024-04-11 - Hide decorative emojis from screen readers
+**Learning:** In the `web-demo` app, interactive components like `.nav-btn` often contain descriptive text labels adjacent to decorative emojis. Without intervention, screen readers announce both, leading to redundant and confusing phrasing (e.g., "house building Home, button").
+**Action:** Apply `aria-hidden="true"` to spans wrapping decorative emojis inside interactive components that already have text labels to ensure clean, succinct screen reader announcements.
