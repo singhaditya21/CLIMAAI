@@ -1,0 +1,3 @@
+## 2024-04-14 - Redundant screen reader announcements of decorative emojis
+**Learning:** Emojis are often read out loud by screen readers. When they are used purely for decorative purposes and exist alongside actual text labels, this can result in redundant and confusing announcements for screen reader users (e.g., "house home" instead of just "Home").
+**Action:** When adding emojis to interactive elements like buttons, always ensure they are wrapped in an element with `aria-hidden="true"` to prevent them from being announced, relying instead on the adjacent explicit text labels or an overall `aria-label` for the interactive component.
