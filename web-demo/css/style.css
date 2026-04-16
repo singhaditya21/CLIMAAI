@@ -224,7 +224,7 @@ body {
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.btn-primary:hover {
+.btn-primary:hover, .btn-primary:focus-visible {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
@@ -241,7 +241,7 @@ body {
     box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
 }
 
-.btn-google:hover {
+.btn-google:hover, .btn-google:focus-visible {
     background: #f8f9fa;
     border-color: #d2d3d4;
     box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3);
@@ -272,10 +272,20 @@ body {
     color: var(--text-light);
 }
 
+.btn-secondary:hover, .btn-secondary:focus-visible {
+    background: #475569;
+    transform: translateY(-2px);
+}
+
 .btn-danger {
     background: var(--danger);
     color: var(--text-light);
     margin-top: 12px;
+}
+
+.btn-danger:hover, .btn-danger:focus-visible {
+    background: #dc2626;
+    transform: translateY(-2px);
 }
 
 .auth-switch {
@@ -303,6 +313,11 @@ body {
     height: 40px;
     border-radius: 50%;
     cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.back-btn:hover, .back-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Home Screen */
@@ -346,7 +361,7 @@ body {
     justify-content: center;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover, .theme-toggle:focus-visible {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
@@ -382,12 +397,12 @@ body {
     transition: opacity 0.3s ease;
 }
 
-.icon-btn:hover::before {
+.icon-btn:hover::before, .icon-btn:focus-visible::before {
     opacity: 1;
     animation: spin-gradient 2s linear infinite;
 }
 
-.icon-btn:hover {
+.icon-btn:hover, .icon-btn:focus-visible {
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.6) 0%, rgba(168, 85, 247, 0.6) 100%);
     border-color: transparent;
     transform: scale(1.15);
@@ -934,7 +949,7 @@ body {
     color: var(--text-tertiary);
 }
 
-.nav-btn:hover {
+.nav-btn:hover, .nav-btn:focus-visible {
     color: var(--text-secondary);
 }
 
