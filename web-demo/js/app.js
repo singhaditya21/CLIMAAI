@@ -144,8 +144,15 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = e.submitter;
+        const originalText = submitBtn ? submitBtn.innerText : '';
 
         try {
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.setAttribute('aria-busy', 'true');
+                submitBtn.innerText = 'Signing In...';
+            }
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
             this.user = response.user;
@@ -155,6 +162,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.setAttribute('aria-busy', 'false');
+                submitBtn.innerText = originalText;
+            }
         }
     }
 
@@ -163,8 +176,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        const submitBtn = e.submitter;
+        const originalText = submitBtn ? submitBtn.innerText : '';
 
         try {
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.setAttribute('aria-busy', 'true');
+                submitBtn.innerText = 'Signing Up...';
+            }
             this.showToast('Creating account...', 'info');
             const response = await api.register(email, password, name);
             this.user = response.user;
@@ -174,6 +194,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.setAttribute('aria-busy', 'false');
+                submitBtn.innerText = originalText;
+            }
         }
     }
 
