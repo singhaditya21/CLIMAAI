@@ -1,0 +1,3 @@
+## 2024-05-18 - Async Button State Feedback
+**Learning:** In vanilla JS setups like the `web-demo` app, developers often forget to bind loading states directly to the form's submit button. This leads to duplicate submissions if clicked multiple times, and lack of screen reader announcements that a background request is occurring. Adding explicit `aria-busy="true"` and `disabled=true` logic directly solves this accessibility gap and improves perceived performance.
+**Action:** Always apply `disabled` and `aria-busy` to `e.submitter` in native form submit events and wrap the restoration logic in a `finally` block to guarantee recovery regardless of API response.
