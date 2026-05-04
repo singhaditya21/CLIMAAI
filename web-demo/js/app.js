@@ -144,6 +144,15 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitter = e.submitter;
+        let originalText = '';
+
+        if (submitter) {
+            originalText = submitter.textContent;
+            submitter.disabled = true;
+            submitter.setAttribute('aria-busy', 'true');
+            submitter.textContent = 'Signing In...';
+        }
 
         try {
             this.showToast('Logging in...', 'info');
@@ -155,6 +164,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitter) {
+                submitter.disabled = false;
+                submitter.removeAttribute('aria-busy');
+                submitter.textContent = originalText;
+            }
         }
     }
 
@@ -163,6 +178,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        const submitter = e.submitter;
+        let originalText = '';
+
+        if (submitter) {
+            originalText = submitter.textContent;
+            submitter.disabled = true;
+            submitter.setAttribute('aria-busy', 'true');
+            submitter.textContent = 'Signing Up...';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +198,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitter) {
+                submitter.disabled = false;
+                submitter.removeAttribute('aria-busy');
+                submitter.textContent = originalText;
+            }
         }
     }
 
