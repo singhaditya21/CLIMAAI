@@ -1,0 +1,3 @@
+## 2024-05-18 - Async Loading States for Form Submissions
+**Learning:** Adding explicit loading states to buttons (`disabled = true`, `aria-busy="true"`, custom loading text) greatly improves screen reader feedback during async actions. For form submissions in vanilla JS, relying on `e.target.querySelector` might fail if buttons aren't strictly structured. Using `e.submitter` directly targets the activating button securely.
+**Action:** When implementing async form submissions in vanilla JS, extract `e.submitter`, set `disabled` and `aria-busy` along with dynamic text, and strictly perform state resets in a `finally` block to ensure UI recovery on both success and failure.
