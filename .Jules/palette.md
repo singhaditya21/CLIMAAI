@@ -1,0 +1,5 @@
+## 2024-05-18 - Async Form Button Loading States
+
+**Learning:** When implementing asynchronous loading states for form buttons in a vanilla JS app like `web-demo`, targeting the exact button that triggered the submit using `e.submitter` avoids bugs where forms are submitted implicitly (like hitting 'Enter') or if multiple submit buttons exist without IDs. Furthermore, simulated API delays utilizing `setTimeout` callbacks can bypass `try/catch/finally` blocks, breaking the loading state lifecycle. Converting these timeouts to awaitable Promises (`await new Promise(...)`) ensures the runtime correctly halts execution, allowing the `finally` block to reliably clean up the state (restore text, remove `disabled`, and remove `aria-busy` attributes) regardless of API success or failure.
+
+**Action:** Consistently use `e.submitter` inside `try...finally` blocks combined with awaitable Promises for simulating or handling async UI interactions, explicitly setting state variables like `disabled` and `aria-busy` for full accessibility support instead of just altering text or CSS.
