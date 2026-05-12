@@ -145,6 +145,15 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        const submitBtn = e.submitter;
+        let originalHtml = '';
+        if (submitBtn) {
+            originalHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = 'Logging in...';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +164,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
+                submitBtn.innerHTML = originalHtml;
+            }
         }
     }
 
@@ -163,6 +178,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        const submitBtn = e.submitter;
+        let originalHtml = '';
+        if (submitBtn) {
+            originalHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = 'Signing Up...';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +198,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
+                submitBtn.innerHTML = originalHtml;
+            }
         }
     }
 
