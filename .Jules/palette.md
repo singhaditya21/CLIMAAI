@@ -1,0 +1,4 @@
+
+## 2026-05-13 - Reliable async loading states on Vanilla JS forms
+**Learning:** Using purely CSS pseudo-classes or raw timeout states to manage "Loading..." button behaviors on slow async requests can lead to trapped UI states if the API throws an error before the state resets, harming accessibility and UX. Also, when handling standard vanilla form `submit` events, relying on `querySelector` inside the form to find the submit button is flaky if there are multiple buttons.
+**Action:** Use `e.submitter` on the `submit` event to precisely target the triggering button. Always manage loading state additions (`disabled=true`, `aria-busy="true"`) explicitly in JS and place state restoration logic directly inside a robust `try/finally` block to guarantee the UI recovers and is navigable regardless of network failure.
