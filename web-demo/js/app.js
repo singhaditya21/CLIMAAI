@@ -145,6 +145,15 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        const submitBtn = e.submitter;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = 'Signing in...';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +164,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
+                submitBtn.innerHTML = originalContent;
+            }
         }
     }
 
@@ -163,6 +178,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        const submitBtn = e.submitter;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = 'Creating account...';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +198,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
+                submitBtn.innerHTML = originalContent;
+            }
         }
     }
 
@@ -186,6 +216,15 @@ class ClimaAI {
     }
 
     async handleGoogleSignIn() {
+        const btn = document.getElementById('googleSignInBtn');
+        let originalContent = '';
+        if (btn) {
+            originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.innerHTML = 'Connecting to Google...';
+        }
+
         try {
             this.showToast('🔐 Signing in with Google...', 'info');
 
@@ -222,6 +261,12 @@ class ClimaAI {
 
         } catch (error) {
             this.showToast(error.message || 'Google Sign-In failed', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.removeAttribute('aria-busy');
+                btn.innerHTML = originalContent;
+            }
         }
     }
 

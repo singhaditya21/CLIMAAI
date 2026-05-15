@@ -1,0 +1,3 @@
+## 2024-05-15 - Added missing finally block to Google Sign In
+**Learning:** When retrofitting vanilla JS asynchronous authentication functions with loading states, developers commonly implement `try/catch` without `finally`. In mock/demo methods specifically (like `handleGoogleSignIn` using `setTimeout`), failure to wrap the mock timeout in a Promise leads to un-catchable errors where a `finally` block would otherwise run, permanently disabling the UI button.
+**Action:** When adding button loading states to fake/demo async methods, always convert `setTimeout` callbacks into an `await new Promise(...)` structure to ensure standard `try/catch/finally` control flow correctly restores button state.
