@@ -1,0 +1,3 @@
+## 2026-05-20 - Adding Try/Finally Loading States in Vanilla JS
+**Learning:** When adding loading states to form submissions in vanilla JS, you can use `e.submitter` to gracefully modify the exact button clicked. However, `e.submitter.innerHTML` will preserve things like icons/svgs instead of destroying them (like `textContent` would). Also, capturing the button in a `finally` block ensures the button returns to a workable state even if the simulated backend (or mock setTimeout) fails.
+**Action:** Always use `try/finally` for loading states in JS. For async mock timers, ensure you use `await new Promise(...)` over plain `setTimeout` so the function actually yields and the `finally` cleanup executes reliably when the async block finishes.
