@@ -1,0 +1,3 @@
+## 2024-05-18 - Async Loading State Patterns in Vanilla JS
+**Learning:** When adding loading states to simulated async operations (e.g. `setTimeout`), standard `try/finally` blocks will not execute correctly. The `setTimeout` must be converted to an awaitable Promise to guarantee the `finally` block restores the UI state (`disabled=false`, removing `aria-busy`). Additionally, accessing `e.submitter.innerHTML` requires a null-check to prevent `TypeError`s if the submitter is null.
+**Action:** Always wrap simulated delays in `await new Promise(...)` when relying on `try/finally` for state cleanup, and always use a null-check block `if (submitBtn) { ... }` when manipulating `e.submitter` in form events.
