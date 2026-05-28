@@ -1,0 +1,3 @@
+## 2024-11-20 - Loading States on Async Buttons
+**Learning:** Adding explicit loading states (disabling button, adding `aria-busy`, and changing text to indicate work) on async forms prevents accidental double-submissions, and makes the UI more reassuring to screen reader users and sighted users.
+**Action:** Always wrap async simulated requests or API calls with a `try/finally` block to guarantee restoration of original button state, and utilize `e.submitter` to target the exact trigger element.
