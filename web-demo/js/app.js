@@ -145,6 +145,14 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        let originalText = '';
+        if (e.submitter) {
+            originalText = e.submitter.innerHTML;
+            e.submitter.disabled = true;
+            e.submitter.setAttribute('aria-busy', 'true');
+            e.submitter.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;margin-right:8px;">⏳</span> Signing in...';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +163,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (e.submitter) {
+                e.submitter.disabled = false;
+                e.submitter.removeAttribute('aria-busy');
+                e.submitter.innerHTML = originalText;
+            }
         }
     }
 
@@ -163,6 +177,14 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        let originalText = '';
+        if (e.submitter) {
+            originalText = e.submitter.innerHTML;
+            e.submitter.disabled = true;
+            e.submitter.setAttribute('aria-busy', 'true');
+            e.submitter.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;margin-right:8px;">⏳</span> Signing up...';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +196,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (e.submitter) {
+                e.submitter.disabled = false;
+                e.submitter.removeAttribute('aria-busy');
+                e.submitter.innerHTML = originalText;
+            }
         }
     }
 
