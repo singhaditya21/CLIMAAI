@@ -144,9 +144,19 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = e.submitter;
+        let originalContent = '';
+
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = 'Signing in...';
+        }
 
         try {
             this.showToast('Logging in...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 500)); // Make mock loading perceptible
             const response = await api.login(email, password);
             this.user = response.user;
             this.showToast('Welcome back! 🌤️', 'success');
@@ -155,6 +165,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
+                submitBtn.innerHTML = originalContent;
+            }
         }
     }
 
@@ -163,9 +179,19 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        const submitBtn = e.submitter;
+        let originalContent = '';
+
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = 'Signing up...';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 500)); // Make mock loading perceptible
             const response = await api.register(email, password, name);
             this.user = response.user;
             this.showToast('Account created! Welcome! 🎉', 'success');
@@ -174,6 +200,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
+                submitBtn.innerHTML = originalContent;
+            }
         }
     }
 
