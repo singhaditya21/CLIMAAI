@@ -1,0 +1,3 @@
+## 2024-06-02 - Form Submitter Loading States in Vanilla JS
+**Learning:** When dealing with asynchronous form submissions and applying loading states (disabling buttons, changing text) in vanilla JavaScript, it's crucial to utilize `e.submitter` rather than relying on `document.getElementById` or guessing the submit button. This guarantees we update the specific button that triggered the action, especially if forms have multiple submission points. Additionally, utilizing `finally` blocks guarantees UI recovery even if errors occur, and safely null-checking the submitter prevents unexpected TypeErrors.
+**Action:** Always capture the submit button via `const submitBtn = e.submitter;` and implement state modifications within a try/finally structure.
