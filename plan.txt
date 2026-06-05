@@ -1,0 +1,4 @@
+1. Implement loading states for async operations.
+Specifically, when logging in or registering, we should show a loading indicator on the submit button, disable it to prevent multiple clicks, and restore it once the operation is done. This also needs to apply to the Google Sign-in button.
+2. I will modify `web-demo/css/style.css` to add styling for a disabled button and potentially an inline spinner class.
+3. I will modify `web-demo/js/app.js`'s `handleLogin`, `handleRegister`, and `handleGoogleSignIn` to implement the loading state.

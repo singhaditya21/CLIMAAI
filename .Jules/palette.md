@@ -1,0 +1,3 @@
+## 2023-11-20 - Ensure Safe Button State Restoration
+**Learning:** Using `try/finally` blocks for simulated asynchronous operations in vanilla JavaScript is crucial for ensuring that temporary UI states (like loading text, `disabled=true`, and `aria-busy`) are robustly cleaned up. When using callbacks inside `setTimeout`, converting them into an awaitable Promise allows the `finally` block to effectively guarantee state cleanup regardless of success or failure.
+**Action:** Always wrap state restoration logic in a `finally` block, and convert non-awaitable asynchronous callbacks (e.g., in `handleGoogleSignIn`) into awaitable Promises when they impact UI state.
