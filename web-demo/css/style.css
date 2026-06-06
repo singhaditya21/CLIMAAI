@@ -229,6 +229,18 @@ body {
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 .btn-google {
     background: white;
     color: #3c4043;
