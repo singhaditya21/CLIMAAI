@@ -1,0 +1,3 @@
+## 2026-06-08 - [Vanilla JS Form Submitter Async States]
+**Learning:** When interacting with form submit events in the vanilla JavaScript frontend, use `e.submitter` to reliably capture the specific button that triggered the submission, but only access it safely inside a null-check block. Also, convert simulated async timeouts into awaitable Promises `await new Promise(r => setTimeout(r, delay))` so state cleanup logically falls into a `finally` block, ensuring the UI recovers reliably.
+**Action:** Use `e.submitter` guarded by a truthy check for button state management, and refactor loose `setTimeout` mock operations into Promises to guarantee `finally` block execution for resetting UI state.
