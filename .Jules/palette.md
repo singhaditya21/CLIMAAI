@@ -1,0 +1,3 @@
+## 2026-06-12 - Adding async loading states to vanilla JS forms
+**Learning:** When managing loading states for asynchronous form submissions in vanilla JavaScript, it's crucial to safely access `e.submitter` inside a null-check to prevent `TypeError`s, as `submitter` can be null depending on how the submission was triggered. Furthermore, wrapping the state restoration (e.g., removing `aria-busy`, re-enabling the button) in a `finally` block ensures the UI recovers cleanly regardless of API success or failure, avoiding permanently disabled buttons.
+**Action:** Always wrap original element state restoration in a `finally` block, and robustly null-check event properties like `submitter` before accessing or modifying them during async operations.
