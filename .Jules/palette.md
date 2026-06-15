@@ -1,0 +1,4 @@
+
+## 2026-06-15 - Robust Async Loading States
+**Learning:** When implementing asynchronous loading states on buttons in vanilla JavaScript, it's critical to capture the button that initiated the event using `e.submitter` (for form submissions) or `e.currentTarget` (for direct clicks). Furthermore, to guarantee the UI resets correctly after the operation (whether successful or failed), the original text and enabled state must be restored within a `finally` block.
+**Action:** Always capture `e.submitter` or `e.currentTarget` at the beginning of an event handler, temporarily change its state (e.g., set `disabled=true`, `aria-busy="true"`, update text), and wrap the async logic in a `try/finally` block to ensure the state is reliably restored using the captured references. Ensure any `setTimeout` logic mimicking async work is wrapped in a Promise to correctly trigger `finally` blocks.
