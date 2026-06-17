@@ -1,0 +1,3 @@
+## 2026-06-17 - Adding loading states to async form submissions
+**Learning:** When adding visual loading states to vanilla JS form submit buttons, accessing `e.submitter` provides a reliable way to target the specific button used, avoiding issues with generalized button selectors. A `finally` block with awaitable promises is crucial for guaranteed state cleanup, especially since users can submit forms multiple ways (enter key, pointer click).
+**Action:** Use `e.submitter` safely in form submission event handlers and ensure `aria-busy`, `disabled`, and `innerHTML` restoration is wrapped in `try/finally` blocks.
