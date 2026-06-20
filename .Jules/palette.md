@@ -1,0 +1,3 @@
+## 2026-06-20 - Async Form Submission Loading States
+**Learning:** Implementing loading states on form submission buttons significantly improves user feedback and prevents double-submissions. However, accessing the button that triggered the event must be done carefully using `e.submitter` instead of relying on generic button selectors, and a reliable cleanup process (like a `finally` block) must be used to restore the button's state even if the async operation fails.
+**Action:** When adding async loading states to form submissions in vanilla JavaScript, always use `e.submitter` conditionally, handle UI updates via explicit state manipulation, and rely on `try/finally` logic to ensure the button is re-enabled regardless of success or error outcomes.
