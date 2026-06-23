@@ -145,6 +145,16 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        const submitBtn = e.submitter;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '⏳ Loading...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +165,13 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor = '';
+            }
         }
     }
 
@@ -163,6 +180,16 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        const submitBtn = e.submitter;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '⏳ Loading...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            submitBtn.style.cursor = 'not-allowed';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +201,13 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor = '';
+            }
         }
     }
 
