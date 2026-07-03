@@ -1,0 +1,3 @@
+## 2026-07-03 - Added Async Loading States to Authentication Buttons
+**Learning:** Implementing visually apparent loading states on authentication buttons prevents confusing user experience during network latency (duplicate submissions) and clearly signals that an action is processing. We must use `try...finally` blocks and await `setTimeout` (using Promises when dealing with async workflows without native await boundaries) to guarantee that button states are restored correctly across all error and success cases.
+**Action:** Always wrap async operations in a `try...finally` structure when altering UI states, and explicitly check `e.submitter` on forms for native HTML submit events.
