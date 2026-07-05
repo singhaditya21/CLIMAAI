@@ -144,6 +144,14 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        let originalText = '';
+
+        if (e.submitter) {
+            originalText = e.submitter.innerHTML;
+            e.submitter.innerHTML = '⏳ Loading...';
+            e.submitter.disabled = true;
+            e.submitter.style.opacity = '0.7';
+        }
 
         try {
             this.showToast('Logging in...', 'info');
@@ -155,6 +163,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (e.submitter) {
+                e.submitter.innerHTML = originalText;
+                e.submitter.disabled = false;
+                e.submitter.style.opacity = '1';
+            }
         }
     }
 
@@ -163,6 +177,14 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        let originalText = '';
+
+        if (e.submitter) {
+            originalText = e.submitter.innerHTML;
+            e.submitter.innerHTML = '⏳ Loading...';
+            e.submitter.disabled = true;
+            e.submitter.style.opacity = '0.7';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +196,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (e.submitter) {
+                e.submitter.innerHTML = originalText;
+                e.submitter.disabled = false;
+                e.submitter.style.opacity = '1';
+            }
         }
     }
 
@@ -186,6 +214,15 @@ class ClimaAI {
     }
 
     async handleGoogleSignIn() {
+        const btn = document.getElementById('googleSignInBtn');
+        let originalText = '';
+        if (btn) {
+            originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Loading...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+        }
+
         try {
             this.showToast('🔐 Signing in with Google...', 'info');
 
@@ -197,31 +234,36 @@ class ClimaAI {
             // 5. Backend creates/updates user and returns JWT
 
             // For demo purposes, we'll simulate successful OAuth with demo account
-            setTimeout(async () => {
-                try {
-                    // Auto-login with demo account
-                    const response = await api.login('demo@climaai.com', 'Test1234');
-                    this.user = response.user;
-                    this.showToast('✅ Welcome! Signed in with Google', 'success');
-                    this.showScreen('homeScreen');
-                    this.loadWeatherData();
-                    this.checkSubscription();
-                } catch (error) {
-                    this.showToast('Google Sign-In succeeded! Welcome!', 'success');
-                    // Create a demo user object
-                    this.user = {
-                        email: 'google-user@gmail.com',
-                        full_name: 'Google User',
-                        is_premium: true
-                    };
-                    this.isPremium = true;
-                    this.showScreen('homeScreen');
-                    this.loadWeatherData();
-                }
-            }, 1500); // Simulate OAuth redirect delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            try {
+                // Auto-login with demo account
+                const response = await api.login('demo@climaai.com', 'Test1234');
+                this.user = response.user;
+                this.showToast('✅ Welcome! Signed in with Google', 'success');
+                this.showScreen('homeScreen');
+                this.loadWeatherData();
+                this.checkSubscription();
+            } catch (error) {
+                this.showToast('Google Sign-In succeeded! Welcome!', 'success');
+                // Create a demo user object
+                this.user = {
+                    email: 'google-user@gmail.com',
+                    full_name: 'Google User',
+                    is_premium: true
+                };
+                this.isPremium = true;
+                this.showScreen('homeScreen');
+                this.loadWeatherData();
+            }
 
         } catch (error) {
             this.showToast(error.message || 'Google Sign-In failed', 'error');
+        } finally {
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
         }
     }
 

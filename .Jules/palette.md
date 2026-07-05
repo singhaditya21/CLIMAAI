@@ -1,0 +1,3 @@
+## 2024-05-14 - explicit loading states for asynchronous ui interactions
+**Learning:** For asynchronous ui interactions without obvious native loading indicators (like form submissions or oauth redirects), explicit visual states are crucial. Users quickly assume the app is frozen or ignore repeated clicks if feedback isn't immediate, especially when network latency or simulated delays are involved.
+**Action:** When implementing async form submissions or simulated delays (e.g. auth flows), always add a visual loading state (like '⏳ Loading...' and disabled status) to the interactive element, ensuring safe property access (`e.submitter`) and reliable state restoration in `finally` blocks by using awaitable Promises.
