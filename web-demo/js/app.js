@@ -144,6 +144,15 @@ class ClimaAI {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = e.submitter;
+
+        let originalText = '';
+        if (submitBtn) {
+            originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '⏳ Loading...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+        }
 
         try {
             this.showToast('Logging in...', 'info');
@@ -155,6 +164,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+            }
         }
     }
 
