@@ -1,0 +1,3 @@
+## 2024-07-07 - Adding Reliable Async UI Loading States in Vanilla JS
+**Learning:** In vanilla JavaScript, visually updating `e.submitter` or button elements (adding a loading spinner/disabled state) during async operations often fails if the button isn't reliably restored on error or completion. Mock delays or asynchronous tasks bypass standard synchronous restoration unless properly awaited.
+**Action:** Always wrap async visual state changes in `try/finally` blocks and verify that mock delays (like `setTimeout`) are converted to awaitable Promises. This guarantees that UI loading states (like `opacity: '1'`, disabled attributes, and original innerHTML) are completely reset regardless of success or failure.
