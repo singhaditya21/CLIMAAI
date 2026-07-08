@@ -1,0 +1,3 @@
+## 2024-07-08 - Async Submit Button Loading States
+**Learning:** During async form submissions, users can be confused if there is no immediate visual feedback on the button itself. Using `e.submitter` in vanilla JS allows targeted feedback (disabling the button and changing text/icon) while preserving accessibility, without needing heavy component frameworks.
+**Action:** Always wrap async form submissions in a `try/finally` block that conditionally checks for `e.submitter` to disable the button and show a clear loading indicator (like "⏳ Loading...") before restoring the original state, regardless of success or failure.
