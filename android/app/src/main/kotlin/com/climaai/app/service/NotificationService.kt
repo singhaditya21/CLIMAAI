@@ -13,10 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.climaai.app.MainActivity
 import com.climaai.app.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.climaai.app.work.WorkScheduler
 import java.util.Calendar
 
 /**
@@ -60,7 +57,6 @@ enum class NotificationType(
 class NotificationService(private val context: Context) {
 
     private val notificationManager = NotificationManagerCompat.from(context)
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     /**
      * Initialize notification channels
@@ -116,6 +112,19 @@ class NotificationService(private val context: Context) {
     }
 
     /**
+     * Send severe weather alert (Overload for WeatherWorker)
+     */
+    fun sendSevereWeatherAlert(
+        alertType: String,
+        severity: String,
+        description: String,
+        actionRequired: String
+    ) {
+        val message = "$description. $actionRequired."
+        sendSevereWeatherAlert(title = alertType, message = message, severity = severity)
+    }
+
+    /**
      * Send rain alert
      */
     fun sendRainAlert(minutesUntilRain: Int, intensity: String = "light") {
@@ -131,6 +140,23 @@ class NotificationService(private val context: Context) {
             minutesUntilRain <= 15 -> "Rain expected in about $minutesUntilRain minutes"
             else -> "Rain expected in the next hour"
         }
+
+        val notification = createNotification(
+            channelId = NotificationType.RAIN_ALERT.channelId,
+            title = title,
+            message = message,
+            priority = NotificationCompat.PRIORITY_HIGH
+        )
+
+        showNotification(NotificationType.RAIN_ALERT.ordinal * 100 + 1, notification)
+    }
+
+    /**
+     * Send rain alert (Overload for WeatherWorker)
+     */
+    fun sendRainAlert(precipitationChance: Int, estimatedTime: String) {
+        val title = "🌧️ Rain Alert"
+        val message = "Rain is expected $estimatedTime with a $precipitationChance% chance."
 
         val notification = createNotification(
             channelId = NotificationType.RAIN_ALERT.channelId,
@@ -173,6 +199,14 @@ class NotificationService(private val context: Context) {
     }
 
     /**
+     * Send UV warning (Overload for WeatherWorker)
+     */
+    fun sendUVWarning(uvIndex: Int, riskLevel: String) {
+        // Reuse the logic from the main method
+        sendUVWarning(uvIndex)
+    }
+
+    /**
      * Send pollen alert
      */
     fun sendPollenAlert(level: Int, type: String = "pollen") {
@@ -198,35 +232,29 @@ class NotificationService(private val context: Context) {
      * Schedule daily morning briefing
      */
     fun scheduleMorningBriefing(hour: Int = 7, minute: Int = 0) {
-        // In production, use WorkManager for reliable scheduling
-        scope.launch {
-            val now = Calendar.getInstance()
-            val scheduledTime = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                
-                // If time has passed today, schedule for tomorrow
-                if (before(now)) {
-                    add(Calendar.DAY_OF_MONTH, 1)
-                }
-            }
-            
-            val delayMs = scheduledTime.timeInMillis - now.timeInMillis
-            delay(delayMs)
-            
-            sendDailyBriefing()
-        }
+        // Use WorkManager for reliable scheduling
+        WorkScheduler.scheduleDailySummary(context, hour)
     }
 
     /**
      * Send daily briefing notification
      */
-    fun sendDailyBriefing() {
+    fun sendDailyBriefing(
+        summary: String? = null,
+        highTemp: Int? = null,
+        lowTemp: Int? = null,
+        precipChance: Int? = null
+    ) {
+        val message = if (summary != null && highTemp != null && lowTemp != null) {
+            "Today: $summary. High: $highTemp°F, Low: $lowTemp°F. ${if (precipChance != null && precipChance > 20) "Chance of rain: $precipChance%." else "Enjoy your day!"}"
+        } else {
+            "Today's forecast: Partly cloudy, high of 72°F. Perfect day for outdoor activities!"
+        }
+
         val notification = createNotification(
             channelId = NotificationType.DAILY_BRIEFING.channelId,
             title = "☀️ Good Morning!",
-            message = "Today's forecast: Partly cloudy, high of 72°F. Perfect day for outdoor activities!",
+            message = message,
             priority = NotificationCompat.PRIORITY_DEFAULT
         )
 
