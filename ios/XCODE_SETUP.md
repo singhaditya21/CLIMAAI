@@ -49,15 +49,33 @@ Changing **targets, build settings, or which target a file belongs to** should b
 done in `project.yml` and regenerated. Editing those in Xcode works until the
 next `xcodegen generate`, which will discard them.
 
-## Known rough edges
+## What has and has not been verified
 
-- **The project has never been compiled.** It was generated on a machine with
-  only the Command Line Tools installed, so `xcodebuild` was unavailable. The
-  structure is verified — the `pbxproj` parses, all four targets exist, and 44 of
-  45 Swift files are in a target — but expect to fix compile errors on the first
-  real build.
-- `ClimaAITests` has likewise never run, for the same reason: there was no
-  project to run it in when it was written.
+**Not built against the iOS SDK.** That needs full Xcode; only the Command Line
+Tools are installed here, which ship no iOS platform SDK.
+
+**Type-checked against the macOS SDK**, per target, compiled as whole modules
+(SwiftUI, Foundation and WidgetKit exist on both platforms, so most code
+resolves). Results:
+
+| Target | Files | Outcome |
+| :--- | :--- | :--- |
+| `ClimaAI` | 30 | One error: `no such module 'UIKit'` — iOS-only, resolves on iOS |
+| `ClimaAIWidget` | 6 | Only `#Preview` macro plugin missing (ships with Xcode) |
+| `ClimaAIWatch` | 3 | `#Preview`, plus `widgetLabel` which is watchOS-only |
+
+All 39 files also parse cleanly. **No genuine code defects were found** — every
+error above is a macOS-versus-iOS platform artifact or an Xcode-only macro
+plugin. The single UIKit use is `UIApplication.shared.registerForRemoteNotifications()`
+in `Services/NotificationService.swift`, which is correct iOS API.
+
+This is meaningful evidence but not a guarantee: iOS-only API usage is unchecked,
+and linking, resources and code signing are untested. Expect *some* first-build
+friction, just less than "never compiled" would suggest.
+
+`ClimaAITests` still has not run — it needs a simulator, so full Xcode.
+
+## Known rough edges
 - `ClimaAIWidget/WidgetModels.swift` is a byte-identical copy of
   `ClimaAI/Models/WidgetModels.swift`. They are separate modules so this compiles
   fine, but the two have to be kept in step by hand. Worth collapsing into a

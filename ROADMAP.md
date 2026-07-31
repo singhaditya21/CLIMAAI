@@ -23,15 +23,17 @@ the "fake data" finding in the old audit report was fixed and is no longer accur
 
 These are hard blockers, not nice-to-haves:
 
-1. **The iOS project has never been compiled.** `ios/ClimaAI.xcodeproj` now exists,
-   generated from `ios/project.yml` via XcodeGen and covering all four targets, but
-   it was produced on a machine with only Command Line Tools — no `xcodebuild`. The
-   first real build will likely surface compile errors, and `ClimaAITests` has still
-   never run. See `ios/XCODE_SETUP.md`.
-2. **`android/gradle/wrapper/gradle-wrapper.jar` is missing**, so `./gradlew` fails
-   before anything else — the Android app cannot be built from a fresh clone at all.
-   Regenerate with `cd android && gradle wrapper --gradle-version 8.13` and commit
-   the jar. Signing itself is now wired up; see `android/SIGNING.md`.
+1. **The iOS project has not been built against the iOS SDK.** That needs full
+   Xcode. `ios/ClimaAI.xcodeproj` exists and all three source targets type-check as
+   modules against the macOS SDK with no genuine defects — see the table in
+   `ios/XCODE_SETUP.md` — but iOS-only APIs, linking and signing are unverified, and
+   `ClimaAITests` still needs a simulator to run.
+2. **The Android SDK is not installed**, so nothing compiles yet. `./gradlew` works
+   and the project configures (`:app` and `:wear` both resolve), and release signing
+   is verified across all three of its branches. What remains is installing the SDK,
+   which requires accepting Google's licence terms. See `android/SIGNING.md`.
+   Note Gradle 8.13 needs **JDK 17 or 21** — a newer JDK fails on class file
+   parsing.
 3. **Android has no tests at all.** The backend now has a 116-test suite running
    against a real Postgres in CI. Android remains uncovered, and the iOS suite cannot
    run until blocker 1 is resolved.
@@ -50,10 +52,12 @@ These are hard blockers, not nice-to-haves:
 - [x] Generate the Xcode project and asset catalogs (`ios/project.yml`)
 - [x] Add Android signing config and a documented keystore workflow
       (`android/SIGNING.md`)
-- [ ] **Commit `android/gradle/wrapper/gradle-wrapper.jar`** — nothing Android can
-      be built or tested until this exists
-- [ ] Build the iOS project for the first time and fix what falls out; get
-      `ClimaAITests` running
+- [x] Restore `android/gradle/wrapper/gradle-wrapper.jar` — `./gradlew` works and
+      the project configures; signing verified across all three branches
+- [ ] Install the Android SDK and run a real `assembleDebug` / `bundleRelease`
+      (requires accepting Google's SDK licence terms)
+- [ ] Build the iOS project against the iOS SDK in Xcode; get `ClimaAITests`
+      running on a simulator
 - [ ] Android JUnit tests for the repository and view-model layers
 - [ ] CI jobs for the Android and iOS builds alongside the existing backend job
 - [ ] Replace placeholder API hosts with a real domain (PRs #14, #15 are ready and
