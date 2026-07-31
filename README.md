@@ -123,6 +123,42 @@ curl http://localhost:3000/health
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+### Backend Setup without Docker
+
+Runs the API against a native Postgres. Redis is optional — the services catch
+connection errors and skip caching, so the API works with no Redis running.
+
+1. **Create the role and database** (Postgres 15+ already running locally):
+```bash
+psql -d postgres -c "CREATE ROLE climaai WITH LOGIN PASSWORD 'climaai123';" -c "CREATE DATABASE climaai OWNER climaai;"
+```
+
+2. **Apply the schema, in order.** Both files are idempotent, so re-running them
+   against an existing database is safe:
+```bash
+cd backend && PGPASSWORD=climaai123 psql -h localhost -U climaai -d climaai -v ON_ERROR_STOP=1 -f init.sql -f 002_add_features.sql
+```
+
+3. **Create the virtualenv and install dependencies:**
+```bash
+cd backend/api && python3.11 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+4. **Configure and run:**
+```bash
+cp .env.example .env
+```
+Set `DATABASE_URL=postgresql+asyncpg://climaai:climaai123@localhost:5432/climaai`
+(the default in `.env.example` points at the `postgres` Docker host), then:
+```bash
+cd backend/api && .venv/bin/python -m uvicorn app.main:app --reload --port 8000
+```
+
+5. **Verify:**
+```bash
+curl http://localhost:8000/health
+```
+
 ### iOS Setup
 
 1. **Navigate to iOS project:**
