@@ -61,9 +61,11 @@ clima-ai/
 │   │   ├── Dockerfile
 │   │   └── package.json
 │   ├── docker-compose.yml     # Full stack orchestration
-│   └── init.sql              # Database schema
-├── android/                   # Android Jetpack Compose app
-├── ios/                       # iOS SwiftUI app
+│   ├── init.sql               # Database schema (v1)
+│   └── 002_add_features.sql   # Schema v2: locations, device tokens, alerts
+├── android/                   # Android Jetpack Compose app + Wear OS module
+├── ios/                       # iOS SwiftUI app + Watch app + widgets
+├── web-demo/                  # Static browser demo
 └── docs/                      # Documentation
 ```
 
@@ -182,7 +184,18 @@ JWT_SECRET=your-super-secret-key-min-32-chars
 # App IDs
 APPLE_BUNDLE_ID=com.climaai.app
 GOOGLE_PACKAGE_NAME=com.climaai.app
+
+# Optional extra weather sources — each is skipped when its key is blank
+OPENWEATHERMAP_API_KEY=
+WEATHERBIT_API_KEY=
+STORMGLASS_API_KEY=
+OPENUV_API_KEY=
+
+# Mounts /demo endpoints backed by generated mock data. Leave false in production.
+DEMO_MODE=false
 ```
+
+See [backend/api/.env.example](backend/api/.env.example) for the full annotated list.
 
 ### iOS Configuration
 
@@ -253,23 +266,25 @@ Update product IDs in billing configuration to match Google Play Console.
 
 ## 🧪 Testing
 
+> ⚠️ Coverage is currently minimal. `backend/api/tests/` contains a single test file,
+> Android has no test sources, and the iOS suite cannot run until an Xcode project
+> exists. See [ROADMAP.md](ROADMAP.md) for the plan.
+
 ### Backend Tests
 ```bash
-cd backend/api
-pytest tests/ -v
+cd backend/api && pytest tests/ -v
 ```
 
 ### iOS Tests
+Requires `ios/ClimaAI.xcodeproj`, which is **not yet in the repo** — follow
+[ios/XCODE_SETUP.md](ios/XCODE_SETUP.md) to generate it first. Then:
 ```bash
-cd ios
-xcodebuild test -scheme ClimaAI -destination 'platform=iOS Simulator,name=iPhone 15'
+cd ios && xcodebuild test -scheme ClimaAI -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
 ### Android Tests
 ```bash
-cd android
-./gradlew test
-./gradlew connectedAndroidTest
+cd android && ./gradlew test
 ```
 
 ## 🚢 Deployment
@@ -423,26 +438,12 @@ This is a production application. For contributions, please contact the developm
 
 ## 🗺️ Roadmap
 
-### v1.1 (Planned)
-- [ ] Weather widgets
-- [ ] Apple Watch support
-- [ ] Android Wear OS support
-- [ ] Multi-location support
-- [ ] Weather alerts push notifications
+See **[ROADMAP.md](ROADMAP.md)** for current status, release blockers, and the
+competitor-parity backlog.
 
-### v1.2 (Planned)
-- [ ] Historical weather data
-- [ ] Weather radar overlay
-- [ ] Share weather snapshots
-- [ ] Voice assistant integration
-- [ ] Weather-based automations
-
-### v2.0 (Future)
-- [ ] Hyperlocal forecasting
-- [ ] AR weather visualization
-- [ ] Community weather reports
-- [ ] Advanced AI with GPT-5
-- [ ] Gamification features
+Widgets, the Apple Watch app, the Wear OS app, the radar overlay, multi-location
+support, alert push notifications, and historical weather data are **already
+implemented** — earlier versions of this file listed them as planned.
 
 ## 🙏 Credits
 

@@ -133,8 +133,11 @@ app.include_router(notifications_router)
 app.include_router(personalization_router)
 app.include_router(precipitation_router)
 app.include_router(health_router)
-app.include_router(demo_router)
 app.include_router(multi_weather_router)
+
+# /demo serves generated mock data and is opt-in so it never ships in production
+if settings.DEMO_MODE:
+    app.include_router(demo_router)
 
 
 if __name__ == "__main__":

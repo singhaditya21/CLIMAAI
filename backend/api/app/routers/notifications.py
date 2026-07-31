@@ -2,6 +2,7 @@
 Push notifications management router.
 """
 from fastapi import APIRouter, Depends, HTTPException, Body
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from ..models import User
@@ -144,12 +145,14 @@ async def update_notification_preferences(
         
         # Update user preferences
         import json
-        query = f"""
+        await db.execute(
+            text("""
             UPDATE users
-            SET notification_preferences = '{json.dumps(preferences)}'::jsonb
-            WHERE id = {current_user.id}
-        """
-        await db.execute(query)
+            SET notification_preferences = CAST(:preferences AS jsonb)
+            WHERE id = :user_id
+            """),
+            {"preferences": json.dumps(preferences), "user_id": current_user.id}
+        )
         await db.commit()
         
         return {

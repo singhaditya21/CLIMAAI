@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     
     # Feature flags
     ENABLE_AI_INSIGHTS: bool = True
+    # Mounts the /demo router, which serves generated mock weather with no
+    # external API dependencies. Keep off in production.
+    DEMO_MODE: bool = False
     
     # External Weather API Keys (for multi-source weather service)
     OPENWEATHERMAP_API_KEY: str = ""   # https://openweathermap.org/api

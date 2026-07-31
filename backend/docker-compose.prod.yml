@@ -56,7 +56,9 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Numeric prefixes force the entrypoint to apply these in order
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./002_add_features.sql:/docker-entrypoint-initdb.d/02-add-features.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s

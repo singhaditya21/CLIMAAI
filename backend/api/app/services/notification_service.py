@@ -7,6 +7,7 @@ from functools import lru_cache
 import httpx
 import jwt
 import time
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_settings
 
@@ -215,14 +216,16 @@ class NotificationService:
         
         try:
             # Get user's active device tokens
-            query = f"""
+            result = await db.execute(
+                text("""
                 SELECT token, platform
                 FROM device_tokens
-                WHERE user_id = {user_id} AND is_active = TRUE
-            """
-            result = await db.execute(query)
+                WHERE user_id = :user_id AND is_active = TRUE
+                """),
+                {"user_id": user_id}
+            )
             devices = result.fetchall()
-            
+
             success_count = 0
             successful_tokens = []
             for device_token, platform in devices:
@@ -233,13 +236,13 @@ class NotificationService:
 
             if successful_tokens:
                 # Update last_used_at for all successful tokens in one query
-                tokens_list = ", ".join([f"'{token}'" for token in successful_tokens])
                 await db.execute(
-                    f"""
+                    text("""
                     UPDATE device_tokens
                     SET last_used_at = NOW()
-                    WHERE token IN ({tokens_list})
-                    """
+                    WHERE token = ANY(:tokens)
+                    """),
+                    {"tokens": successful_tokens}
                 )
             
             await db.commit()
@@ -312,18 +315,25 @@ class NotificationService:
             import json
             device_info_json = json.dumps(device_info) if device_info else '{}'
             
-            query = f"""
+            await db.execute(
+                text("""
                 INSERT INTO device_tokens (user_id, token, platform, device_info)
-                VALUES ({user_id}, '{token}', '{platform}', '{device_info_json}'::jsonb)
+                VALUES (:user_id, :token, :platform, CAST(:device_info AS jsonb))
                 ON CONFLICT (token)
-                DO UPDATE SET 
+                DO UPDATE SET
                     user_id = EXCLUDED.user_id,
                     platform = EXCLUDED.platform,
                     device_info = EXCLUDED.device_info,
                     is_active = TRUE,
                     last_used_at = NOW()
-            """
-            await db.execute(query)
+                """),
+                {
+                    "user_id": user_id,
+                    "token": token,
+                    "platform": platform,
+                    "device_info": device_info_json,
+                }
+            )
             await db.commit()
             return True
         except Exception as e:
@@ -340,12 +350,14 @@ class NotificationService:
         Deactivate a device token.
         """
         try:
-            query = f"""
+            await db.execute(
+                text("""
                 UPDATE device_tokens
                 SET is_active = FALSE
-                WHERE token = '{token}'
-            """
-            await db.execute(query)
+                WHERE token = :token
+                """),
+                {"token": token}
+            )
             await db.commit()
             return True
         except Exception as e:

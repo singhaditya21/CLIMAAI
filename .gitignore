@@ -143,10 +143,16 @@ local.properties
 # Redis
 *.rdb
 
+# Build logs / tool output (previously committed by mistake)
+build_output.txt
+output.txt
+*.out.log
+
 # Secrets
 *.pem
 *.key
 secrets.json
+service-account*.json
 
 # Antigravity
 .gemini/
