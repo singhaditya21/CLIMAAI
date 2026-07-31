@@ -1,14 +1,12 @@
 # Android release signing
 
-> ⚠️ **`gradle/wrapper/gradle-wrapper.jar` is missing from this repository**, so
-> `./gradlew` fails before any of the below can run. It is not gitignored — it
-> was simply never committed. Regenerate it once with a local Gradle install:
+> **Toolchain note.** Gradle 8.13's bundled Groovy cannot parse class files from
+> JDK 24+, so a modern JDK fails with `Unsupported class file major version`.
+> Build with **JDK 17 or 21**; Temurin 21 is what this was verified against.
 >
 > ```bash
-> cd android && gradle wrapper --gradle-version 8.13
+> export JAVA_HOME=/path/to/jdk-21
 > ```
->
-> Then commit the jar. Every instruction on this page assumes a working wrapper.
 
 Google Play requires every upload to be signed with a key you control and can
 never rotate on your own. Losing it means you cannot ship updates to existing
@@ -27,6 +25,15 @@ keytool -genkeypair -v \
 a password manager or an encrypted vault, not this repository.
 
 ## Local builds
+
+Compiling also needs the **Android SDK** (platform 34 and matching build-tools).
+Install it through Android Studio, or via `sdkmanager` — either way you have to
+accept Google's SDK licence terms yourself. Then point the build at it with
+`android/local.properties`:
+
+```
+sdk.dir=/Users/you/Library/Android/sdk
+```
 
 ```bash
 cp android/keystore.properties.example android/keystore.properties
@@ -56,6 +63,16 @@ the job, then set the four environment variables the build reads:
   env:
     ANDROID_KEYSTORE_FILE: release.jks
 ```
+
+## Verifying which branch is active
+
+The build picks one of three states. All three are verified working:
+
+| State | `signingConfigs` | release uses |
+| :--- | :--- | :--- |
+| Neither properties file nor env vars | `[debug]` | `debug` (not uploadable) |
+| `keystore.properties` present | `[debug, release]` | `release` |
+| `ANDROID_KEYSTORE_*` env vars set | `[debug, release]` | `release` |
 
 ## When signing is not configured
 
