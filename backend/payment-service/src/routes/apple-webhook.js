@@ -2,23 +2,8 @@
  * Apple App Store Server Notifications V2 webhook handler
  */
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
-
-/**
- * Verify Apple's JWS signature
- * In production, implement proper JWS verification
- */
-function verifyAppleJWS(signedPayload) {
-    try {
-        // This is simplified - in production, verify using Apple's public key
-        const decoded = jwt.decode(signedPayload, { complete: true });
-        return decoded.payload;
-    } catch (error) {
-        console.error('JWS verification error:', error);
-        return null;
-    }
-}
+const { verifyAppleJWS } = require('../utils/apple-cert-verifier');
 
 /**
  * Update subscription status in database
@@ -55,10 +40,12 @@ router.post('/', async (req, res) => {
         }
 
         // Verify and decode the payload
-        const payload = verifyAppleJWS(signedPayload);
-
-        if (!payload) {
-            return res.status(400).json({ error: 'Invalid signature' });
+        let payload;
+        try {
+            payload = verifyAppleJWS(signedPayload);
+        } catch (error) {
+            console.error('JWS verification error:', error.message);
+            return res.status(400).json({ error: 'Invalid signature', details: error.message });
         }
 
         const { notificationType, subtype, data } = payload;
