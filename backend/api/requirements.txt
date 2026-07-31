@@ -48,6 +48,5 @@ google-auth==2.27.0
 # Testing
 pytest==8.0.0
 pytest-asyncio==0.23.5
-# CI runs the suite against DATABASE_URL=sqlite+aiosqlite:///./test.db
-# (see .github/workflows/deploy.yml), which needs the async SQLite driver.
-aiosqlite==0.19.0
+# The test client uses httpx, already pinned above.
+# Tests run against Postgres via asyncpg (also above) — no SQLite driver needed.

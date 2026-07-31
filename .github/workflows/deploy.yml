@@ -22,29 +22,53 @@ jobs:
   # ==========================================================================
   test:
     runs-on: ubuntu-latest
+
+    # The suite runs against real Postgres, not SQLite: several handlers use
+    # Postgres-only SQL (jsonb casts, `= ANY(:array)`) that SQLite cannot run,
+    # so a SQLite run would pass while saying nothing about production.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: climaai
+          POSTGRES_PASSWORD: climaai123
+          POSTGRES_DB: climaai
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: Install dependencies
         run: |
           cd backend/api
           pip install -r requirements.txt
           pip install pytest pytest-asyncio httpx
-          
+
       - name: Run tests
         run: |
           cd backend/api
           python -m pytest tests/ -v
         env:
-          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          # conftest.py creates the test database and applies init.sql and
+          # 002_add_features.sql to it.
+          TEST_DATABASE_URL: postgresql://climaai:climaai123@localhost:5432/climaai_test
+          DATABASE_URL: postgresql+asyncpg://climaai:climaai123@localhost:5432/climaai
           REDIS_URL: redis://localhost:6379/0
           JWT_SECRET: test-secret-key
           OPENAI_API_KEY: test-key
+          # Makes an unreachable database a hard failure rather than a skip.
+          CI: "true"
 
   # ==========================================================================
   # Build Docker Image

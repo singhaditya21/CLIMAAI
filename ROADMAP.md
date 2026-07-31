@@ -29,20 +29,25 @@ These are hard blockers, not nice-to-haves:
 2. **Android cannot produce a signed release.** `android/app/build.gradle` has no
    `signingConfig` and no keystore wiring, so `bundleRelease` won't yield an
    uploadable artifact.
-3. **Test coverage is close to zero where it matters.** `backend/api/tests/` holds a
-   single file, and CI runs `pytest tests/` against it — so the pipeline reports green
-   while covering almost nothing. Android has no tests at all.
-4. **CI covers the backend only.** `.github/workflows/deploy.yml` builds and deploys
-   the API to Cloud Run; nothing builds or tests either mobile app.
+3. **Android has no tests at all.** The backend now has a 57-test suite covering
+   auth, weather parsing, locations, notifications and app wiring, running against a
+   real Postgres in CI. Android remains uncovered, and the iOS suite cannot run
+   until blocker 1 is resolved.
+4. **CI covers the backend only.** `.github/workflows/deploy.yml` tests and deploys
+   the API; nothing builds or tests either mobile app. The `build` and `deploy` jobs
+   fail at Google Cloud authentication until `GCP_SA_KEY` and `GCP_PROJECT_ID` are
+   configured as repository secrets — no deployment has ever run.
 5. **Placeholder production URLs.** `https://api.climaai.com` is hardcoded in
    `ios/ClimaAI/Services/APIClient.swift` and the Android release build type.
 
 ## Phase 1 — Make it buildable and trustworthy
 
+- [x] Backend test suite against real Postgres — auth, weather parsing, locations,
+      notifications, app wiring (57 tests), wired into CI
+- [ ] Extend backend coverage to `HealthIndexService`, `SubscriptionService`,
+      `NowcastService` and the alerts/pollen routers
 - [ ] Generate the Xcode project and asset catalog; get `ClimaAITests` running
 - [ ] Add Android signing config and a documented keystore workflow
-- [ ] Real backend test coverage for `WeatherService`, `HealthIndexService`,
-      `SubscriptionService`, and the auth flow
 - [ ] Android JUnit tests for the repository and view-model layers
 - [ ] CI jobs for the Android and iOS builds alongside the existing backend job
 - [ ] Replace placeholder API hosts with a real domain

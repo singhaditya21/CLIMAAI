@@ -302,14 +302,33 @@ Update product IDs in billing configuration to match Google Play Console.
 
 ## 🧪 Testing
 
-> ⚠️ Coverage is currently minimal. `backend/api/tests/` contains a single test file,
-> Android has no test sources, and the iOS suite cannot run until an Xcode project
-> exists. See [ROADMAP.md](ROADMAP.md) for the plan.
+> ⚠️ The backend has a real suite; Android has no test sources, and the iOS suite
+> cannot run until an Xcode project exists. See [ROADMAP.md](ROADMAP.md).
 
 ### Backend Tests
+
+The suite runs against a real Postgres rather than SQLite, because several
+handlers use Postgres-only SQL (jsonb casts, `= ANY(:array)`) that SQLite cannot
+execute — a SQLite run would pass while testing something other than production.
+
+The test database is created and migrated automatically; it is separate from your
+development database and its tables are truncated between tests.
+
 ```bash
-cd backend/api && pytest tests/ -v
+cd backend/api && .venv/bin/python -m pytest tests/ -v
 ```
+
+Point it elsewhere with `TEST_DATABASE_URL` (default
+`postgresql://climaai:climaai123@localhost:5432/climaai_test`). The role needs
+`CREATEDB`:
+
+```bash
+psql -d postgres -c "ALTER ROLE climaai CREATEDB;"
+```
+
+Tests needing no database (weather parsing, for instance) run without Postgres.
+Database-backed tests skip locally when it is unreachable, but fail rather than
+skip when `CI` is set.
 
 ### iOS Tests
 Requires `ios/ClimaAI.xcodeproj`, which is **not yet in the repo** — follow
