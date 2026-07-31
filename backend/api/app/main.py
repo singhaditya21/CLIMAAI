@@ -11,6 +11,9 @@ from .config import get_settings
 from .database import init_db
 from .services.weather_service import get_weather_service, close_weather_service
 from .services.radar_service import get_radar_service, close_radar_service
+from .services.pollen_service import get_pollen_service, close_pollen_service
+from .services.alerts_service import get_alerts_service, close_alerts_service
+from .services.nowcast_service import get_nowcast_service, close_nowcast_service
 from .routers import (
     users_router,
     weather_router,
@@ -45,8 +48,15 @@ async def lifespan(app: FastAPI):
     get_radar_service()
     print("✅ Radar service initialized")
 
+    # Remaining shared services — each holds a pooled HTTP client and a Redis
+    # connection, so they are created once rather than per request.
+    get_pollen_service()
+    get_alerts_service()
+    get_nowcast_service()
+    print("✅ Pollen, alerts and nowcast services initialized")
+
     yield
-    
+
     # Shutdown
     print("👋 Shutting down ClimaAI API...")
     await close_weather_service()
@@ -54,6 +64,11 @@ async def lifespan(app: FastAPI):
 
     await close_radar_service()
     print("✅ Radar service closed")
+
+    await close_pollen_service()
+    await close_alerts_service()
+    await close_nowcast_service()
+    print("✅ Pollen, alerts and nowcast services closed")
 
 
 app = FastAPI(

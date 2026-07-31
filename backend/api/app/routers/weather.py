@@ -8,9 +8,9 @@ from ..schemas.weather import WeatherResponse
 from ..schemas.nowcast import NowcastResponse
 from ..schemas.radar_alerts import RadarFramesResponse, RadarFrame, AlertsListResponse, WeatherAlertResponse
 from ..services.weather_service import WeatherService, get_weather_service
-from ..services.nowcast_service import NowcastService
+from ..services.nowcast_service import NowcastService, get_nowcast_service
 from ..services.radar_service import RadarService, get_radar_service
-from ..services.alerts_service import AlertsService
+from ..services.alerts_service import AlertsService, get_alerts_service
 from ..services.auth import get_optional_user
 from ..services.subscription_service import SubscriptionService
 from ..database import get_db
@@ -179,7 +179,8 @@ async def get_nowcast(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
     longitude: float = Query(..., ge=-180, le=180, description="Longitude"),
     current_user: Optional[User] = Depends(get_optional_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    nowcast_service: NowcastService = Depends(get_nowcast_service),
 ):
     """
     Get minute-by-minute precipitation nowcast.
@@ -193,7 +194,6 @@ async def get_nowcast(
     **Premium feature** - Available to Premium and Pro subscribers.
     Free users get a limited preview (30 minutes instead of 120).
     """
-    nowcast_service = NowcastService()
     
     try:
         # Get full nowcast
@@ -219,8 +219,6 @@ async def get_nowcast(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await nowcast_service.close()
 
 
 @router.get("/radar/frames", response_model=RadarFramesResponse)
@@ -307,7 +305,8 @@ async def get_radar_tile(
 @router.get("/alerts", response_model=AlertsListResponse)
 async def get_weather_alerts(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
-    longitude: float = Query(..., ge=-180, le=180, description="Longitude")
+    longitude: float = Query(..., ge=-180, le=180, description="Longitude"),
+    alerts_service: AlertsService = Depends(get_alerts_service),
 ):
     """
     Get active severe weather alerts for a location.
@@ -323,7 +322,6 @@ async def get_weather_alerts(
     - Heat Advisory
     - And more...
     """
-    alerts_service = AlertsService()
     
     try:
         alerts_response = await alerts_service.get_alerts_by_point(latitude, longitude)
@@ -358,13 +356,12 @@ async def get_weather_alerts(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await alerts_service.close()
 
 
 @router.get("/alerts/state/{state}", response_model=AlertsListResponse)
 async def get_state_weather_alerts(
-    state: str
+    state: str,
+    alerts_service: AlertsService = Depends(get_alerts_service),
 ):
     """
     Get active severe weather alerts for a US state.
@@ -374,7 +371,6 @@ async def get_state_weather_alerts(
     if len(state) != 2:
         raise HTTPException(status_code=400, detail="State must be a two-letter code")
     
-    alerts_service = AlertsService()
     
     try:
         alerts_response = await alerts_service.get_alerts_by_state(state.upper())
@@ -408,5 +404,3 @@ async def get_state_weather_alerts(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await alerts_service.close()

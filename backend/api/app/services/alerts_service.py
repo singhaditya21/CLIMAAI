@@ -4,8 +4,8 @@ Provides real-time severe weather alerts for US locations.
 """
 import httpx
 import json
-from typing import Dict, List, Optional
-from datetime import datetime
+from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
 from enum import Enum
 import redis.asyncio as redis
 from pydantic import BaseModel
@@ -89,7 +89,9 @@ class WeatherAlert(BaseModel):
 class AlertsResponse(BaseModel):
     """Response containing weather alerts."""
     alerts: List[WeatherAlert]
-    location: Dict[str, float]
+    # Point lookups pass {"latitude": .., "longitude": ..}; the state
+    # endpoint passes {"state": "NY"}, so this cannot be Dict[str, float].
+    location: Dict[str, Any]
     updated: datetime
     total_count: int
     
@@ -212,9 +214,19 @@ class AlertsService:
         }
         
         response = await self.http_client.get(url, params=params)
+        if response.status_code == 400:
+            # The NWS only covers the United States and its territories, and
+            # returns 400 for a point outside them. That is a legitimate "no
+            # alerts here", not a server error.
+            return AlertsResponse(
+                alerts=[],
+                location={"latitude": latitude, "longitude": longitude},
+                updated=datetime.now(timezone.utc),
+                total_count=0,
+            )
         response.raise_for_status()
         data = response.json()
-        
+
         # Parse alerts
         alerts = []
         for feature in data.get("features", []):
@@ -301,3 +313,22 @@ class AlertsService:
                 return alert
         
         return None
+
+
+_alerts_service: Optional[AlertsService] = None
+
+
+def get_alerts_service() -> AlertsService:
+    """Get the global AlertsService instance."""
+    global _alerts_service
+    if _alerts_service is None:
+        _alerts_service = AlertsService()
+    return _alerts_service
+
+
+async def close_alerts_service():
+    """Close the global AlertsService instance."""
+    global _alerts_service
+    if _alerts_service:
+        await _alerts_service.close()
+        _alerts_service = None

@@ -2,7 +2,7 @@
 Radar and Alerts schemas for API responses.
 """
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -83,7 +83,9 @@ class WeatherAlertResponse(BaseModel):
 class AlertsListResponse(BaseModel):
     """List of weather alerts."""
     alerts: List[WeatherAlertResponse]
-    location: Dict[str, float]
+    # Point lookups pass latitude/longitude; the state endpoint passes
+    # {"state": "NY"}, so this cannot be Dict[str, float].
+    location: Dict[str, Any]
     updated: datetime
     total_count: int
     has_severe: bool

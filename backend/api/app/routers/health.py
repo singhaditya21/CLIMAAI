@@ -6,10 +6,10 @@ from typing import Optional, List
 from datetime import date
 from ..models import User
 from ..schemas.pollen import PollenForecastResponse, PollenTypeResponse, DailyPollenResponse, PollenLevel
-from ..services.pollen_service import PollenService
+from ..services.pollen_service import PollenService, get_pollen_service
 from ..services.health_index_service import HealthIndexService
 from ..services.activity_service import ActivityForecastService, ActivityType
-from ..services.weather_service import WeatherService
+from ..services.weather_service import WeatherService, get_weather_service
 from ..services.auth import get_optional_user
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,8 @@ router = APIRouter(prefix="/health", tags=["health"])
 async def get_pollen_forecast(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude"),
     longitude: float = Query(..., ge=-180, le=180, description="Longitude"),
-    days: int = Query(5, ge=1, le=5, description="Forecast days (1-5)")
+    days: int = Query(5, ge=1, le=5, description="Forecast days (1-5)"),
+    pollen_service: PollenService = Depends(get_pollen_service),
 ):
     """
     Get pollen forecast for a location.
@@ -35,7 +36,6 @@ async def get_pollen_forecast(
     Uses Google Pollen API with 5K free calls/month.
     Falls back to seasonal mock data if API key not configured.
     """
-    pollen_service = PollenService()
     
     try:
         pollen_data = await pollen_service.get_pollen_forecast(
@@ -87,21 +87,19 @@ async def get_pollen_forecast(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await pollen_service.close()
 
 
 @router.get("/pollen/today")
 async def get_todays_pollen(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    pollen_service: PollenService = Depends(get_pollen_service),
 ):
     """
     Get today's pollen levels (simplified view).
     
     Returns just today's levels and recommendations.
     """
-    pollen_service = PollenService()
     
     try:
         pollen_data = await pollen_service.get_pollen_forecast(
@@ -144,14 +142,13 @@ async def get_todays_pollen(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await pollen_service.close()
 
 
 @router.get("/flu-risk")
 async def get_flu_risk(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service),
 ):
     """
     Get current flu risk assessment based on weather.
@@ -161,7 +158,6 @@ async def get_flu_risk(
     - Humidity (dry air increases transmission)
     - Seasonal patterns
     """
-    weather_service = WeatherService()
     health_service = HealthIndexService()
     
     try:
@@ -189,15 +185,14 @@ async def get_flu_risk(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/migraine-risk")
 async def get_migraine_risk(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    weather_service: WeatherService = Depends(get_weather_service),
 ):
     """
     Get migraine trigger risk based on weather conditions.
@@ -207,7 +202,6 @@ async def get_migraine_risk(
     - Humidity extremes
     - Temperature changes
     """
-    weather_service = WeatherService()
     health_service = HealthIndexService()
     
     try:
@@ -246,14 +240,13 @@ async def get_migraine_risk(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/activities")
 async def get_all_activities(
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service),
 ):
     """
     Get activity forecast for all outdoor activities.
@@ -261,7 +254,6 @@ async def get_all_activities(
     Returns scores for: running, cycling, golf, hiking, beach, skiing, tennis, photography.
     Sorted by today's score (best activities first).
     """
-    weather_service = WeatherService()
     activity_service = ActivityForecastService()
     
     try:
@@ -300,15 +292,14 @@ async def get_all_activities(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/activities/{activity}")
 async def get_activity_forecast(
     activity: str,
     latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
+    longitude: float = Query(..., ge=-180, le=180),
+    weather_service: WeatherService = Depends(get_weather_service),
 ):
     """
     Get detailed forecast for a specific activity.
@@ -325,7 +316,6 @@ async def get_activity_forecast(
             detail=f"Invalid activity. Valid options: {', '.join(valid_activities)}"
         )
     
-    weather_service = WeatherService()
     activity_service = ActivityForecastService()
     
     try:
@@ -376,5 +366,3 @@ async def get_activity_forecast(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()

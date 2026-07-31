@@ -5,7 +5,7 @@ Provides detailed pollen counts for tree, grass, and weed allergens.
 import httpx
 import json
 from typing import Dict, List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import redis.asyncio as redis
 from pydantic import BaseModel
 from enum import Enum
@@ -306,7 +306,9 @@ class PollenService:
         
         forecasts = []
         for i in range(5):
-            forecast_date = date(today.year, today.month, today.day + i)
+            # timedelta, not day + i: near month end that overflowed the day
+            # field and raised "day is out of range for month".
+            forecast_date = today + timedelta(days=i)
             
             tree = PollenType(
                 display_name="Tree Pollen",
@@ -353,3 +355,22 @@ class PollenService:
             last_updated=datetime.utcnow(),
             health_recommendations=health_recs
         )
+
+
+_pollen_service: Optional[PollenService] = None
+
+
+def get_pollen_service() -> PollenService:
+    """Get the global PollenService instance."""
+    global _pollen_service
+    if _pollen_service is None:
+        _pollen_service = PollenService()
+    return _pollen_service
+
+
+async def close_pollen_service():
+    """Close the global PollenService instance."""
+    global _pollen_service
+    if _pollen_service:
+        await _pollen_service.close()
+        _pollen_service = None

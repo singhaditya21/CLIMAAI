@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from ..models import User
 from ..services.auth import get_current_user
-from ..services.weather_service import WeatherService
-from ..services.alerts_service import AlertsService
+from ..services.weather_service import WeatherService, get_weather_service
+from ..services.alerts_service import AlertsService, get_alerts_service
 from ..database import get_db
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -19,6 +19,8 @@ async def get_weather_alerts(
     longitude: float = Query(..., ge=-180, le=180),
     location_name: str = Query("your location", max_length=100),
     current_user: User = Depends(get_current_user),
+    weather_service: WeatherService = Depends(get_weather_service),
+    alerts_service: AlertsService = Depends(get_alerts_service),
 ):
     """
     Get active weather alerts for a location.
@@ -31,8 +33,6 @@ async def get_weather_alerts(
     - High UV index
     - Upcoming severe weather
     """
-    weather_service = WeatherService()
-    alerts_service = AlertsService()
     
     try:
         # Get weather data
@@ -63,19 +63,17 @@ async def get_weather_alerts(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await weather_service.close()
 
 
 @router.get("/history")
 async def get_alert_history(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    alerts_service: AlertsService = Depends(get_alerts_service),
 ):
     """
     Get user's alert history.
     """
-    alerts_service = AlertsService()
     
     try:
         alerts = await alerts_service.get_active_alerts(current_user.id, db)
@@ -95,11 +93,11 @@ async def dismiss_alert(
     alert_id: int = Path(..., ge=1),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    alerts_service: AlertsService = Depends(get_alerts_service),
 ):
     """
     Dismiss a weather alert.
     """
-    alerts_service = AlertsService()
     
     try:
         await alerts_service.dismiss_alert(alert_id, current_user.id, db)
