@@ -75,7 +75,7 @@ async def activate_subscription(
             # Validate Apple receipt
             receipt_validation = await subscription_service.validate_apple_receipt(
                 subscription_data.receipt_data,
-                sandbox=True  # Set to False in production
+                sandbox=False  # Set to False in production
             )
             
             if receipt_validation.get("status") != 0:
