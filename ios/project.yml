@@ -1,0 +1,119 @@
+# XcodeGen spec — the source of truth for ClimaAI.xcodeproj.
+#
+# Regenerate with:  cd ios && xcodegen generate
+#
+# ClimaAI.xcodeproj IS committed so the repo can be opened without installing
+# XcodeGen. It is still generated output: when adding targets, changing build
+# settings or moving files between targets, edit this file and regenerate rather
+# than editing the project in Xcode, or the next generate will discard it.
+# Adding or deleting source files needs no change here — sources are globbed by
+# directory, so a regenerate picks them up.
+
+name: ClimaAI
+
+options:
+  bundleIdPrefix: com.climaai
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "16.0"
+    watchOS: "9.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    # Set your team here, or in Xcode's Signing & Capabilities pane.
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+
+  # --------------------------------------------------------------------
+  # iOS app
+  # --------------------------------------------------------------------
+  ClimaAI:
+    type: application
+    platform: iOS
+    sources:
+      - path: ClimaAI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.climaai.app
+        INFOPLIST_FILE: ClimaAI/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - target: ClimaAIWidget
+      - target: ClimaAIWatch
+
+  # --------------------------------------------------------------------
+  # Widget extension
+  #
+  # Carries its own copy of WidgetModels.swift. The app target has a separate
+  # copy under ClimaAI/Models — they are different modules, so this is not a
+  # duplicate-symbol problem, but the two files must be kept in step by hand.
+  # --------------------------------------------------------------------
+  ClimaAIWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ClimaAIWidget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.climaai.app.widget
+        INFOPLIST_FILE: ClimaAIWidget/Info.plist
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+
+  # --------------------------------------------------------------------
+  # watchOS app (single-target, watchOS 9+ style)
+  # --------------------------------------------------------------------
+  ClimaAIWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: ClimaAIWatch
+    info:
+      path: ClimaAIWatch/Info.plist
+      properties:
+        CFBundleDisplayName: ClimaAI
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.climaai.app
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.climaai.app.watchkitapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  # --------------------------------------------------------------------
+  # Unit tests
+  # --------------------------------------------------------------------
+  ClimaAITests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ClimaAITests
+        excludes:
+          # A standalone `swift run_tests.swift` script with top-level code and
+          # its own assert(); it cannot compile inside a test bundle.
+          - run_tests.swift
+    dependencies:
+      - target: ClimaAI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.climaai.app.tests
+
+schemes:
+  ClimaAI:
+    build:
+      targets:
+        ClimaAI: all
+    test:
+      targets:
+        - ClimaAITests
+      gatherCoverageData: true
+    run:
+      config: Debug

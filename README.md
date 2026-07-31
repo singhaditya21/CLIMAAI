@@ -172,7 +172,8 @@ open ClimaAI.xcodeproj
 ```
 
 3. **Configure:**
-- Update `Bundle Identifier` in project settings
+- Set your signing team and change the `com.climaai.*` bundle identifier prefix
+  in [ios/project.yml](ios/project.yml), then `xcodegen generate`
 - Configure StoreKit products in App Store Connect
 - Update product IDs in `SubscriptionManager.swift`
 - Add required capabilities: Location, In-App Purchase
@@ -331,8 +332,8 @@ Database-backed tests skip locally when it is unreachable, but fail rather than
 skip when `CI` is set.
 
 ### iOS Tests
-Requires `ios/ClimaAI.xcodeproj`, which is **not yet in the repo** — follow
-[ios/XCODE_SETUP.md](ios/XCODE_SETUP.md) to generate it first. Then:
+`ios/ClimaAI.xcodeproj` is committed; see [ios/XCODE_SETUP.md](ios/XCODE_SETUP.md).
+The suite has never been executed — expect to fix compile errors on the first run.
 ```bash
 cd ios && xcodebuild test -scheme ClimaAI -destination 'platform=iOS Simulator,name=iPhone 15'
 ```

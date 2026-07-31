@@ -1,261 +1,67 @@
-# ClimaAI iOS - Xcode Project Setup Guide
+# ClimaAI iOS — Xcode project
 
-## 🎯 Step-by-Step Instructions
-
-### Step 1: Create New Xcode Project
-
-1. **Open Xcode** (from Applications or Spotlight)
-
-2. **Create New Project**:
-   - Click "Create New Project" or File → New → Project
-   - Choose **iOS** tab
-   - Select **App** template
-   - Click **Next**
-
-3. **Configure Project**:
-   - **Product Name**: `ClimaAI`
-   - **Team**: Select your team (or None for now)
-   - **Organization Identifier**: `com.yourname` (e.g., `com.aditya`)
-   - **Bundle Identifier**: Will auto-generate as `com.yourname.ClimaAI`
-   - **Interface**: **SwiftUI** ✅
-   - **Language**: **Swift** ✅
-   - **Storage**: None
-   - **Include Tests**: ✅ (optional)
-   - Click **Next**
-
-4. **Save Location**:
-   - Navigate to: `/Users/adityasingh/clima-ai/ios`
-   - **IMPORTANT**: Uncheck "Create Git repository" (we already have one)
-   - Click **Create**
-
----
-
-### Step 2: Delete Default Files
-
-Xcode created some default files we don't need:
-
-1. In Project Navigator (left sidebar), **delete** these files:
-   - `ContentView.swift` (we'll replace it)
-   - `ClimaAIApp.swift` (we'll replace it)
-   - Right-click → Delete → **Move to Trash**
-
----
-
-### Step 3: Add Our Files to Project
-
-#### 3A: Add ClimaAIApp.swift
-1. Right-click on `ClimaAI` folder (blue icon) in Project Navigator
-2. **Add Files to "ClimaAI"...**
-3. Navigate to: `/Users/adityasingh/clima-ai/ios/ClimaAI/`
-4. Select `ClimaAIApp.swift`
-5. ✅ Check "Copy items if needed"
-6. ✅ Check "Add to targets: ClimaAI"
-7. Click **Add**
-
-#### 3B: Add ViewModels Folder
-1. Right-click on `ClimaAI` folder
-2. **Add Files to "ClimaAI"...**
-3. Navigate to: `/Users/adityasingh/clima-ai/ios/ClimaAI/`
-4. Select the **`ViewModels`** folder
-5. ✅ Check "Copy items if needed"
-6. ✅ Check "Create groups" (not folder references)
-7. ✅ Check "Add to targets: ClimaAI"
-8. Click **Add**
-
-#### 3C: Add Views Folder
-1. Right-click on `ClimaAI` folder
-2. **Add Files to "ClimaAI"...**
-3. Select the **`Views`** folder (contains Auth, Home, Weather, AI, Settings, Subscription)
-4. ✅ Check "Copy items if needed"
-5. ✅ Check "Create groups"
-6. ✅ Check "Add to targets: ClimaAI"
-7. Click **Add**
-
-#### 3D: Add Existing Models and Services
-If these files already exist from your previous work:
-1. Find `Models.swift`, `APIClient.swift`, `LocationManager.swift`, `SubscriptionManager.swift`
-2. Make sure they're in the project
-3. If not, add them the same way
-
----
-
-### Step 4: Replace Info.plist
-
-1. In Xcode, find `Info.plist` in Project Navigator
-2. Right-click → **Show in Finder**
-3. **Delete** the existing `Info.plist` from Finder
-4. **Copy** our `Info.plist` from `/Users/adityasingh/clima-ai/ios/ClimaAI/Info.plist`
-5. **Paste** it into the same location
-6. Back in Xcode, clean and rebuild: **⌘⇧K** then **⌘B**
-
----
-
-### Step 5: Configure Project Settings
-
-1. Click on **ClimaAI** (blue icon) at the top of Project Navigator
-2. Select **ClimaAI** target (under TARGETS)
-3. Go to **Signing & Capabilities** tab:
-   - ✅ Check "Automatically manage signing"
-   - Select your **Team** (sign in with Apple ID if needed)
-
-4. Go to **General** tab:
-   - **Minimum Deployments**: iOS 16.0 or later
-   - **Supports**: iPhone only (or iPhone & iPad)
-
----
-
-### Step 6: Add Required Frameworks
-
-Our app uses some iOS frameworks. Verify they're linked:
-
-1. Select **ClimaAI** target
-2. Go to **General** → **Frameworks, Libraries, and Embedded Content**
-3. Click **+** and add these if not present:
-   - **StoreKit.framework**
-   - **CoreLocation.framework**
-
-(SwiftUI, Combine, Charts are automatic in iOS 16+)
-
----
-
-### Step 7: Create StoreKit Configuration (for testing)
-
-1. **File → New → File**
-2. Search for "StoreKit"
-3. Select **StoreKit Configuration File**
-4. Name it: `Configuration.storekit`
-5. **Save** in project root
-
-6. In the StoreKit editor:
-   - Click **+** → Add Subscription
-   - **Reference Name**: Monthly Premium
-   - **Product ID**: `com.climaai.premium.monthly`
-   - **Price**: $4.99
-   - **Subscription Duration**: 1 month
-   - Click **+** → Add Introductory Offer
-   - Type: Free, Duration: 7 days
-   
-   - Repeat for Annual:
-   - **Product ID**: `com.climaai.premium.annual`
-   - **Price**: $39.99
-   - **Subscription Duration**: 1 year
-   - Same 7-day trial
-
-7. **Product → Scheme → Edit Scheme**
-   - Go to **Run** → **Options**
-   - **StoreKit Configuration**: Select `Configuration.storekit`
-
----
-
-### Step 8: Update API Base URL
-
-1. Open `APIClient.swift`
-2. Find the `baseURL` property
-3. Change it to:
-   ```swift
-   private let baseURL = "http://localhost:8000"
-   ```
-
----
-
-### Step 9: Build & Run!
-
-1. Select simulator: **iPhone 14 Pro** (or any iPhone)
-2. Press **⌘R** or click ▶️ **Run** button
-3. Wait for build...
-4. App should launch in simulator! 🎉
-
----
-
-## ✅ Expected Result
-
-When the app launches:
-1. **Onboarding screen** appears (4 pages)
-2. Location permission dialog shows
-3. Can navigate to **Login screen**
-4. Can register or login
-
----
-
-## 🐛 Troubleshooting
-
-### Build Errors
-
-**"Cannot find type 'Weather' in scope"**
-- Make sure `Models.swift` is in the project
-- Check it's added to target
-
-**"No such module 'StoreKit'"**
-- Add StoreKit framework (Step 6)
-
-**"Module compiled with Swift X.X cannot be imported"**
-- Clean build folder: **⌘⇧K**
-- Rebuild: **⌘B**
-
-### Runtime Errors
-
-**"Failed to connect to localhost:8000"**
-- Backend not running
-- Start Docker and run `./start.sh`
-
-**Location permission doesn't work**
-- Check `Info.plist` has location keys
-- Reset simulator: Device → Erase All Content and Settings
-
----
-
-## 📝 Quick Command Reference
+`ClimaAI.xcodeproj` is committed, so you can clone and open:
 
 ```bash
-# Open Xcode from terminal
-open /Users/adityasingh/clima-ai/ios/ClimaAI.xcodeproj
-
-# Or create it first, then:
-cd /Users/adityasingh/clima-ai/ios
-open .
-# Then create project in Xcode GUI
+open ios/ClimaAI.xcodeproj
 ```
 
----
+This replaces the previous version of this guide, which walked through building
+the project by hand in Xcode — that is no longer necessary.
 
-## 🎯 You're Ready!
+## Targets
 
-After following these steps:
-- ✅ Xcode project created
-- ✅ All files added
-- ✅ Configuration complete
-- ✅ Ready to run
+| Target | Type | Bundle identifier |
+| :--- | :--- | :--- |
+| `ClimaAI` | iOS app (iOS 16+) | `com.climaai.app` |
+| `ClimaAIWidget` | WidgetKit extension | `com.climaai.app.widget` |
+| `ClimaAIWatch` | watchOS app (watchOS 9+) | `com.climaai.app.watchkitapp` |
+| `ClimaAITests` | Unit tests | `com.climaai.app.tests` |
 
-**Press ⌘R and see your app come to life!** 🚀
+The `ClimaAI` scheme builds the app with its widget and watch app embedded, and
+runs `ClimaAITests` on test.
 
----
+## Before it will build and run on a device
 
-## 📌 Project Structure (Final)
+1. **Signing team.** Set `DEVELOPMENT_TEAM` in `project.yml`, or pick a team in
+   Xcode's Signing & Capabilities pane for each of the four targets.
+2. **Bundle identifiers.** `com.climaai.*` is a placeholder. Change the prefix in
+   `project.yml` to something you own and regenerate.
+3. **Capabilities.** The app needs Location and In-App Purchase; the widget and
+   watch app need an App Group if you want them to share cached weather.
+4. **App icons.** `Assets.xcassets/AppIcon.appiconset` exists but has no image.
+   Drop a 1024×1024 PNG in before submitting to App Store Connect.
 
-```
-ClimaAI.xcodeproj/
-ClimaAI/
-├── ClimaAIApp.swift
-├── Info.plist
-├── ViewModels/
-│   ├── AuthViewModel.swift
-│   ├── WeatherViewModel.swift
-│   ├── AIInsightsViewModel.swift
-│   └── SubscriptionViewModel.swift
-├── Views/
-│   ├── ContentView.swift
-│   ├── Auth/ (3 files)
-│   ├── Home/ (1 file)
-│   ├── Weather/ (3 files)
-│   ├── AI/ (2 files)
-│   ├── Subscription/ (1 file)
-│   └── Settings/ (1 file)
-├── Models.swift
-├── Services/
-│   ├── APIClient.swift
-│   ├── LocationManager.swift
-│   └── SubscriptionManager.swift
-└── Configuration.storekit
+## Changing the project
+
+The project is generated from [`project.yml`](project.yml) by
+[XcodeGen](https://github.com/yonaskolb/XcodeGen):
+
+```bash
+brew install xcodegen
+cd ios && xcodegen generate
 ```
 
-**Need help with any step? Just ask!** 👋
+Adding or removing **source files** needs no spec change — sources are globbed by
+directory, so a regenerate picks them up.
+
+Changing **targets, build settings, or which target a file belongs to** should be
+done in `project.yml` and regenerated. Editing those in Xcode works until the
+next `xcodegen generate`, which will discard them.
+
+## Known rough edges
+
+- **The project has never been compiled.** It was generated on a machine with
+  only the Command Line Tools installed, so `xcodebuild` was unavailable. The
+  structure is verified — the `pbxproj` parses, all four targets exist, and 44 of
+  45 Swift files are in a target — but expect to fix compile errors on the first
+  real build.
+- `ClimaAITests` has likewise never run, for the same reason: there was no
+  project to run it in when it was written.
+- `ClimaAIWidget/WidgetModels.swift` is a byte-identical copy of
+  `ClimaAI/Models/WidgetModels.swift`. They are separate modules so this compiles
+  fine, but the two have to be kept in step by hand. Worth collapsing into a
+  shared framework target.
+- `ClimaAITests/run_tests.swift` is a standalone `swift` script with top-level
+  code, deliberately excluded from the test bundle — it cannot compile inside
+  one. Run it directly with `swift ClimaAITests/run_tests.swift`.

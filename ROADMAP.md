@@ -23,9 +23,11 @@ the "fake data" finding in the old audit report was fixed and is no longer accur
 
 These are hard blockers, not nice-to-haves:
 
-1. **No `ios/ClimaAI.xcodeproj`.** Swift sources exist but there is no Xcode project
-   or asset catalog; see `ios/XCODE_SETUP.md`. The iOS test suite cannot be run until
-   this exists.
+1. **The iOS project has never been compiled.** `ios/ClimaAI.xcodeproj` now exists,
+   generated from `ios/project.yml` via XcodeGen and covering all four targets, but
+   it was produced on a machine with only Command Line Tools — no `xcodebuild`. The
+   first real build will likely surface compile errors, and `ClimaAITests` has still
+   never run. See `ios/XCODE_SETUP.md`.
 2. **`android/gradle/wrapper/gradle-wrapper.jar` is missing**, so `./gradlew` fails
    before anything else — the Android app cannot be built from a fresh clone at all.
    Regenerate with `cd android && gradle wrapper --gradle-version 8.13` and commit
