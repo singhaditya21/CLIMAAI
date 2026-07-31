@@ -23,17 +23,8 @@ fun WeatherScreen(
     
     // Fetch weather on launch
     LaunchedEffect(Unit) {
-        // Demo data - in production, fetch from repository
-        weather = WearWeatherData(
-            temperature = 72,
-            condition = "Partly Cloudy",
-            conditionIcon = "⛅",
-            high = 78,
-            low = 65,
-            humidity = 45,
-            windSpeed = 8,
-            location = "San Francisco"
-        )
+        // Fetch from repository
+        weather = WearWeatherRepository.getWeather()
         isLoading = false
     }
     
