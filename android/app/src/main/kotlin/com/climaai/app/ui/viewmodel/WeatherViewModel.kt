@@ -11,6 +11,7 @@ import com.climaai.app.data.cache.CachePolicy
 import com.climaai.app.data.cache.RefreshTracker
 import com.climaai.app.data.cache.UsageSummary
 import com.climaai.app.data.repository.OpenMeteoRepository
+import com.climaai.app.data.sync.WearableSyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -162,6 +163,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     updateLastUpdatedText()
                     refreshUsageStats()
                     
+                    // Sync with Wearable
+                    WearableSyncManager.syncWeather(getApplication(), enrichedWeather)
+
                     Log.d("WeatherViewModel", "Weather loaded from Open-Meteo")
                     
                     // Try to fetch AI insights from backend (graceful degradation)
@@ -230,6 +234,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     updateLastUpdatedText()
                     refreshUsageStats()
                     
+                    // Sync with Wearable
+                    WearableSyncManager.syncWeather(getApplication(), enrichedWeather)
+
                     // Try AI insights
                     fetchAIInsights(loc.latitude, loc.longitude)
                     
@@ -424,6 +431,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 updateLastUpdatedText()
                 refreshUsageStats()
                 
+                // Sync with Wearable
+                WearableSyncManager.syncWeather(getApplication(), result.data)
+
                 if (result.rateLimited) {
                     _rateLimitMessage.value = result.rateLimitMessage
                 }

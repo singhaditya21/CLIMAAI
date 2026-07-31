@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -18,22 +19,13 @@ import com.climaai.wear.data.WearWeatherData
 fun WeatherScreen(
     onNavigateToForecast: () -> Unit
 ) {
+    val context = LocalContext.current
     var weather by remember { mutableStateOf<WearWeatherData?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     
     // Fetch weather on launch
     LaunchedEffect(Unit) {
-        // Demo data - in production, fetch from repository
-        weather = WearWeatherData(
-            temperature = 72,
-            condition = "Partly Cloudy",
-            conditionIcon = "⛅",
-            high = 78,
-            low = 65,
-            humidity = 45,
-            windSpeed = 8,
-            location = "San Francisco"
-        )
+        weather = WearWeatherRepository.getWeather(context)
         isLoading = false
     }
     

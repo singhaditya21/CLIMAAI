@@ -19,7 +19,7 @@ class WeatherTileService : TileService() {
     
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
         return scope.future {
-            val weather = WearWeatherRepository.getWeather()
+            val weather = WearWeatherRepository.getWeather(applicationContext)
             
             TileBuilders.Tile.Builder()
                 .setResourcesVersion("1")

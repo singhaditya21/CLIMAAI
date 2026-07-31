@@ -135,6 +135,9 @@ dependencies {
     // Location
     implementation 'com.google.android.gms:play-services-location:21.1.0'
     
+    // Wear OS Sync
+    implementation 'com.google.android.gms:play-services-wearable:18.1.0'
+
     // Google Play Billing
     implementation 'com.android.billingclient:billing-ktx:6.1.0'
     
