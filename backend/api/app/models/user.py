@@ -36,7 +36,14 @@ class User(Base):
         "notifications_enabled": True,
         "theme": "auto",  # light, dark, auto
     })
-    
+
+    # Push notification preferences (column added in 002_add_features.sql)
+    notification_preferences = Column(JSON, default={
+        "weather_alerts": True,
+        "daily_summary": False,
+        "severe_weather": True,
+    })
+
     # Location preferences
     default_latitude = Column(String(50))
     default_longitude = Column(String(50))

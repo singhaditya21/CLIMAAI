@@ -9,6 +9,9 @@ python-multipart==0.0.6
 sqlalchemy==2.0.25
 asyncpg==0.29.0
 alembic==1.13.1
+# SQLAlchemy's async engine needs greenlet; it is only a conditional dependency
+# of sqlalchemy and is not installed on every platform (e.g. arm64 macOS).
+greenlet==3.0.3
 
 # Redis
 redis==5.0.1
@@ -16,6 +19,10 @@ redis==5.0.1
 # Authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 reads bcrypt.__about__.__version__, which bcrypt removed in 4.1.
+# Leaving this unpinned installs bcrypt 5.x and breaks all password hashing —
+# registration and login fail outright. Do not bump without upgrading passlib.
+bcrypt==4.0.1
 
 # HTTP client
 httpx==0.26.0
@@ -27,6 +34,8 @@ openai==1.10.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
+# Required by pydantic's EmailStr, used in app/schemas/user.py
+email-validator==2.1.0
 
 # Utilities
 python-dateutil==2.8.2

@@ -80,16 +80,20 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers to auto-update updated_at
+-- (dropped first so this file can be re-applied to an existing database)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at
     BEFORE UPDATE ON subscriptions
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_weather_history_updated_at ON weather_history;
 CREATE TRIGGER update_weather_history_updated_at
     BEFORE UPDATE ON weather_history
     FOR EACH ROW

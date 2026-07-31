@@ -277,7 +277,26 @@ class WeatherService:
         # Parse daily forecast
         daily_data = data.get("daily", {})
         daily = []
+
+        def day_value(field: str, index: int):
+            """Read daily_data[field][index], tolerating absent or short arrays."""
+            values = daily_data.get(field) or []
+            return values[index] if index < len(values) else None
+
+        # Open-Meteo pads its daily arrays out to forecast_days but leaves the
+        # trailing day null until that day's data is published, so the last entry
+        # is routinely all-null. Skip any day missing a field DailyWeather requires
+        # rather than coercing to 0, which would surface as a real 0°C forecast.
+        required_daily = (
+            "temperature_2m_max", "temperature_2m_min", "sunrise", "sunset",
+            "precipitation_sum", "weather_code", "wind_speed_10m_max",
+            "wind_direction_10m_dominant", "uv_index_max",
+        )
+
         for i in range(len(daily_data.get("time", []))):
+            if any(day_value(field, i) is None for field in required_daily):
+                continue
+
             # Calculate moon phase for this date
             forecast_date = date.fromisoformat(daily_data["time"][i])
             moon_phase = self._calculate_moon_phase(forecast_date)
@@ -290,8 +309,8 @@ class WeatherService:
                 sunrise=daily_data["sunrise"][i],
                 sunset=daily_data["sunset"][i],
                 precipitation_sum=daily_data["precipitation_sum"][i],
-                snow_accumulation=daily_data.get("snowfall_sum", [])[i] or 0,
-                precipitation_probability=daily_data["precipitation_probability_max"][i] or 0,
+                snow_accumulation=day_value("snowfall_sum", i) or 0,
+                precipitation_probability=day_value("precipitation_probability_max", i) or 0,
                 weather_code=daily_data["weather_code"][i],
                 weather_description=self._get_weather_description(daily_data["weather_code"][i]),
                 wind_speed_max=daily_data["wind_speed_10m_max"][i],
