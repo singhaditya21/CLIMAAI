@@ -303,7 +303,7 @@ Update product IDs in billing configuration to match Google Play Console.
 
 ## 🧪 Testing
 
-> ⚠️ The backend has a real suite; Android has no test sources, and the iOS suite
+> ⚠️ The backend has a 116-test suite; Android has no test sources, and the iOS suite
 > cannot run until an Xcode project exists. See [ROADMAP.md](ROADMAP.md).
 
 ### Backend Tests

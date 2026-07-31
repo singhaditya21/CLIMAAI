@@ -32,10 +32,9 @@ These are hard blockers, not nice-to-haves:
    before anything else — the Android app cannot be built from a fresh clone at all.
    Regenerate with `cd android && gradle wrapper --gradle-version 8.13` and commit
    the jar. Signing itself is now wired up; see `android/SIGNING.md`.
-3. **Android has no tests at all.** The backend now has a 57-test suite covering
-   auth, weather parsing, locations, notifications and app wiring, running against a
-   real Postgres in CI. Android remains uncovered, and the iOS suite cannot run
-   until blocker 1 is resolved.
+3. **Android has no tests at all.** The backend now has a 116-test suite running
+   against a real Postgres in CI. Android remains uncovered, and the iOS suite cannot
+   run until blocker 1 is resolved.
 4. **CI covers the backend only.** `.github/workflows/deploy.yml` tests and deploys
    the API; nothing builds or tests either mobile app. The `build` and `deploy` jobs
    fail at Google Cloud authentication until `GCP_SA_KEY` and `GCP_PROJECT_ID` are
@@ -45,15 +44,20 @@ These are hard blockers, not nice-to-haves:
 
 ## Phase 1 — Make it buildable and trustworthy
 
-- [x] Backend test suite against real Postgres — auth, weather parsing, locations,
-      notifications, app wiring (57 tests), wired into CI
-- [ ] Extend backend coverage to `HealthIndexService`, `SubscriptionService`,
-      `NowcastService` and the alerts/pollen routers
-- [ ] Generate the Xcode project and asset catalog; get `ClimaAITests` running
-- [ ] Add Android signing config and a documented keystore workflow
+- [x] Backend test suite against real Postgres, wired into CI — auth, weather
+      parsing, locations, notifications, health indices, subscriptions, nowcast,
+      alerts, pollen, personalization and app wiring (116 tests)
+- [x] Generate the Xcode project and asset catalogs (`ios/project.yml`)
+- [x] Add Android signing config and a documented keystore workflow
+      (`android/SIGNING.md`)
+- [ ] **Commit `android/gradle/wrapper/gradle-wrapper.jar`** — nothing Android can
+      be built or tested until this exists
+- [ ] Build the iOS project for the first time and fix what falls out; get
+      `ClimaAITests` running
 - [ ] Android JUnit tests for the repository and view-model layers
 - [ ] CI jobs for the Android and iOS builds alongside the existing backend job
-- [ ] Replace placeholder API hosts with a real domain
+- [ ] Replace placeholder API hosts with a real domain (PRs #14, #15 are ready and
+      deliberately parked until there is a deployed API to point at)
 
 ## Phase 2 — Competitor parity
 
@@ -77,10 +81,18 @@ Carried over from the AccuWeather gap analysis; this is the genuine feature back
 - [ ] Weather-based automations
 - [ ] B2B API offering
 
-## Repository hygiene
+## Open pull requests
 
-- The `Palette` bot opens a near-duplicate "auth loading states" PR every day.
-  Whatever schedules it should be disabled, or the PR backlog will keep regrowing.
-- The 30 substantive PRs from 2026-02-26 predate work that later landed directly on
-  `main` (notably the multi-source weather service). Rebase and re-review them before
-  merging rather than trusting the diffs as-is.
+The backlog went from 174 to 11. Everything still open is annotated on the PR itself
+with why it is open and what it needs.
+
+- **Blocked on tooling** — #17, #23, #27, #32 (Android). Nothing Android can be
+  compiled until `gradle-wrapper.jar` is restored, so these cannot be verified.
+  #23 also wires in Google's *test* AdMob ID, which must be swapped before release.
+- **Parked until release** — #14 (production API URL), #15 (disable Apple sandbox).
+  Both correct, both make development worse if merged early.
+- **Needs rebase and review** — #36 (Apple JWS verification, a real security gap in
+  the webhook), #39 (email verification), #41 (Google OAuth).
+
+The `Palette` bot that produced 144 duplicate PRs stopped on its own after
+2026-07-08; no action needed unless it restarts.
