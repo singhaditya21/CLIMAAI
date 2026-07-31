@@ -27,16 +27,34 @@ class SubscriptionPlan(str, enum.Enum):
     ANNUAL = "annual"
 
 
+def _enum_column(enum_class):
+    """Map a Python enum onto the schema's VARCHAR + CHECK columns.
+
+    init.sql declares platform/plan/status as VARCHAR(20) with CHECK constraints
+    holding the lowercase values. SQLAlchemy's default would instead expect a
+    native Postgres ENUM type and persist member *names* ("APPLE"), so every
+    insert failed — the type does not exist, and the name would violate the
+    CHECK even if it did.
+    """
+    return SQLEnum(
+        enum_class,
+        native_enum=False,
+        create_constraint=False,
+        values_callable=lambda enum: [member.value for member in enum],
+        length=20,
+    )
+
+
 class Subscription(Base):
     __tablename__ = "subscriptions"
-    
+
     id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+
     # Subscription details
-    platform = Column(SQLEnum(SubscriptionPlatform), nullable=False)
-    plan = Column(SQLEnum(SubscriptionPlan), nullable=False)
-    status = Column(SQLEnum(SubscriptionStatus), default=SubscriptionStatus.TRIAL, nullable=False, index=True)
+    platform = Column(_enum_column(SubscriptionPlatform), nullable=False)
+    plan = Column(_enum_column(SubscriptionPlan), nullable=False)
+    status = Column(_enum_column(SubscriptionStatus), default=SubscriptionStatus.TRIAL, nullable=False, index=True)
     
     # Trial
     trial_start_date = Column(DateTime(timezone=True))

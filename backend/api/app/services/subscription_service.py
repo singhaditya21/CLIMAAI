@@ -1,7 +1,7 @@
 """
 Subscription service for validation and management.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -61,7 +61,7 @@ class SubscriptionService:
             )
         
         # Check if subscription has expired
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         is_active = subscription.is_active
         
         if subscription.status == SubscriptionStatus.TRIAL:
@@ -111,7 +111,7 @@ class SubscriptionService:
         if existing_trial:
             raise ValueError("Trial already used")
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trial_end = now + timedelta(days=self.TRIAL_DAYS)
         
         subscription = Subscription(
@@ -140,7 +140,7 @@ class SubscriptionService:
         db: AsyncSession
     ) -> Subscription:
         """Activate a paid subscription."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Calculate end date
         if plan == SubscriptionPlan.MONTHLY:
@@ -274,12 +274,12 @@ class SubscriptionService:
     ) -> Subscription:
         """Renew a subscription."""
         if subscription.plan == SubscriptionPlan.MONTHLY:
-            subscription.subscription_end_date = datetime.utcnow() + timedelta(days=30)
+            subscription.subscription_end_date = datetime.now(timezone.utc) + timedelta(days=30)
         else:
-            subscription.subscription_end_date = datetime.utcnow() + timedelta(days=365)
+            subscription.subscription_end_date = datetime.now(timezone.utc) + timedelta(days=365)
         
         subscription.status = SubscriptionStatus.ACTIVE
-        subscription.last_validation_date = datetime.utcnow()
+        subscription.last_validation_date = datetime.now(timezone.utc)
         
         await db.commit()
         await db.refresh(subscription)

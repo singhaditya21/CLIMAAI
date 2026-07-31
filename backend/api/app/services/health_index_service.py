@@ -29,7 +29,8 @@ class MigraineRisk(BaseModel):
     risk_level: RiskLevel
     risk_score: int  # 0-100
     pressure_change: float  # mb in last 24h
-    pressure_trend: str  # "rising", "falling", "stable"
+    # "rising rapidly", "rising", "stable", "falling", "falling rapidly"
+    pressure_trend: str
     triggers: List[str]
     recommendations: List[str]
 
