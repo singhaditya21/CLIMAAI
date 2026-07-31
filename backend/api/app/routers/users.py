@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..database import get_db
 from ..models import User
-from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse, ForgotPasswordRequest
+from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse, ForgotPasswordRequest, GoogleLoginRequest
 from ..services.auth import hash_password, verify_password, create_access_token, get_current_user
+from ..config import get_settings
 import uuid
+import httpx
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -45,6 +47,82 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     # Create access token
     access_token = create_access_token(data={"sub": str(user.id)})
     
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse.model_validate(user)
+    )
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_login(login_data: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Login with Google OAuth."""
+    settings = get_settings()
+
+    # Exchange code for token
+    async with httpx.AsyncClient() as client:
+        # Get tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "code": login_data.code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": login_data.redirect_uri or "postmessage",
+            "grant_type": "authorization_code",
+        }
+
+        response = await client.post(token_url, data=token_data)
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to verify Google token: {response.text}"
+            )
+
+        tokens = response.json()
+        access_token = tokens.get("access_token")
+
+        # Get user info
+        user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+        user_response = await client.get(
+            user_info_url,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if user_response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to get user info from Google"
+            )
+
+        google_user = user_response.json()
+        email = google_user.get("email")
+
+        if not email:
+             raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google account must have an email address"
+            )
+
+    # Check if user exists
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        # Create new user
+        user = User(
+            email=email,
+            full_name=google_user.get("name"),
+            platform="google",
+            is_active=True,
+            is_verified=True, # Google emails are verified
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+    # Create access token
+    access_token = create_access_token(data={"sub": str(user.id)})
+
     return TokenResponse(
         access_token=access_token,
         user=UserResponse.model_validate(user)

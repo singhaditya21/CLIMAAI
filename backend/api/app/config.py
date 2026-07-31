@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     APPLE_SHARED_SECRET: str = ""  # App Store Connect shared secret
     GOOGLE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string of service account key
     
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     # Feature flags
     ENABLE_AI_INSIGHTS: bool = True
     # Mounts the /demo router, which serves generated mock weather with no
