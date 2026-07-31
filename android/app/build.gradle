@@ -5,6 +5,27 @@ plugins {
     id 'kotlin-parcelize'
 }
 
+// Release signing credentials.
+//
+// Local builds read android/keystore.properties (gitignored). CI reads the same
+// four values from environment variables so the keystore never enters the repo.
+// When neither is present the release build falls back to debug signing, which
+// keeps `assembleRelease` working locally but produces an artifact Play will
+// reject — see android/SIGNING.md.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def hasKeystoreFile = keystorePropertiesFile.exists()
+if (hasKeystoreFile) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def signingValue = { String key, String envVar ->
+    hasKeystoreFile ? keystoreProperties[key] : System.getenv(envVar)
+}
+
+def releaseStorePath = signingValue('storeFile', 'ANDROID_KEYSTORE_FILE')
+def hasReleaseSigning = releaseStorePath != null && !releaseStorePath.isEmpty()
+
 android {
     namespace 'com.climaai.app'
     compileSdk 34
@@ -22,11 +43,23 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile rootProject.file(releaseStorePath)
+                storePassword signingValue('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
+                keyAlias signingValue('keyAlias', 'ANDROID_KEY_ALIAS')
+                keyPassword signingValue('keyPassword', 'ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", "API_BASE_URL", '"https://api.climaai.com"'
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
         }
         debug {
             applicationIdSuffix ".debug"

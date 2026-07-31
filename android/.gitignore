@@ -1,3 +1,8 @@
+# Signing material — never commit these
+keystore.properties
+*.jks
+*.keystore
+
 # Built application files
 *.apk
 *.aar

@@ -26,9 +26,10 @@ These are hard blockers, not nice-to-haves:
 1. **No `ios/ClimaAI.xcodeproj`.** Swift sources exist but there is no Xcode project
    or asset catalog; see `ios/XCODE_SETUP.md`. The iOS test suite cannot be run until
    this exists.
-2. **Android cannot produce a signed release.** `android/app/build.gradle` has no
-   `signingConfig` and no keystore wiring, so `bundleRelease` won't yield an
-   uploadable artifact.
+2. **`android/gradle/wrapper/gradle-wrapper.jar` is missing**, so `./gradlew` fails
+   before anything else — the Android app cannot be built from a fresh clone at all.
+   Regenerate with `cd android && gradle wrapper --gradle-version 8.13` and commit
+   the jar. Signing itself is now wired up; see `android/SIGNING.md`.
 3. **Android has no tests at all.** The backend now has a 57-test suite covering
    auth, weather parsing, locations, notifications and app wiring, running against a
    real Postgres in CI. Android remains uncovered, and the iOS suite cannot run
