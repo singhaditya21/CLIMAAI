@@ -284,4 +284,9 @@ struct SubscriptionStatusResponse: Codable {
     }
 }
 
-typealias SubscriptionStatus = SubscriptionStatusResponse
+// No `typealias SubscriptionStatus = SubscriptionStatusResponse` here: it
+// collided with the SubscriptionStatus struct in Models.swift, which is the
+// one matching what the backend actually returns
+// (has_active_subscription / is_premium / subscription / features).
+// SubscriptionStatusResponse is a different shape and is still referenced
+// by name in this file — see the note in ROADMAP.md about reconciling them.

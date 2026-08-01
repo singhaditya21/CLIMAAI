@@ -493,12 +493,8 @@ struct AirQualityResponse: Codable {
     }
 }
 
-struct PrecipitationNowcast: Codable {
-    let hasPrecipitation: Bool
-    let summary: String
-    
-    enum CodingKeys: String, CodingKey {
-        case hasPrecipitation = "has_precipitation"
-        case summary
-    }
-}
+// PrecipitationNowcast is declared in Views/Components/PrecipitationBanner.swift.
+// A second two-field copy lived here and collided with it; the backend returns
+// all seven fields (has_precipitation, precipitation_in_minutes,
+// precipitation_ends_in_minutes, intensity, precipitation_type, probability,
+// summary), so the fuller declaration is the correct one.
