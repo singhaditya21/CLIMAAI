@@ -135,6 +135,10 @@ dependencies {
     // Location
     implementation 'com.google.android.gms:play-services-location:21.1.0'
     
+    // Glance — Jetpack Compose for app widgets (widget/*.kt import this)
+    implementation 'androidx.glance:glance-appwidget:1.0.0'
+    implementation 'androidx.glance:glance-material3:1.0.0'
+
     // Google Play Billing
     implementation 'com.android.billingclient:billing-ktx:6.1.0'
     

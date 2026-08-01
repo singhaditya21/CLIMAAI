@@ -36,7 +36,10 @@ android {
     }
     
     composeOptions {
-        kotlinCompilerExtensionVersion '1.5.3'
+        // Must match the Kotlin version in the root build.gradle (1.9.22), same
+        // as app/. Left at 1.5.3 (which pairs with Kotlin 1.9.10) this fails to
+        // compile outright.
+        kotlinCompilerExtensionVersion '1.5.10'
     }
 }
 

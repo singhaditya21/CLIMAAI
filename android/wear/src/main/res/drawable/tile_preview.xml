@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Preview shown in the Wear OS tile picker, referenced from AndroidManifest.xml
+  via androidx.wear.tiles.PREVIEW.
+
+  Colours are literal rather than @color references: the wear module has no
+  colors.xml of its own, and app/ resources are not on its resource path. They
+  match background_medium (#1E3A5F) and background_dark (#0D1B2A) in
+  app/src/main/res/values/colors.xml — keep them in step by hand.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:startColor="#FF1E3A5F"
+        android:endColor="#FF0D1B2A"
+        android:angle="270"/>
+</shape>

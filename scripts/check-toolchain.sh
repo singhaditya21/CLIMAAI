@@ -24,7 +24,9 @@ fi
 print "\n── Android ─────────────────────────────────────────────"
 JDK_OK=0
 if [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]]; then
-  JV=$("$JAVA_HOME/bin/java" -version 2>&1 | head -1 | sed 's/.*"\([0-9]*\).*/\1/')
+  # Anchor at the first quote: a greedy .*" would match the closing quote and
+  # capture nothing.
+  JV=$("$JAVA_HOME/bin/java" -version 2>&1 | head -1 | sed 's/^[^"]*"\([0-9]*\).*/\1/')
   if [[ "$JV" == "17" || "$JV" == "21" ]]; then ok "JDK $JV via JAVA_HOME"; JDK_OK=1
   else warn "JAVA_HOME points at JDK $JV — Gradle 8.13 needs 17 or 21"; fi
 else
