@@ -11,14 +11,18 @@
         </trust-anchors>
     </base-config>
     
-    <!-- Debug only: Allow localhost for development -->
-    <debug-overrides>
-        <trust-anchors>
-            <certificates src="user" />
-            <certificates src="system" />
-        </trust-anchors>
-    </debug-overrides>
-    
+    <!--
+        No <debug-overrides> here. That element only takes effect in debuggable
+        builds, and those use app/src/debug/res/xml/network_security_config.xml
+        instead, which overrides this file. Declaring it in both makes lint fail
+        with "Expecting at most 1 <debug-overrides>".
+
+        Its previous comment here claimed to "allow localhost for development",
+        which it never did — <debug-overrides> cannot permit cleartext, only add
+        trust anchors. That gap is what blocked debug builds from reaching a
+        local backend at all.
+    -->
+
     <!-- Production domains with certificate pinning -->
     <domain-config cleartextTrafficPermitted="false">
         <!-- ClimaAI Backend -->
