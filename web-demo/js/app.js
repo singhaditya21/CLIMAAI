@@ -145,6 +145,15 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        const submitter = e.submitter;
+        let originalContent = '';
+        if (submitter) {
+            originalContent = submitter.innerHTML;
+            submitter.innerHTML = '⏳ Loading...';
+            submitter.disabled = true;
+            submitter.style.opacity = '0.7';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +164,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitter) {
+                submitter.innerHTML = originalContent;
+                submitter.disabled = false;
+                submitter.style.opacity = '1';
+            }
         }
     }
 
@@ -163,6 +178,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        const submitter = e.submitter;
+        let originalContent = '';
+        if (submitter) {
+            originalContent = submitter.innerHTML;
+            submitter.innerHTML = '⏳ Loading...';
+            submitter.disabled = true;
+            submitter.style.opacity = '0.7';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +198,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitter) {
+                submitter.innerHTML = originalContent;
+                submitter.disabled = false;
+                submitter.style.opacity = '1';
+            }
         }
     }
 
