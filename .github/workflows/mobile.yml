@@ -67,6 +67,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: android
     if: github.ref == 'refs/heads/main'
+    env:
+      # The `secrets` context cannot be used in an `if:` condition, so it is
+      # surfaced as an env var that the conditions below can read.
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -82,8 +86,8 @@ jobs:
       # Absent these secrets the build falls back to debug signing, which still
       # verifies the release path compiles and shrinks. See android/SIGNING.md.
       - name: Decode keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/release.jks
+        if: env.KEYSTORE_B64 != ''
+        run: echo "$KEYSTORE_B64" | base64 -d > android/release.jks
 
       - name: Bundle release
         working-directory: android
@@ -135,22 +139,15 @@ jobs:
       - name: Build for simulator
         working-directory: ios
         run: |
-          set -o pipefail
           xcodebuild build \
             -project ClimaAI.xcodeproj \
             -scheme ClimaAI \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || xcodebuild build \
-                -project ClimaAI.xcodeproj \
-                -scheme ClimaAI \
-                -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-                CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Test on simulator
         working-directory: ios
         run: |
-          set -o pipefail
           xcodebuild test \
             -project ClimaAI.xcodeproj \
             -scheme ClimaAI \
