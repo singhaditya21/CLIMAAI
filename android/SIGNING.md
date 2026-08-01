@@ -7,6 +7,10 @@
 > ```bash
 > export JAVA_HOME=/path/to/jdk-21
 > ```
+>
+> You also need the Android SDK with platform 34 and build-tools 34.0.0, and
+> `android/local.properties` pointing at it (`sdk.dir=...`). With those in place
+> a fresh clone builds with no other setup.
 
 Google Play requires every upload to be signed with a key you control and can
 never rotate on your own. Losing it means you cannot ship updates to existing

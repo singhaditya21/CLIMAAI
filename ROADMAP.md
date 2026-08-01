@@ -28,12 +28,11 @@ These are hard blockers, not nice-to-haves:
    modules against the macOS SDK with no genuine defects — see the table in
    `ios/XCODE_SETUP.md` — but iOS-only APIs, linking and signing are unverified, and
    `ClimaAITests` still needs a simulator to run.
-2. **The Android SDK is not installed**, so nothing compiles yet. `./gradlew` works
-   and the project configures (`:app` and `:wear` both resolve), and release signing
-   is verified across all three of its branches. What remains is installing the SDK,
-   which requires accepting Google's licence terms. See `android/SIGNING.md`.
-   Note Gradle 8.13 needs **JDK 17 or 21** — a newer JDK fails on class file
-   parsing.
+2. ~~Android cannot be built.~~ **Resolved.** Both modules compile from a fresh
+   clone: `assembleDebug` produces `app-debug.apk` and `wear-debug.apk`, and
+   `bundleRelease` produces an AAB signed with the release key. Needs **JDK 17 or
+   21** (Gradle 8.13 cannot parse newer class files) and the Android SDK with
+   platform 34. See `android/SIGNING.md`.
 3. **Android has no tests at all.** The backend now has a 116-test suite running
    against a real Postgres in CI. Android remains uncovered, and the iOS suite cannot
    run until blocker 1 is resolved.
@@ -52,10 +51,11 @@ These are hard blockers, not nice-to-haves:
 - [x] Generate the Xcode project and asset catalogs (`ios/project.yml`)
 - [x] Add Android signing config and a documented keystore workflow
       (`android/SIGNING.md`)
-- [x] Restore `android/gradle/wrapper/gradle-wrapper.jar` — `./gradlew` works and
-      the project configures; signing verified across all three branches
-- [ ] Install the Android SDK and run a real `assembleDebug` / `bundleRelease`
-      (requires accepting Google's SDK licence terms)
+- [x] Restore `android/gradle/wrapper/gradle-wrapper.jar`
+- [x] Android builds — `assembleDebug` and a release-signed `bundleRelease`, both
+      verified from a fresh clone
+- [ ] Run the app on a device or emulator — it compiles, but has never been
+      launched, so runtime behaviour is entirely unverified
 - [ ] Build the iOS project against the iOS SDK in Xcode; get `ClimaAITests`
       running on a simulator
 - [ ] Android JUnit tests for the repository and view-model layers
