@@ -14,6 +14,11 @@ from ..config import get_settings
 settings = get_settings()
 
 
+def _as_aware(value: datetime) -> datetime:
+    """Treat a naive datetime as UTC so comparisons never mix the two kinds."""
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
 class AlertSeverity(str, Enum):
     """NWS Alert severity levels."""
     EXTREME = "Extreme"
@@ -58,11 +63,18 @@ class WeatherAlert(BaseModel):
     
     @property
     def is_active(self) -> bool:
-        """Check if alert is currently active."""
-        now = datetime.utcnow()
-        if self.expires and self.expires < now:
+        """Check if alert is currently active.
+
+        onset/expires are parsed from NWS timestamps and carry an offset, so the
+        comparison has to be timezone-aware. With datetime.utcnow() this raised
+        "can't compare offset-naive and offset-aware datetimes" — but only for
+        locations that actually had alerts, so it stayed hidden anywhere the feed
+        came back empty.
+        """
+        now = datetime.now(timezone.utc)
+        if self.expires and _as_aware(self.expires) < now:
             return False
-        if self.onset and self.onset > now:
+        if self.onset and _as_aware(self.onset) > now:
             return False
         return True
     

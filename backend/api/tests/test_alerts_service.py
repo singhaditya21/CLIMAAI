@@ -4,7 +4,7 @@ Both cases here were live 500s: the state endpoint could not serialise its own
 response, and any coordinate outside NWS coverage raised instead of returning
 an empty result.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -91,6 +91,50 @@ async def test_non_us_point_returns_empty_rather_than_raising(service, monkeypat
     assert result.total_count == 0
     assert result.alerts == []
     assert result.location == {"latitude": 51.5, "longitude": -0.12}
+
+
+def test_is_active_handles_timezone_aware_timestamps():
+    """NWS timestamps carry an offset.
+
+    `is_active` compared them against a naive datetime.utcnow(), raising
+    "can't compare offset-naive and offset-aware datetimes". It only surfaced
+    for locations that actually had alerts, so anywhere the feed came back empty
+    looked healthy.
+    """
+    from app.services.alerts_service import (
+        AlertCertainty,
+        AlertSeverity,
+        AlertUrgency,
+        WeatherAlert,
+    )
+
+    def build(onset, expires):
+        return WeatherAlert(
+            id="urn:oid:test",
+            event="Beach Hazards Statement",
+            headline="test",
+            description="test",
+            instruction=None,
+            severity=AlertSeverity.MODERATE,
+            urgency=AlertUrgency.EXPECTED,
+            certainty=AlertCertainty.LIKELY,
+            onset=onset,
+            expires=expires,
+            sender="NWS",
+            areas=["Test"],
+        )
+
+    now = datetime.now(timezone.utc)
+    hour = timedelta(hours=1)
+
+    # Aware timestamps, the real-world case.
+    assert build(now - hour, now + hour).is_active is True
+    assert build(now - 2 * hour, now - hour).is_active is False   # expired
+    assert build(now + hour, now + 2 * hour).is_active is False   # not started
+
+    # Naive timestamps must not raise either; they are read as UTC.
+    naive_now = now.replace(tzinfo=None)
+    assert build(naive_now - hour, naive_now + hour).is_active is True
 
 
 async def test_us_point_parses_alerts(service, monkeypatch):
