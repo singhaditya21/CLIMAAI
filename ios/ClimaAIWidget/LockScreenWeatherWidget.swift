@@ -95,16 +95,12 @@ struct LockScreenWidgetView: View {
     }
 }
 
-@available(iOSApplicationExtension 16.0, *)
-#Preview(as: .accessoryCircular) {
-    LockScreenWeatherWidget()
-} timeline: {
-    WeatherTimelineEntry(date: .now, weatherData: .placeholder)
-}
-
-@available(iOSApplicationExtension 16.0, *)
-#Preview(as: .accessoryRectangular) {
-    LockScreenWeatherWidget()
-} timeline: {
-    WeatherTimelineEntry(date: .now, weatherData: .placeholder)
-}
+// Widget #Preview macros were removed here.
+//
+// `#Preview(as:widget:timeline:)` is only available in application extensions
+// from iOS 17, and this extension deploys to iOS 16 — it failed to compile.
+// They are Xcode-canvas conveniences with no runtime effect, so removing them
+// costs nothing at runtime.
+//
+// To restore them, raise this target's deploymentTarget to 17.0 in
+// ios/project.yml. Note that also stops the widget installing on iOS 16.
