@@ -126,7 +126,7 @@ struct HomeView: View {
         }
     }
     
-    private func currentWeatherCard(weather: Weather) -> some View {
+    private func currentWeatherCard(weather: CurrentWeather) -> some View {
         VStack(spacing: 12) {
             // Temperature - refined typography
             VStack(spacing: 4) {

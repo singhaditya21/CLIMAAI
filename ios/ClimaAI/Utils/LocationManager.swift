@@ -10,6 +10,11 @@ import Network
 /// - Network state awareness
 /// - Graceful degradation
 final class LocationManager: NSObject, ObservableObject {
+
+    /// Shared instance. WeatherViewModel defaults its dependency to this;
+    /// it was referenced but never declared, so the app target did not build.
+    static let shared = LocationManager()
+
     
     // MARK: - Published State
     

@@ -132,10 +132,10 @@ struct HourlyItemView: View {
         
         HourlyScrollView(forecast: [
             HourlyWeather(
-                id: UUID(),
                 time: Date(),
                 temperature: 22,
                 feelsLike: 24,
+                feelsLikeShade: nil,
                 precipitationProbability: 10,
                 precipitation: 0,
                 weatherCode: 0,
@@ -147,10 +147,10 @@ struct HourlyItemView: View {
                 uvIndex: 5
             ),
             HourlyWeather(
-                id: UUID(),
                 time: Date().addingTimeInterval(3600),
                 temperature: 23,
                 feelsLike: 25,
+                feelsLikeShade: nil,
                 precipitationProbability: 20,
                 precipitation: 0,
                 weatherCode: 1,
@@ -162,10 +162,10 @@ struct HourlyItemView: View {
                 uvIndex: 6
             ),
             HourlyWeather(
-                id: UUID(),
                 time: Date().addingTimeInterval(7200),
                 temperature: 24,
                 feelsLike: 26,
+                feelsLikeShade: nil,
                 precipitationProbability: 60,
                 precipitation: 0.5,
                 weatherCode: 61,

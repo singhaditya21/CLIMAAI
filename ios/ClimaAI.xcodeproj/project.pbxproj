@@ -22,6 +22,7 @@
 		6051FFEA955A74AF338D839A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 87DDEE4DE70AA37B5CFBB06A /* Assets.xcassets */; };
 		649AAF5D400A1D5B95B86696 /* ComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52570B1D38EAF0CBBCAB5038 /* ComplicationViews.swift */; };
 		64DAA9BC21C74E4D43FBFA99 /* ClimaAIWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45FB41B91886F436B0AFDB98 /* ClimaAIWidgetBundle.swift */; };
+		670E175D482B48369E7F14B4 /* WidgetBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FFE525DD9923C75BC3F7C2 /* WidgetBackground.swift */; };
 		699274E50C87620D0C03E9EF /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E8E6EBC443C47848D650E3 /* APIClient.swift */; };
 		6CE34B307E5DB7708C9A779B /* WidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C0E942069709D21FFBAB73 /* WidgetModels.swift */; };
 		70161D13C687137C8B135262 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5616E2161B0A2BFDB773548 /* LocationManager.swift */; };
@@ -49,7 +50,6 @@
 		D58BF6C7934E228E15C40E31 /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E9553AA5081EDE0E6948AE /* ModelsTests.swift */; };
 		DC8107F912139914900EDF31 /* ClimaAIWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BC8F5784F38A5563D8FEC1 /* ClimaAIWatchApp.swift */; };
 		DD9398F9B6864AD1FD25AB81 /* WidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89876FEDE0864EDDF4EFFA9E /* WidgetModels.swift */; };
-		DFD8AFA735C436A63669F912 /* TravelRiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4B06E159587B730BFF9841 /* TravelRiskView.swift */; };
 		E0591359A1A5EDE70C29B67D /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F27CF552741189FB4A6171 /* PaywallView.swift */; };
 		E13EBE17799E8FCF5569800F /* PollenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 726477EA72CEA8AC1F681207 /* PollenView.swift */; };
 		EA788C44678729404CA21C16 /* AuthenticationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CA3929655E1881B6C57591 /* AuthenticationTests.swift */; };
@@ -117,6 +117,7 @@
 		03BC8F5784F38A5563D8FEC1 /* ClimaAIWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClimaAIWatchApp.swift; sourceTree = "<group>"; };
 		0C5944A656D39A762BD964A5 /* WeatherViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherViewModel.swift; sourceTree = "<group>"; };
 		10E9553AA5081EDE0E6948AE /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
+		10FFE525DD9923C75BC3F7C2 /* WidgetBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBackground.swift; sourceTree = "<group>"; };
 		144E6D380A5F2DF9FE8EE22B /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		19EC5ED0B3A465A1C29504BE /* LargeWeatherWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LargeWeatherWidget.swift; sourceTree = "<group>"; };
 		200676E5886FD87932D32EE6 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -138,7 +139,6 @@
 		70CA3929655E1881B6C57591 /* AuthenticationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationTests.swift; sourceTree = "<group>"; };
 		726477EA72CEA8AC1F681207 /* PollenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollenView.swift; sourceTree = "<group>"; };
 		74F6B30FC2DD16CDC7A7D11B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		7A4B06E159587B730BFF9841 /* TravelRiskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelRiskView.swift; sourceTree = "<group>"; };
 		7BE688FE3686E9471C99A170 /* ClimaAI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClimaAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CBC2620757A52D1FE7E9609 /* WeatherBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherBackground.swift; sourceTree = "<group>"; };
 		81D0196A7CDB82D7DABA3479 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
@@ -311,7 +311,6 @@
 			isa = PBXGroup;
 			children = (
 				49F687DEC6DB98CB97F5653F /* AIInsightsView.swift */,
-				7A4B06E159587B730BFF9841 /* TravelRiskView.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -393,6 +392,7 @@
 				010978879C48F12D587B00DF /* LockScreenWeatherWidget.swift */,
 				6D97F85BC24BC5E48A8C3CCF /* MediumWeatherWidget.swift */,
 				C91664AB05028D5B96A1E82A /* SmallWeatherWidget.swift */,
+				10FFE525DD9923C75BC3F7C2 /* WidgetBackground.swift */,
 				89876FEDE0864EDDF4EFFA9E /* WidgetModels.swift */,
 			);
 			path = ClimaAIWidget;
@@ -620,7 +620,6 @@
 				1267FD6E748EE7A8EAD128E3 /* SubscriptionManager.swift in Sources */,
 				03ABD5B843077194A2541503 /* SubscriptionViewModel.swift in Sources */,
 				F2720999BA2FC5FDA3E1D05B /* ThemeManager.swift in Sources */,
-				DFD8AFA735C436A63669F912 /* TravelRiskView.swift in Sources */,
 				AC44F4C1B0368BA9DF56FF71 /* WeatherBackground.swift in Sources */,
 				C8D8510227480F2033FF43D3 /* WeatherViewModel.swift in Sources */,
 				6CE34B307E5DB7708C9A779B /* WidgetModels.swift in Sources */,
@@ -636,6 +635,7 @@
 				D4ECFD27F46ABC5D13992AE2 /* LockScreenWeatherWidget.swift in Sources */,
 				8A4FA7B14126CF2313F135AE /* MediumWeatherWidget.swift in Sources */,
 				C6F3A51453EC7F0658936567 /* SmallWeatherWidget.swift in Sources */,
+				670E175D482B48369E7F14B4 /* WidgetBackground.swift in Sources */,
 				DD9398F9B6864AD1FD25AB81 /* WidgetModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
