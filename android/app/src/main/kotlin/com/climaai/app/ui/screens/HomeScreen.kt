@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -182,7 +183,11 @@ fun HomeScreen(
                     }
                     is WeatherState.Error -> {
                         Column(
-                            modifier = Modifier.align(Alignment.Center),
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                // Messages here are full sentences, not one-word
+                                // codes, so they need room to wrap.
+                                .padding(horizontal = 32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
@@ -192,7 +197,11 @@ fun HomeScreen(
                                 tint = Color.White.copy(alpha = 0.5f)
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(state.message, color = Color.White)
+                            Text(
+                                state.message,
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = { viewModel.refresh() },

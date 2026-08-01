@@ -309,7 +309,10 @@ class UltraLocationManager(private val context: Context) {
 
             val task = fusedLocationClient.getCurrentLocation(request, null)
 
+            // Every resume is guarded: the timeout below races these listeners,
+            // and resuming a continuation twice throws IllegalStateException.
             task.addOnSuccessListener { location ->
+                if (!continuation.isActive) return@addOnSuccessListener
                 if (location != null) {
                     continuation.resume(location)
                 } else {
@@ -317,7 +320,9 @@ class UltraLocationManager(private val context: Context) {
                 }
             }.addOnFailureListener { e ->
                 Log.e(TAG, "getCurrentLocation failed", e)
-                continuation.resumeWithException(LocationError.Unknown(e.message))
+                if (continuation.isActive) {
+                    continuation.resumeWithException(LocationError.Unknown(e.message))
+                }
             }
 
             // Timeout handling
@@ -333,11 +338,11 @@ class UltraLocationManager(private val context: Context) {
     private suspend fun getLastKnownLocation(): Location? = suspendCancellableCoroutine { continuation ->
         fusedLocationClient.lastLocation
             .addOnSuccessListener { location ->
-                continuation.resume(location)
+                if (continuation.isActive) continuation.resume(location)
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "lastLocation failed", e)
-                continuation.resume(null)
+                if (continuation.isActive) continuation.resume(null)
             }
     }
 
@@ -487,8 +492,15 @@ class UltraLocationManager(private val context: Context) {
                 }
 
                 addresses?.firstOrNull()?.let { address ->
+                    // Not every geocoder result carries a locality — outside towns,
+                    // and on emulators, it is routinely null. Falling straight
+                    // through to the country then labels the screen "United
+                    // Kingdom", so try progressively broader place names first.
+                    val place = address.locality
+                        ?: address.subAdminArea
+                        ?: address.adminArea
                     val name = buildString {
-                        address.locality?.let { append(it) }
+                        place?.let { append(it) }
                         address.countryName?.let {
                             if (isNotEmpty()) append(", ")
                             append(it)

@@ -11,15 +11,27 @@ import com.climaai.app.data.cache.CachePolicy
 import com.climaai.app.data.cache.RefreshTracker
 import com.climaai.app.data.cache.UsageSummary
 import com.climaai.app.data.repository.OpenMeteoRepository
+import com.climaai.app.location.UltraLocationManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
-    
+
+    private companion object {
+        const val TAG = "WeatherViewModel"
+
+        /** Hard ceiling on how long the app may show its loading spinner. */
+        const val LOCATION_TIMEOUT_MS = 20_000L
+    }
+
     private val repository = WeatherRepository(application)
     private val refreshTracker = RefreshTracker(application)
+    private val locationManager = UltraLocationManager(application)
     
     // Weather state
     private val _weatherState = MutableStateFlow<WeatherState>(WeatherState.Loading)
@@ -126,10 +138,77 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     
+    /**
+     * Resolve the device's location and load weather for it.
+     *
+     * This is the app's entry point on launch and the target of every retry.
+     * It is written so that the Loading state is *always* left, whatever the
+     * location stack does: the resolve is wrapped in a hard timeout and every
+     * outcome — success, failure, or timeout — writes a terminal state.
+     *
+     * That matters because the previous implementation had no bound at all. It
+     * asked for a balanced-accuracy fix and waited on a callback that, with no
+     * network location provider available, simply never fired. The app sat on
+     * its spinner indefinitely with nothing in the log, and the Retry button
+     * was a no-op because it bailed out when no location had been set yet.
+     */
+    fun loadWeatherForCurrentLocation() {
+        viewModelScope.launch {
+            _weatherState.value = WeatherState.Loading
+            _isRefreshing.value = true
+
+            // The manager applies its own per-request timeouts; this one is a
+            // backstop so a hung callback down in Play services can never hold
+            // the UI hostage. It is deliberately longer than the manager's.
+            val result = withTimeoutOrNull(LOCATION_TIMEOUT_MS) {
+                runCatching { locationManager.requestLocation() }
+            }
+
+            when {
+                result == null -> {
+                    Log.w(TAG, "Location timed out after ${LOCATION_TIMEOUT_MS}ms")
+                    _isRefreshing.value = false
+                    _weatherState.value = WeatherState.Error(
+                        "Couldn't get your location in time. Check that location is " +
+                            "switched on, then try again."
+                    )
+                }
+                result.isSuccess -> {
+                    val fix = result.getOrThrow()
+                    Log.d(TAG, "Location resolved: quality=${fix.quality} cached=${fix.isFromCache}")
+                    setLocation(fix.location.latitude, fix.location.longitude, fix.name)
+                }
+                else -> {
+                    val error = result.exceptionOrNull()
+                    Log.w(TAG, "Location unavailable", error)
+                    _isRefreshing.value = false
+                    _weatherState.value = WeatherState.Error(describeLocationError(error))
+                }
+            }
+        }
+    }
+
+    private fun describeLocationError(error: Throwable?): String = when (error) {
+        is UltraLocationManager.LocationError.PermissionDenied ->
+            "ClimaAI needs location permission to show your local weather. " +
+                "Grant it in Settings, then try again."
+        is UltraLocationManager.LocationError.NetworkUnavailable ->
+            "You appear to be offline, and there's no recent location saved."
+        is UltraLocationManager.LocationError.Timeout ->
+            "Couldn't get your location in time. Try again."
+        else ->
+            "Couldn't determine your location. Check that location is switched on, " +
+                "then try again."
+    }
+
     fun setLocation(lat: Double, lon: Double, name: String? = null) {
-        val locationName = name ?: getLocationName(lat, lon)
-        _location.value = LocationData(lat, lon, locationName)
-        fetchWeather(lat, lon)
+        viewModelScope.launch {
+            // Geocoding is blocking I/O, so it is resolved off the main thread
+            // before the location is published.
+            val locationName = name ?: withContext(Dispatchers.IO) { getLocationName(lat, lon) }
+            _location.value = LocationData(lat, lon, locationName)
+            fetchWeather(lat, lon)
+        }
     }
     
     /**
@@ -194,8 +273,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
      * Force refresh (user-initiated pull-to-refresh).
      */
     fun forceRefresh() {
-        val loc = _location.value ?: return
-        
+        // No location yet means the initial resolve failed, and this call is the
+        // user tapping Retry. Bailing out here is what made that button do
+        // nothing; go back and resolve the location instead.
+        val loc = _location.value ?: run {
+            loadWeatherForCurrentLocation()
+            return
+        }
+
         viewModelScope.launch {
             _isRefreshing.value = true
             _rateLimitMessage.value = null
@@ -499,6 +584,12 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     
+    override fun onCleared() {
+        super.onCleared()
+        // The manager registers a connectivity callback; release it.
+        locationManager.destroy()
+    }
+
     private fun getLocationName(lat: Double, lon: Double): String {
         return try {
             val geocoder = Geocoder(getApplication(), Locale.getDefault())
