@@ -1,0 +1,165 @@
+# Mobile CI — builds and tests both apps on hosted runners.
+#
+# This exists because the project has no physical test devices. Neither app needs
+# one: Android runs on an emulator, iOS on a simulator, and GitHub's macos
+# runners ship Xcode pre-installed. So iOS is covered here even on a machine with
+# no local Xcode at all.
+
+name: Mobile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'ios/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'ios/**'
+  workflow_dispatch:
+
+jobs:
+  # ==========================================================================
+  # Android — assemble + unit tests + lint
+  # ==========================================================================
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gradle 8.13's bundled Groovy cannot parse class files from JDK 24+.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble debug
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Lint
+        working-directory: android
+        run: ./gradlew :app:lintDebug
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/
+            android/wear/build/reports/
+
+  # ==========================================================================
+  # Android — release bundle, unsigned unless secrets are present
+  # ==========================================================================
+  android-release:
+    runs-on: ubuntu-latest
+    needs: android
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Absent these secrets the build falls back to debug signing, which still
+      # verifies the release path compiles and shrinks. See android/SIGNING.md.
+      - name: Decode keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/release.jks
+
+      - name: Bundle release
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_FILE: release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:bundleRelease --stacktrace
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+
+  # ==========================================================================
+  # iOS — build for a simulator, then run the test suite on one
+  # ==========================================================================
+  ios:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show available Xcode and simulators
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available | head -30
+
+      # ClimaAI.xcodeproj is committed, so this is only needed if project.yml
+      # changed. Regenerating keeps the two from drifting.
+      - name: Regenerate project from project.yml
+        run: |
+          brew install xcodegen
+          cd ios && xcodegen generate
+
+      - name: Fail if the committed project is stale
+        run: |
+          cd ios
+          if ! git diff --quiet ClimaAI.xcodeproj; then
+            echo "::error::ClimaAI.xcodeproj differs from what project.yml generates."
+            echo "Run 'cd ios && xcodegen generate' and commit the result."
+            git diff --stat ClimaAI.xcodeproj
+            exit 1
+          fi
+
+      # Signing is off: a simulator build needs no certificate, so this runs
+      # without any Apple Developer credentials.
+      - name: Build for simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ClimaAI.xcodeproj \
+            -scheme ClimaAI \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty || xcodebuild build \
+                -project ClimaAI.xcodeproj \
+                -scheme ClimaAI \
+                -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+                CODE_SIGNING_ALLOWED=NO
+
+      - name: Test on simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project ClimaAI.xcodeproj \
+            -scheme ClimaAI \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
