@@ -338,6 +338,24 @@ The suite has never been executed — expect to fix compile errors on the first 
 cd ios && xcodebuild test -scheme ClimaAI -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
+### Running the app on your Mac (no phone needed)
+
+```bash
+./scripts/run-android.sh
+```
+
+Boots an Android emulator **with a window**, builds and installs the debug app,
+grants its permissions and launches it. Re-running reuses a running emulator.
+
+Start the backend first or the app runs with no weather:
+
+```bash
+cd backend/api && .venv/bin/python -m uvicorn app.main:app --port 8000
+```
+
+The debug build targets `http://10.0.2.2:8000`, which is how the emulator reaches
+a server on the host.
+
 ### Build artifacts
 
 Built apps are collected into `dist/`, split by platform and variant:
