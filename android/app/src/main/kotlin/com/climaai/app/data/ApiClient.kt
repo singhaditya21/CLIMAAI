@@ -14,10 +14,14 @@ import com.climaai.app.data.api.*
 interface ClimaAIApi {
     
     // Weather endpoints
-    @GET("/api/weather")
+    // The backend has no /api/weather route and names its parameters
+    // latitude/longitude, not lat/lon — this returned 404 on every call.
+    // getCurrentWeather below declares the same endpoint correctly but nothing
+    // used it; WeatherRepository calls this one.
+    @GET("/api/weather/current")
     suspend fun getWeather(
-        @Query("lat") latitude: Double,
-        @Query("lon") longitude: Double
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double
     ): Response<WeatherResponse>
     
     @GET("/api/weather/current")

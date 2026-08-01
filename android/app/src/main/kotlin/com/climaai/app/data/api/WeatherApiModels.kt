@@ -249,7 +249,11 @@ data class NWSAlert(
     val headline: String?,
     val severity: String,
     val urgency: String?,
-    val areas: String?,
+    // The backend sends a JSON array of area names, not a string. Declaring it
+    // as String? made Gson fail the whole response with
+    // "Expected a string but was BEGIN_ARRAY at path $.alerts[0].areas",
+    // so NWS alerts never reached the UI.
+    val areas: List<String>?,
     val description: String?,
     val instruction: String?,
     val onset: String?,
