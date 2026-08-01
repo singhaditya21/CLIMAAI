@@ -14,7 +14,7 @@ struct LargeWeatherWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WeatherTimelineProvider()) { entry in
             LargeWeatherWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .widgetContainerBackground()
         }
         .configurationDisplayName("Full Weather")
         .description("Complete weather overview with forecasts")

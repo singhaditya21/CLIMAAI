@@ -14,7 +14,7 @@ struct SmallWeatherWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WeatherTimelineProvider()) { entry in
             SmallWeatherWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .widgetContainerBackground()
         }
         .configurationDisplayName("Current Weather")
         .description("Shows current temperature and conditions")

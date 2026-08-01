@@ -14,7 +14,7 @@ struct MediumWeatherWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WeatherTimelineProvider()) { entry in
             MediumWeatherWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .widgetContainerBackground()
         }
         .configurationDisplayName("Weather + Hourly")
         .description("Current conditions with hourly forecast")
