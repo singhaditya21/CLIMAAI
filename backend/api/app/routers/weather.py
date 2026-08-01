@@ -15,7 +15,7 @@ from ..services.auth import get_optional_user
 from ..services.subscription_service import SubscriptionService
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/weather", tags=["weather"])
 
@@ -242,7 +242,7 @@ async def get_radar_frames(
             RadarFrame(
                 time=f.time,
                 path=f.path,
-                datetime_str=datetime.utcfromtimestamp(f.time).isoformat() + "Z"
+                datetime_str=datetime.fromtimestamp(f.time, timezone.utc).isoformat() + "Z"
             )
             for f in frames.past
         ]
@@ -251,7 +251,7 @@ async def get_radar_frames(
             RadarFrame(
                 time=f.time,
                 path=f.path,
-                datetime_str=datetime.utcfromtimestamp(f.time).isoformat() + "Z"
+                datetime_str=datetime.fromtimestamp(f.time, timezone.utc).isoformat() + "Z"
             )
             for f in frames.nowcast
         ]

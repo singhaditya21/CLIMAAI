@@ -3,7 +3,7 @@ Mock Nowcast Service - Realistic minute-by-minute precipitation simulation.
 """
 import random
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from enum import Enum
 
 
@@ -61,7 +61,7 @@ class MockNowcastGenerator:
         Returns:
             Nowcast data with minutely precipitation
         """
-        now = reference_time or datetime.utcnow()
+        now = reference_time or datetime.now(timezone.utc)
         
         # Select scenario
         if scenario is None:
@@ -243,7 +243,7 @@ class MockRadarGenerator:
         Returns:
             Radar frame data with tile URLs
         """
-        now = reference_time or datetime.utcnow()
+        now = reference_time or datetime.now(timezone.utc)
         
         # Generate past frames (every 5 minutes)
         past = []
@@ -389,7 +389,7 @@ class MockAlertsGenerator:
         Returns:
             List of weather alert dictionaries
         """
-        now = reference_time or datetime.utcnow()
+        now = reference_time or datetime.now(timezone.utc)
         
         # Determine area name based on coordinates
         area = self._get_area_name(latitude, longitude)
@@ -577,7 +577,7 @@ class MockPollenGenerator:
                 "longitude": longitude
             },
             "forecast": forecast,
-            "last_updated": datetime.utcnow().isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
             "health_recommendations": self._get_recommendations(forecast[0] if forecast else None)
         }
     

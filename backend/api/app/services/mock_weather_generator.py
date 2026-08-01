@@ -4,8 +4,8 @@ Generates production-quality mock data for demos without external API dependenci
 """
 import math
 import random
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta, date
+from typing import Dict, List, Optional
+from datetime import datetime, timedelta, date, timezone
 from enum import Enum
 from pydantic import BaseModel
 
@@ -254,7 +254,7 @@ class MockWeatherGenerator:
         Returns:
             Dict with current weather data
         """
-        now = reference_time or datetime.utcnow()
+        now = reference_time or datetime.now(timezone.utc)
         profile = self.get_city_profile(latitude, longitude)
         
         # Calculate base temperature
@@ -334,7 +334,7 @@ class MockWeatherGenerator:
         reference_time: Optional[datetime] = None
     ) -> List[Dict]:
         """Generate realistic hourly forecast."""
-        now = reference_time or datetime.utcnow()
+        now = reference_time or datetime.now(timezone.utc)
         profile = self.get_city_profile(latitude, longitude)
         
         hourly = []
@@ -397,7 +397,7 @@ class MockWeatherGenerator:
         reference_time: Optional[datetime] = None
     ) -> List[Dict]:
         """Generate realistic daily forecast with moon phases."""
-        today = (reference_time or datetime.utcnow()).date()
+        today = (reference_time or datetime.now(timezone.utc)).date()
         profile = self.get_city_profile(latitude, longitude)
         
         daily = []

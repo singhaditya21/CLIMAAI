@@ -45,6 +45,10 @@ PyJWT==2.8.0
 google-api-python-client==2.116.0
 google-auth==2.27.0
 
+# Linting — ruff.toml enables the DTZ ruleset, which exists because three
+# separate production bugs came from naive/aware datetime mixing.
+ruff==0.6.9
+
 # Testing
 pytest==8.0.0
 pytest-asyncio==0.23.5

@@ -3,7 +3,6 @@
 These exercise bcrypt through passlib. A bcrypt version incompatible with
 passlib 1.7.4 breaks every hash, so these tests double as a guard on that pin.
 """
-import pytest
 
 VALID = {
     "email": "new-user@example.com",

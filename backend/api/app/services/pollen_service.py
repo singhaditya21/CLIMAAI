@@ -5,7 +5,7 @@ Provides detailed pollen counts for tree, grass, and weed allergens.
 import httpx
 import json
 from typing import Dict, List, Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import redis.asyncio as redis
 from pydantic import BaseModel
 from enum import Enum
@@ -160,11 +160,11 @@ class PollenService:
         
         # Check each pollen type
         if tree.level in high_levels:
-            recommendations.append(f"🌳 High tree pollen: Consider staying indoors during morning hours")
+            recommendations.append("🌳 High tree pollen: Consider staying indoors during morning hours")
         if grass.level in high_levels:
-            recommendations.append(f"🌾 High grass pollen: Avoid freshly cut lawns")
+            recommendations.append("🌾 High grass pollen: Avoid freshly cut lawns")
         if weed.level in high_levels:
-            recommendations.append(f"🌿 High weed pollen (ragweed): Keep windows closed")
+            recommendations.append("🌿 High weed pollen (ragweed): Keep windows closed")
         
         # General recommendations for any high level
         if any(p.level in high_levels for p in [tree, grass, weed]):
@@ -266,7 +266,7 @@ class PollenService:
         result = PollenResponse(
             location={"latitude": latitude, "longitude": longitude},
             forecast=daily_forecasts,
-            last_updated=datetime.utcnow(),
+            last_updated=datetime.now(timezone.utc),
             health_recommendations=health_recs
         )
         
@@ -352,7 +352,7 @@ class PollenService:
         return PollenResponse(
             location={"latitude": latitude, "longitude": longitude},
             forecast=forecasts,
-            last_updated=datetime.utcnow(),
+            last_updated=datetime.now(timezone.utc),
             health_recommendations=health_recs
         )
 

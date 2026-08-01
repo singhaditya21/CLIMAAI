@@ -5,11 +5,10 @@ Learns user preferences and provides personalized weather recommendations
 based on behavior patterns, time of day, and weather conditions.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from collections import defaultdict
-import json
 
 
 class UserEvent(BaseModel):
@@ -18,7 +17,9 @@ class UserEvent(BaseModel):
     event_type: str  # screen_view, notification_click, feature_use, etc.
     event_data: Dict[str, Any]
     weather_context: Optional[Dict[str, Any]] = None
-    timestamp: datetime = datetime.utcnow()
+    # default_factory, not a plain default: a bare datetime.now(timezone.utc) is
+    # evaluated once at import, so every event got the module-load time.
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class UserPreferenceProfile(BaseModel):
@@ -51,7 +52,7 @@ class UserPreferenceProfile(BaseModel):
     cold_threshold: float = 15.0  # Temperature they consider cold
     hot_threshold: float = 28.0  # Temperature they consider hot
     
-    last_updated: datetime = datetime.utcnow()
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class PersonalizationService:
@@ -157,7 +158,7 @@ class PersonalizationService:
                 profile.cold_threshold = avg_temp - 10
                 profile.hot_threshold = avg_temp + 10
         
-        profile.last_updated = datetime.utcnow()
+        profile.last_updated = datetime.now(timezone.utc)
         self._profiles[user_id] = profile
         
         # Persist to Redis
@@ -175,7 +176,7 @@ class PersonalizationService:
     ) -> Dict[str, Any]:
         """Get personalized recommendations based on user profile and current weather"""
         profile = await self.get_profile(user_id)
-        current_hour = datetime.now().hour
+        current_hour = datetime.now(timezone.utc).hour
         
         recommendations = {
             "priority_features": profile.favorite_features[:2],

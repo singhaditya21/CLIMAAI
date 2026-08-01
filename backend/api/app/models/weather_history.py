@@ -2,7 +2,7 @@
 Weather history model for tracking historical data.
 Required for trend-based health indices (e.g., Migraine pressure trends).
 """
-from sqlalchemy import Column, Float, String, Index
+from sqlalchemy import Column, Float, Index
 from sqlalchemy.dialects.postgresql import UUID
 from ..database import Base
 import uuid

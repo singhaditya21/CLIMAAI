@@ -4,8 +4,8 @@ Provides radar tiles for map overlays and animation.
 """
 import httpx
 import json
-from typing import Dict, List, Optional
-from datetime import datetime
+from typing import List, Optional
+from datetime import datetime, timezone
 import redis.asyncio as redis
 from pydantic import BaseModel
 from ..config import get_settings
@@ -22,7 +22,7 @@ class RadarFrame(BaseModel):
     
     @property
     def datetime(self) -> datetime:
-        return datetime.utcfromtimestamp(self.time)
+        return datetime.fromtimestamp(self.time, timezone.utc)
 
 
 class RadarResponse(BaseModel):
@@ -113,7 +113,7 @@ class RadarService:
         
         result = RadarResponse(
             host=data.get("host", "https://tilecache.rainviewer.com"),
-            generated=data.get("generated", int(datetime.utcnow().timestamp())),
+            generated=data.get("generated", int(datetime.now(timezone.utc).timestamp())),
             past=past_frames,
             nowcast=nowcast_frames
         )

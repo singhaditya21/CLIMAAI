@@ -3,7 +3,6 @@ Weather alerts router.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 from ..models import User
 from ..services.auth import get_current_user
 from ..services.weather_service import WeatherService, get_weather_service

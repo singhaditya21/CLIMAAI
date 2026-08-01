@@ -3,8 +3,7 @@ Location search and management router.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, text
-from typing import List
+from sqlalchemy import text
 import httpx
 from ..models import User
 from ..services.auth import get_current_user

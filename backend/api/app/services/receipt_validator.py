@@ -6,7 +6,7 @@ import httpx
 import jwt
 import json
 from typing import Dict, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 
@@ -126,7 +126,7 @@ class ReceiptValidator:
         if latest_receipt_info:
             latest = max(latest_receipt_info, key=lambda x: int(x.get("expires_date_ms", 0)))
             expires_ms = int(latest.get("expires_date_ms", 0))
-            is_active = expires_ms > (datetime.now().timestamp() * 1000)
+            is_active = expires_ms > (datetime.now(timezone.utc).timestamp() * 1000)
             
             # Check for auto-renewal status
             auto_renew = False
@@ -198,7 +198,7 @@ class ReceiptValidator:
     
     async def _get_google_access_token(self) -> str:
         """Generate OAuth2 access token from service account credentials."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create JWT claim
         claim = {
@@ -230,7 +230,7 @@ class ReceiptValidator:
     def _parse_google_response(self, result: Dict, product_id: str) -> Tuple[bool, Dict]:
         """Parse Google Play subscription response."""
         expiry_time_ms = int(result.get("expiryTimeMillis", 0))
-        is_active = expiry_time_ms > (datetime.now().timestamp() * 1000)
+        is_active = expiry_time_ms > (datetime.now(timezone.utc).timestamp() * 1000)
         
         # Map payment state
         payment_state = result.get("paymentState")

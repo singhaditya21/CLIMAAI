@@ -9,7 +9,7 @@ from ..models import User
 from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse, ForgotPasswordRequest
 from ..services.auth import hash_password, verify_password, create_access_token, get_current_user
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -70,7 +70,7 @@ async def forgot_password(
         # Save token
         user.reset_token = token
         # Using utcnow() is deprecated in newer python but safe here or use timezone aware
-        user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+        user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
 
         await db.commit()
 

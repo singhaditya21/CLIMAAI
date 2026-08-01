@@ -5,8 +5,8 @@ Handles data fetching, caching, and transformation.
 import httpx
 import json
 import math
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta, date
+from typing import List, Optional, Tuple
+from datetime import datetime, timedelta, date, timezone
 import redis.asyncio as redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -146,7 +146,7 @@ class WeatherService:
         stmt = select(WeatherHistory).where(
             WeatherHistory.latitude == lat_rounded,
             WeatherHistory.longitude == lon_rounded,
-            WeatherHistory.created_at >= datetime.utcnow() - timedelta(hours=hours)
+            WeatherHistory.created_at >= datetime.now(timezone.utc) - timedelta(hours=hours)
         ).order_by(WeatherHistory.created_at.asc())
 
         result = await db.execute(stmt)
@@ -247,7 +247,7 @@ class WeatherService:
             visibility=10000,  # Open-Meteo doesn't provide this, default to 10km
             uv_index=0,  # Will be from hourly
             is_day=bool(current_data.get("is_day", 1)),
-            timestamp=datetime.fromisoformat(current_data.get("time", datetime.now().isoformat())),
+            timestamp=datetime.fromisoformat(current_data.get("time", datetime.now(timezone.utc).isoformat())),
         )
         
         # Parse hourly forecast (next 24 hours)
@@ -423,13 +423,16 @@ class WeatherService:
         - 0.75 = Last Quarter
         """
         # Known new moon: January 6, 2000 at 18:14 UTC
-        known_new_moon = datetime(2000, 1, 6, 18, 14)
+        known_new_moon = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
         
         # Synodic month (average lunar cycle)
         synodic_month = 29.530588853
         
-        # Calculate days since known new moon
-        target_datetime = datetime.combine(target_date, datetime.min.time())
+        # Calculate days since known new moon. Both sides must be UTC-aware —
+        # the epoch above carries tzinfo, so the target has to as well.
+        target_datetime = datetime.combine(
+            target_date, datetime.min.time(), tzinfo=timezone.utc
+        )
         days_since = (target_datetime - known_new_moon).total_seconds() / 86400
         
         # Calculate current position in lunar cycle (0 to 1)

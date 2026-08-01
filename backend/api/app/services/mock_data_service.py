@@ -3,14 +3,13 @@ Unified Mock Data Service - Central service for all mock weather data.
 Use this for production demos without external API dependencies.
 """
 from typing import Dict, List, Optional, Any
-from datetime import datetime, date
+from datetime import datetime, timezone
 from enum import Enum
 
 from .mock_weather_generator import (
     MockWeatherGenerator,
     WeatherScenario,
-    CITY_PROFILES,
-    CityProfile
+    CITY_PROFILES
 )
 from .mock_services import (
     MockNowcastGenerator,
@@ -19,7 +18,7 @@ from .mock_services import (
     MockPollenGenerator,
     PrecipitationScenario
 )
-from .activity_service import ActivityForecastService, ActivityType
+from .activity_service import ActivityForecastService
 from .health_index_service import HealthIndexService
 
 
@@ -101,7 +100,7 @@ class MockDataService:
         Returns:
             Complete weather data dictionary
         """
-        now = reference_time or datetime.utcnow()
+        now = reference_time or datetime.now(timezone.utc)
         
         # Get weather scenario based on demo scenario
         weather_scenario = self._demo_to_weather_scenario(scenario)

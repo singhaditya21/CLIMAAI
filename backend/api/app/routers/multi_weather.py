@@ -3,8 +3,10 @@ Multi-Source Weather Router
 Exposes endpoints for aggregated weather data from 18+ external APIs.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Query, HTTPException
-from typing import Optional, List
+from typing import Optional
 from app.services.multi_weather_service import MultiSourceWeatherService
 from app.config import get_settings
 
@@ -19,6 +21,8 @@ weather_service = MultiSourceWeatherService(config={
     "OPENUV_API_KEY": settings.OPENUV_API_KEY,
     "METEOBLUE_API_KEY": settings.METEOBLUE_API_KEY,
     "NOAA_API_KEY": settings.NOAA_API_KEY,
+    "PIRATE_WEATHER_API_KEY": settings.PIRATE_WEATHER_API_KEY,
+    "WEATHERAPI_KEY": settings.WEATHERAPI_KEY,
 })
 
 
@@ -31,8 +35,8 @@ async def get_multi_source_weather(
     """
     Get aggregated weather data from multiple external APIs.
     
-    Available sources: open_meteo, 7timer, met_norway, nws, openweathermap,
-    weatherbit, stormglass, openuv, dwd
+    Available sources: open_meteo, 7timer, met_norway, nws, dwd, wttr,
+    openweathermap, weatherapi, pirate_weather, weatherbit, stormglass, openuv
     """
     source_list = None
     if sources:
@@ -115,7 +119,7 @@ async def get_api_usage():
     """
     usage = weather_service.get_rate_limit_usage()
     return {
-        "date": __import__("datetime").datetime.utcnow().strftime("%Y-%m-%d"),
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "sources": usage,
         "summary": {
             "total_used": sum(s["used"] for s in usage.values()),

@@ -2,15 +2,12 @@
 Health API router - Pollen, Air Quality, Activities, and Health insights.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional, List
 from datetime import date
-from ..models import User
 from ..schemas.pollen import PollenForecastResponse, PollenTypeResponse, DailyPollenResponse, PollenLevel
 from ..services.pollen_service import PollenService, get_pollen_service
 from ..services.health_index_service import HealthIndexService
 from ..services.activity_service import ActivityForecastService, ActivityType
 from ..services.weather_service import WeatherService, get_weather_service
-from ..services.auth import get_optional_user
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 

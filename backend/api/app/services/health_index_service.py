@@ -1,8 +1,8 @@
 """
 Health Index Services - Flu Risk, Migraine Forecast, and other health metrics.
 """
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, date
+from typing import List
+from datetime import date
 from pydantic import BaseModel
 from enum import Enum
 

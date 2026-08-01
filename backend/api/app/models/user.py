@@ -1,7 +1,7 @@
 """
 User model with authentication and preferences.
 """
-from sqlalchemy import Column, String, Boolean, JSON, Integer, DateTime, Uuid
+from sqlalchemy import Column, String, Boolean, JSON, DateTime, Uuid
 from sqlalchemy.orm import relationship
 import uuid
 from ..database import Base

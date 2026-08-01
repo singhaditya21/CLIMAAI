@@ -1,0 +1,93 @@
+# Weather data sources
+
+Survey of free and freemium weather APIs, and what ClimaAI actually uses.
+Last reviewed 2026-08-01.
+
+## ⚠️ Licensing: the free tier does not cover this app
+
+**Open-Meteo — currently the primary source — prohibits commercial use on its
+free tier.** Its terms state plainly: *"You may only use the free API services
+for non-commercial purposes."* ClimaAI charges $4.99/month, which is commercial
+by any reading.
+
+This is a licensing problem, not a technical one, and no amount of caching fixes
+it. Options, in rough order of cost:
+
+1. **Buy an Open-Meteo commercial plan.** Standard is 1M calls/month, with
+   Professional at 5M and Enterprise above 50M. Pricing is only shown at Stripe
+   checkout, so budget it before committing.
+2. **Shift the primary source to one whose free tier permits commercial use.**
+   WeatherAPI.com allows commercial use on its free tier at 1M calls/month —
+   which is both more generous and more permissive than Open-Meteo's free tier.
+3. **Use national services directly.** NWS (US) and MET Norway are public-sector
+   and free to use commercially with attribution, but each covers one region.
+4. **Apple WeatherKit on iOS.** 500,000 calls/month are included with the Apple
+   Developer Program membership the iOS release needs anyway.
+
+Attribution is required either way: Open-Meteo data is CC-BY 4.0, and MET Norway
+requires identifying your application in the `User-Agent`, which the client
+already does.
+
+**Nothing in this repo currently surfaces that attribution to users.** Adding it
+to the settings screen is a small task with real legal weight.
+
+## What is integrated
+
+| Source | Key | Free tier | Coverage | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| Open-Meteo | none | 10k/day, non-commercial only | Global | Primary. See licensing above |
+| MET Norway | none | Fair use | Global, best in Nordics | Requires a `User-Agent` |
+| NWS | none | "Reasonable use" | US only | Alerts; 400s outside the US |
+| 7Timer! | none | Unstated | Global | Astronomy-oriented, coarse |
+| DWD (Bright Sky) | none | Unstated | Germany | Third-party DWD wrapper |
+| wttr.in | none | Community-run | Global | Cross-check only; small budget |
+| OpenWeatherMap | yes | 1M/month, 60/min | Global | |
+| WeatherAPI.com | yes | **1M/month, commercial OK** | Global | Also returns air quality |
+| Pirate Weather | yes | 20k/month | Global (NOAA) | Minutely precipitation + alerts |
+| Weatherbit | yes | 50/day | Global | |
+| Storm Glass | yes | 10/day | Marine | Tiny budget; marine only |
+| OpenUV | yes | 50/day | Global | UV only |
+
+Every key-gated source returns `None` when its key is blank, so the app degrades
+to the no-key sources rather than failing.
+
+## Evaluated and not integrated
+
+- **Tomorrow.io, Visual Crossing, Meteosource, AerisWeather, Meteomatics** —
+  all viable, all key-gated, none offering anything the above lack. Adding them
+  would increase surface area without adding capability.
+- **MSC GeoMet (Environment Canada)** — implemented, then removed. Its
+  `climate-stations` collection returns station *metadata*, not observations, so
+  it would have shipped as a "weather source" that reports no weather. Canada is
+  already covered by Open-Meteo via the GEM model.
+- **AccuWeather** — 50 calls/day free, which is too small to be useful, and its
+  terms are restrictive for a competing product.
+- **Apple WeatherKit** — genuinely worth adding for the iOS client specifically
+  (500k/month with the developer programme). Not a backend fit, since it is
+  keyed to an Apple team.
+
+## Rate budgets
+
+`SOURCE_DAILY_LIMITS` in `multi_weather_service.py` holds a conservative daily
+budget per source, deliberately under each published limit. When a budget is
+spent the source is skipped and reported in `metadata.rate_limited_sources`
+rather than failing the request. A test asserts every registered provider has a
+budget, so a new one cannot silently inherit the generic default.
+
+## Adding a provider
+
+1. Add `async def _fetch_<name>` returning `{"source": ..., "current": {...}}`.
+   Return `None` for "not applicable here" or "no key" — never raise.
+2. Register it in `all_sources` inside `get_multi_source_weather`.
+3. Add a `SOURCE_DAILY_LIMITS` entry, or the budget test fails.
+4. Add the key to `config.py` and `.env.example` if it needs one.
+5. Add tests to `tests/test_multi_weather_service.py` with a stubbed client.
+
+## Sources
+
+- [Open-Meteo terms](https://open-meteo.com/en/terms)
+- [Open-Meteo pricing](https://open-meteo.com/en/pricing)
+- [Pirate Weather](https://pirateweather.net/)
+- [WeatherAPI.com free tier](https://freeapihub.com/apis/weatherapi)
+- [Apple WeatherKit subscriptions](https://developer.apple.com/news/?id=wsx8rd26)
+- [wttr.in](https://wttr.in/api)

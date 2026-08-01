@@ -66,7 +66,7 @@ class WeatherAlert(BaseModel):
         """Check if alert is currently active.
 
         onset/expires are parsed from NWS timestamps and carry an offset, so the
-        comparison has to be timezone-aware. With datetime.utcnow() this raised
+        comparison has to be timezone-aware. With datetime.now(timezone.utc) this raised
         "can't compare offset-naive and offset-aware datetimes" — but only for
         locations that actually had alerts, so it stayed hidden anywhere the feed
         came back empty.
@@ -252,7 +252,7 @@ class AlertsService:
         result = AlertsResponse(
             alerts=alerts,
             location={"latitude": latitude, "longitude": longitude},
-            updated=datetime.utcnow(),
+            updated=datetime.now(timezone.utc),
             total_count=len(alerts)
         )
         
@@ -293,7 +293,7 @@ class AlertsService:
         return AlertsResponse(
             alerts=alerts,
             location={"state": state},
-            updated=datetime.utcnow(),
+            updated=datetime.now(timezone.utc),
             total_count=len(alerts)
         )
     

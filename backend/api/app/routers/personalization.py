@@ -4,10 +4,10 @@ Personalization API Router
 Endpoints for tracking user behavior and getting personalized content.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..services.personalization_service import (
     personalization_service,
@@ -127,7 +127,7 @@ async def update_profile(
         if hasattr(profile, key):
             setattr(profile, key, value)
     
-    profile.last_updated = datetime.utcnow()
+    profile.last_updated = datetime.now(timezone.utc)
     personalization_service._profiles[str(current_user.id)] = profile
     
     return profile

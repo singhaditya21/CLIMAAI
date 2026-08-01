@@ -213,7 +213,7 @@ class ActivityForecastService:
         if visibility < visibility_min:
             penalty = min(20, (visibility_min - visibility) / 500)
             score -= penalty
-            deductions.append(f"Poor visibility")
+            deductions.append("Poor visibility")
         
         # AQI scoring (primarily for running)
         aqi_max = conditions.get("aqi_max", 300)
@@ -371,11 +371,11 @@ class ActivityForecastService:
         if today_score >= 80:
             recommendations.append(f"✅ Excellent conditions for {conditions.get('display_name', 'activity')} today!")
         elif today_score >= 60:
-            recommendations.append(f"👍 Good conditions, plan for the best window.")
+            recommendations.append("👍 Good conditions, plan for the best window.")
         elif today_score >= 40:
-            recommendations.append(f"⚠️ Fair conditions - check hourly forecast.")
+            recommendations.append("⚠️ Fair conditions - check hourly forecast.")
         else:
-            recommendations.append(f"❌ Poor conditions - consider indoor alternatives.")
+            recommendations.append("❌ Poor conditions - consider indoor alternatives.")
         
         # Find best window
         best_hours = [h for h in hourly_scores if h["score"] >= 70]

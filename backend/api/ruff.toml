@@ -1,0 +1,36 @@
+# Lint configuration.
+#
+# The DTZ ruleset is the point of this file. Three separate production bugs in
+# this codebase came from naive/aware datetime mixing:
+#
+#   - SubscriptionService compared datetime.utcnow() against timezone-aware
+#     columns, so GET /subscriptions/status 500'd for any user with a stored
+#     subscription.
+#   - WeatherAlert.is_active compared naive now() against NWS timestamps that
+#     carry an offset, so /api/weather/alerts 500'd wherever alerts existed.
+#   - PersonalizationService used datetime.utcnow() as a plain Pydantic default,
+#     freezing every event's timestamp at module import.
+#
+# DTZ005/DTZ003 catch the first two shapes at lint time. Use
+# datetime.now(timezone.utc), never datetime.utcnow().
+
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "DTZ",  # flake8-datetimez — naive datetime usage
+    "F",    # pyflakes — undefined names, unused imports
+    "E9",   # syntax errors
+]
+
+# Generated mock data is allowed to be naive; it never touches the database.
+# DTZ011 flags date.today(). A `date` has no tzinfo at all, so it cannot
+# participate in the naive/aware mixing this config exists to prevent. The
+# "which calendar day in which timezone" question it raises is real but
+# separate, and the forecast code deliberately wants the local day.
+ignore = ["DTZ011"]
+
+[lint.per-file-ignores]
+"app/services/mock_*.py" = ["DTZ"]
+"tests/*" = ["DTZ"]

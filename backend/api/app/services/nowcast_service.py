@@ -6,7 +6,7 @@ Uses Open-Meteo's 15-minute precipitation forecast with interpolation.
 import httpx
 import json
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import redis.asyncio as redis
 from pydantic import BaseModel
 from ..config import get_settings
@@ -161,7 +161,7 @@ class NowcastService:
         if not minutes:
             return "No precipitation data available."
         
-        now = minutes[0].time if minutes else datetime.utcnow()
+        now = minutes[0].time if minutes else datetime.now(timezone.utc)
         
         # Count precipitation minutes
         rain_minutes = sum(1 for m in minutes if m.is_precipitation)
@@ -272,7 +272,7 @@ class NowcastService:
             precipitation_end=end_time,
             total_precipitation=round(total_precip, 2),
             minutes=minutes,
-            last_updated=datetime.utcnow()
+            last_updated=datetime.now(timezone.utc)
         )
         
         # Cache for 5 minutes (nowcast data changes rapidly)

@@ -4,7 +4,7 @@ Converts raw weather data into natural language and actionable recommendations.
 """
 import json
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import redis.asyncio as redis
 from openai import AsyncOpenAI
 from ..config import get_settings
@@ -40,7 +40,7 @@ class AIService:
     
     def _get_cache_key(self, latitude: float, longitude: float, insight_type: str) -> str:
         """Generate cache key for AI insights."""
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         return f"ai:{insight_type}:{latitude:.2f}:{longitude:.2f}:{date_str}"
     
     async def _get_cached_insight(self, cache_key: str) -> Optional[dict]:

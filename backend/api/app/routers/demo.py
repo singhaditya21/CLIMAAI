@@ -3,14 +3,11 @@ Demo API Router - Endpoints for production demos with mock data.
 Provides complete mock weather data without external API dependencies.
 """
 from fastapi import APIRouter, Query, HTTPException
-from typing import Optional, List
-from datetime import datetime
-from enum import Enum
+from typing import Optional
 
 from ..services.mock_data_service import (
     MockDataService,
     DemoScenario,
-    get_mock_weather,
     get_demo_cities,
     get_demo_scenarios
 )

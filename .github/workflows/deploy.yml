@@ -55,6 +55,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio httpx
 
+      - name: Lint
+        run: |
+          cd backend/api
+          ruff check .
+
       - name: Run tests
         run: |
           cd backend/api

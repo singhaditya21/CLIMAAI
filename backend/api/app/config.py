@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     OPENUV_API_KEY: str = ""           # https://www.openuv.io/
     METEOBLUE_API_KEY: str = ""        # https://www.meteoblue.com/en/weather-api
     NOAA_API_KEY: str = ""             # https://www.ncdc.noaa.gov/cdo-web/webservices/v2
+    PIRATE_WEATHER_API_KEY: str = ""   # https://pirateweather.net (20k/month free)
+    WEATHERAPI_KEY: str = ""           # https://www.weatherapi.com (1M/month free)
     
     class Config:
         env_file = ".env"

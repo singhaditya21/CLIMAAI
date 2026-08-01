@@ -32,7 +32,8 @@ def service():
 @pytest.mark.asyncio
 async def test_validate_google_purchase_success(mock_settings, service):
     # Mock Google credentials and build
-    with patch("google.oauth2.service_account.Credentials.from_service_account_info") as mock_creds, \
+    # Patched only to stop it reaching Google; the mock itself is not asserted on.
+    with patch("google.oauth2.service_account.Credentials.from_service_account_info"), \
          patch("app.services.subscription_service.build") as mock_build:
 
         # Setup mock service

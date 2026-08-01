@@ -23,9 +23,8 @@ import httpx
 import asyncio
 import logging
 import time
-import hashlib
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -36,6 +35,22 @@ API_TIMEOUT = 10.0
 # ============================================================================
 # Rate Limit Configuration (daily budget per source)
 # ============================================================================
+def _to_float(value) -> Optional[float]:
+    """wttr.in returns every numeric field as a string."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_percent(value) -> Optional[float]:
+    """Dark Sky-style APIs express humidity as 0..1; the rest of the app uses 0..100."""
+    try:
+        return round(float(value) * 100, 1)
+    except (TypeError, ValueError):
+        return None
+
+
 SOURCE_DAILY_LIMITS = {
     "open_meteo":      9_000,  # official: 10,000/day
     "met_norway":      5_000,  # 20 req/sec but be polite
@@ -48,6 +63,9 @@ SOURCE_DAILY_LIMITS = {
     "stormglass":         10,  # free tier is tiny
     "meteoblue":       1_000,  # free tier
     "noaa":            2_000,  # unlimited but be polite
+    "pirate_weather":    600,  # free tier: 20,000/month ≈ 650/day
+    "weatherapi":     30_000,  # free tier: 1M/month, by far the most generous
+    "wttr":              200,  # community-run; keep the load light
 }
 
 # Cache TTL per source (seconds) — higher for slow-updating sources
@@ -93,7 +111,7 @@ class _RateLimiter:
 
     @staticmethod
     def _today() -> str:
-        return datetime.utcnow().strftime("%Y-%m-%d")
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     def _maybe_reset(self):
         today = self._today()
@@ -220,6 +238,9 @@ class MultiSourceWeatherService:
             "stormglass": self._fetch_stormglass,
             "openuv": self._fetch_openuv,
             "dwd": self._fetch_dwd,
+            "pirate_weather": self._fetch_pirate_weather,
+            "weatherapi": self._fetch_weatherapi,
+            "wttr": self._fetch_wttr,
         }
         
         # Filter to requested sources
@@ -259,7 +280,7 @@ class MultiSourceWeatherService:
             "uv_index": results.get("openuv"),
             "marine": results.get("stormglass"),
             "metadata": {
-                "fetched_at": datetime.utcnow().isoformat(),
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
                 "source_count": len(available_sources),
                 "total_sources_available": len(all_sources),
                 "cache_hits": cache_hits,
@@ -339,7 +360,7 @@ class MultiSourceWeatherService:
     
     async def _fetch_7timer(self, lat: float, lon: float) -> Dict:
         """7Timer! (free, no key). Astronomy and weather forecasting."""
-        url = f"https://www.7timer.info/bin/api.pl"
+        url = "https://www.7timer.info/bin/api.pl"
         params = {
             "lon": lon,
             "lat": lat,
@@ -392,7 +413,7 @@ class MultiSourceWeatherService:
     
     async def _fetch_nws(self, lat: float, lon: float) -> Dict:
         """National Weather Service (free, no key). US only."""
-        url = f"https://api.weather.gov/alerts/active"
+        url = "https://api.weather.gov/alerts/active"
         headers = {"User-Agent": "ClimaAI/1.0", "Accept": "application/geo+json"}
         params = {"point": f"{lat},{lon}"}
         
@@ -582,6 +603,119 @@ class MultiSourceWeatherService:
         except Exception:
             return None
     
+    async def _fetch_pirate_weather(self, lat: float, lon: float) -> Optional[Dict]:
+        """Pirate Weather — NOAA models served in the old Dark Sky response shape.
+
+        Free tier is 20,000 calls/month with a key from pirateweather.net.
+        Valuable because it carries minutely precipitation and NWS alerts in one
+        call, which most free sources do not.
+        """
+        api_key = self.config.get("PIRATE_WEATHER_API_KEY")
+        if not api_key:
+            return None
+
+        url = f"https://api.pirateweather.net/forecast/{api_key}/{lat},{lon}"
+        params = {"units": "si"}
+        resp = await self.client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+        currently = data.get("currently", {})
+        minutely = data.get("minutely", {}).get("data", [])
+        return {
+            "source": "pirate_weather",
+            "current": {
+                "temperature": currently.get("temperature"),
+                "feels_like": currently.get("apparentTemperature"),
+                "humidity": _as_percent(currently.get("humidity")),
+                "wind_speed": currently.get("windSpeed"),
+                "wind_direction": currently.get("windBearing"),
+                "pressure": currently.get("pressure"),
+                "visibility": currently.get("visibility"),
+                "uv_index": currently.get("uvIndex"),
+                "weather_description": currently.get("summary"),
+            },
+            # The reason to use this source at all.
+            "minutely_precipitation": [
+                {"time": m.get("time"), "intensity": m.get("precipIntensity"),
+                 "probability": m.get("precipProbability")}
+                for m in minutely[:60]
+            ],
+            "alert_count": len(data.get("alerts", []) or []),
+        }
+
+    async def _fetch_weatherapi(self, lat: float, lon: float) -> Optional[Dict]:
+        """WeatherAPI.com — 1M calls/month free, the most generous tier found.
+
+        Also returns air quality in the same call, which saves a round trip.
+        """
+        api_key = self.config.get("WEATHERAPI_KEY")
+        if not api_key:
+            return None
+
+        url = "https://api.weatherapi.com/v1/current.json"
+        params = {"key": api_key, "q": f"{lat},{lon}", "aqi": "yes"}
+        resp = await self.client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+        current = data.get("current", {})
+        air = current.get("air_quality", {}) or {}
+        return {
+            "source": "weatherapi",
+            "current": {
+                "temperature": current.get("temp_c"),
+                "feels_like": current.get("feelslike_c"),
+                "humidity": current.get("humidity"),
+                "wind_speed": current.get("wind_kph"),
+                "wind_direction": current.get("wind_degree"),
+                "pressure": current.get("pressure_mb"),
+                "visibility": current.get("vis_km"),
+                "uv_index": current.get("uv"),
+                "cloud_cover": current.get("cloud"),
+                "weather_description": (current.get("condition") or {}).get("text"),
+            },
+            "air_quality": {
+                "pm2_5": air.get("pm2_5"),
+                "pm10": air.get("pm10"),
+                "ozone": air.get("o3"),
+                "nitrogen_dioxide": air.get("no2"),
+            } if air else None,
+        }
+
+    async def _fetch_wttr(self, lat: float, lon: float) -> Optional[Dict]:
+        """wttr.in — no key, community-run.
+
+        Kept on a deliberately small daily budget: it is a volunteer service with
+        no uptime guarantee, so it is a nice-to-have cross-check rather than
+        something to lean on.
+        """
+        url = f"https://wttr.in/{lat},{lon}"
+        params = {"format": "j1"}
+        headers = {"User-Agent": "ClimaAI/1.0 (climaai.app)"}
+        try:
+            resp = await self.client.get(url, params=params, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            current = (data.get("current_condition") or [{}])[0]
+            return {
+                "source": "wttr",
+                "current": {
+                    "temperature": _to_float(current.get("temp_C")),
+                    "feels_like": _to_float(current.get("FeelsLikeC")),
+                    "humidity": _to_float(current.get("humidity")),
+                    "wind_speed": _to_float(current.get("windspeedKmph")),
+                    "wind_direction": _to_float(current.get("winddirDegree")),
+                    "pressure": _to_float(current.get("pressure")),
+                    "visibility": _to_float(current.get("visibility")),
+                    "uv_index": _to_float(current.get("uvIndex")),
+                    "cloud_cover": _to_float(current.get("cloudcover")),
+                    "weather_description": (current.get("weatherDesc") or [{}])[0].get("value"),
+                },
+            }
+        except Exception:
+            return None
+
     # =========================================================================
     # Individual Endpoint Methods
     # =========================================================================

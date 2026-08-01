@@ -1,8 +1,7 @@
 """
 Push notifications service for iOS (APNs) and Android (FCM).
 """
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional
 from functools import lru_cache
 import httpx
 import jwt
