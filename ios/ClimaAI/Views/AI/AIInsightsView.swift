@@ -382,10 +382,10 @@ struct HealthRiskCard: View {
     
     private var riskColor: Color {
         switch level {
-        case .LOW: return .green
-        case .MODERATE: return .yellow
-        case .HIGH: return .orange
-        case .VERY_HIGH: return .red
+        case .low: return .green
+        case .moderate: return .yellow
+        case .high: return .orange
+        case .veryHigh: return .red
         }
     }
 }

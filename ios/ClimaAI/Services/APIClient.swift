@@ -96,6 +96,65 @@ class APIClient {
         return try decoder.decode(T.self, from: data)
     }
     
+    // MARK: - Generic REST surface
+    //
+    // AuthViewModel and AIInsightsViewModel were written against a generic
+    // client (get/post/put/delete plus token helpers) that this class never
+    // exposed — every call site failed to compile with "value of type
+    // 'APIClient' has no member". These are thin wrappers over the same
+    // createRequest/performRequest plumbing the specific endpoints below use, so
+    // there is one code path for auth, error handling and 401 token clearing.
+
+    /// True when an access token is held, without exposing the token itself.
+    var isAuthenticated: Bool {
+        accessToken != nil
+    }
+
+    /// Persist a token. Alias for `setAccessToken` in the vocabulary the view
+    /// models already use.
+    func saveToken(_ token: String) {
+        setAccessToken(token)
+    }
+
+    /// Drop the stored token, e.g. on sign-out.
+    func clearToken() {
+        setAccessToken(nil)
+    }
+
+    func get<T: Decodable>(_ endpoint: String, requiresAuth: Bool = true) async throws -> T {
+        let request = try createRequest(endpoint: endpoint, method: "GET", requiresAuth: requiresAuth)
+        return try await performRequest(request)
+    }
+
+    func post<T: Decodable>(
+        _ endpoint: String,
+        body: Encodable? = nil,
+        requiresAuth: Bool = true
+    ) async throws -> T {
+        let data = try body.map { try JSONEncoder().encode(AnyEncodable($0)) }
+        let request = try createRequest(
+            endpoint: endpoint, method: "POST", body: data, requiresAuth: requiresAuth
+        )
+        return try await performRequest(request)
+    }
+
+    func put<T: Decodable>(
+        _ endpoint: String,
+        body: Encodable? = nil,
+        requiresAuth: Bool = true
+    ) async throws -> T {
+        let data = try body.map { try JSONEncoder().encode(AnyEncodable($0)) }
+        let request = try createRequest(
+            endpoint: endpoint, method: "PUT", body: data, requiresAuth: requiresAuth
+        )
+        return try await performRequest(request)
+    }
+
+    func delete<T: Decodable>(_ endpoint: String, requiresAuth: Bool = true) async throws -> T {
+        let request = try createRequest(endpoint: endpoint, method: "DELETE", requiresAuth: requiresAuth)
+        return try await performRequest(request)
+    }
+
     // MARK: - Auth Endpoints
     
     func register(email: String, password: String, fullName: String?, deviceToken: String?) async throws -> TokenResponse {
@@ -436,5 +495,20 @@ class APIClient {
         let endpoint = "/api/travel-risk?latitude=\(latitude)&longitude=\(longitude)&destination=\(destination.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? destination)"
         let request = try createRequest(endpoint: endpoint, requiresAuth: true)
         return try await performRequest(request)
+    }
+}
+
+/// Type-erasing box so the generic verbs above can take `Encodable` bodies.
+/// `Encodable` alone cannot be passed to `JSONEncoder.encode`, which requires a
+/// concrete conforming type.
+private struct AnyEncodable: Encodable {
+    private let encodeTo: (Encoder) throws -> Void
+
+    init(_ wrapped: Encodable) {
+        self.encodeTo = wrapped.encode
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try encodeTo(encoder)
     }
 }
