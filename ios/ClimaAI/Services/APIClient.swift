@@ -121,9 +121,29 @@ class APIClient {
         setAccessToken(nil)
     }
 
-    func get<T: Decodable>(_ endpoint: String, requiresAuth: Bool = true) async throws -> T {
-        let request = try createRequest(endpoint: endpoint, method: "GET", requiresAuth: requiresAuth)
+    func get<T: Decodable>(
+        _ endpoint: String,
+        queryItems: [URLQueryItem]? = nil,
+        requiresAuth: Bool = true
+    ) async throws -> T {
+        let request = try createRequest(
+            endpoint: Self.appendingQuery(to: endpoint, queryItems),
+            method: "GET",
+            requiresAuth: requiresAuth
+        )
         return try await performRequest(request)
+    }
+
+    /// Appends query items to a path, percent-encoding values.
+    /// Callers pass `[URLQueryItem]` rather than pre-built strings so that
+    /// values like a location name are escaped correctly.
+    private static func appendingQuery(to endpoint: String, _ items: [URLQueryItem]?) -> String {
+        guard let items, !items.isEmpty else { return endpoint }
+        var components = URLComponents()
+        components.queryItems = items
+        let query = components.percentEncodedQuery ?? ""
+        guard !query.isEmpty else { return endpoint }
+        return endpoint.contains("?") ? "\(endpoint)&\(query)" : "\(endpoint)?\(query)"
     }
 
     func post<T: Decodable>(
@@ -150,8 +170,16 @@ class APIClient {
         return try await performRequest(request)
     }
 
-    func delete<T: Decodable>(_ endpoint: String, requiresAuth: Bool = true) async throws -> T {
-        let request = try createRequest(endpoint: endpoint, method: "DELETE", requiresAuth: requiresAuth)
+    func delete<T: Decodable>(
+        _ endpoint: String,
+        queryItems: [URLQueryItem]? = nil,
+        requiresAuth: Bool = true
+    ) async throws -> T {
+        let request = try createRequest(
+            endpoint: Self.appendingQuery(to: endpoint, queryItems),
+            method: "DELETE",
+            requiresAuth: requiresAuth
+        )
         return try await performRequest(request)
     }
 

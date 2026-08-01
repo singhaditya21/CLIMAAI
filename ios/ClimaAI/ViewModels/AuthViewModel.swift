@@ -123,14 +123,13 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            var body: [String: Any] = [:]
-            if let fullName = fullName {
-                body["full_name"] = fullName
-            }
-            if let preferences = preferences {
-                body["preferences"] = try? JSONEncoder().encode(preferences)
-            }
-            
+            // A typed payload, not [String: Any]: `Any` cannot conform to
+            // Encodable, and the previous version also JSON-encoded preferences
+            // into Data before nesting it, which would have serialised as a
+            // base64 string rather than an object. Omitted fields stay absent
+            // because the backend's UserUpdate treats every field as optional.
+            let body = UserUpdateRequest(fullName: fullName, preferences: preferences)
+
             let updatedUser: User = try await apiClient.put("/api/v1/users/me", body: body)
             currentUser = updatedUser
             isLoading = false
@@ -179,5 +178,23 @@ class AuthViewModel: ObservableObject {
         }
         
         return (true, "Password is strong")
+    }
+}
+
+/// Payload for `PUT /users/me`, mirroring the backend's UserUpdate schema.
+/// Every field is optional; nil fields are omitted from the request body.
+struct UserUpdateRequest: Encodable {
+    let fullName: String?
+    let preferences: UserPreferences?
+
+    enum CodingKeys: String, CodingKey {
+        case fullName = "full_name"
+        case preferences
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(fullName, forKey: .fullName)
+        try container.encodeIfPresent(preferences, forKey: .preferences)
     }
 }
