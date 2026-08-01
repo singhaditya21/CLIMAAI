@@ -10,7 +10,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+backend/**/dist/
 downloads/
 eggs/
 .eggs/
@@ -145,6 +145,12 @@ local.properties
 
 # Redis
 *.rdb
+
+# Build artifacts collected by scripts/collect-artifacts.sh.
+# The layout is documented in dist/README.md, which is the only tracked file
+# in there — binaries bloat history permanently and cannot be diffed.
+dist/*
+!dist/README.md
 
 # Build logs / tool output (previously committed by mistake)
 build_output.txt

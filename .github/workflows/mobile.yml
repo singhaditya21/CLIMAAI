@@ -51,6 +51,16 @@ jobs:
         working-directory: android
         run: ./gradlew :app:lintDebug
 
+      # Same layout as a local run — see dist/README.md.
+      - name: Collect artifacts
+        run: ./scripts/collect-artifacts.sh android
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug
+          path: dist/Android/debug/
+
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -103,11 +113,16 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew :app:bundleRelease --stacktrace
 
-      - name: Upload AAB
+      - name: Collect artifacts
+        run: ./scripts/collect-artifacts.sh android
+
+      # Includes mapping.txt alongside the AAB — release crash reports are
+      # unreadable without the mapping file from that exact build.
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-aab
-          path: android/app/build/outputs/bundle/release/*.aab
+          name: android-release
+          path: dist/Android/release/
 
   # ==========================================================================
   # iOS — build for a simulator, then run the test suite on one

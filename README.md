@@ -338,6 +338,18 @@ The suite has never been executed — expect to fix compile errors on the first 
 cd ios && xcodebuild test -scheme ClimaAI -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
+### Build artifacts
+
+Built apps are collected into `dist/`, split by platform and variant:
+
+```bash
+cd android && ./gradlew assembleDebug bundleRelease
+./scripts/collect-artifacts.sh android
+```
+
+Layout and rationale: [dist/README.md](dist/README.md). CI publishes the same
+structure as workflow artifacts.
+
 ### Android Tests
 ```bash
 cd android && ./gradlew test
