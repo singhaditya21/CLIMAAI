@@ -92,7 +92,12 @@ jobs:
       - name: Bundle release
         working-directory: android
         env:
-          ANDROID_KEYSTORE_FILE: release.jks
+          # Only name a keystore when one was actually decoded. Setting this
+          # unconditionally made build.gradle enable the release signing config
+          # and then fail in validateSigningRelease looking for a file the
+          # skipped decode step never wrote — defeating the debug-signing
+          # fallback this job is supposed to have.
+          ANDROID_KEYSTORE_FILE: ${{ env.KEYSTORE_B64 != '' && 'release.jks' || '' }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
