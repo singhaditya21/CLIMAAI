@@ -194,39 +194,32 @@ class NotificationService(private val context: Context) {
         showNotification(NotificationType.POLLEN_ALERT.ordinal * 100 + 1, notification)
     }
 
-    /**
-     * Schedule daily morning briefing
-     */
-    fun scheduleMorningBriefing(hour: Int = 7, minute: Int = 0) {
-        // In production, use WorkManager for reliable scheduling
-        scope.launch {
-            val now = Calendar.getInstance()
-            val scheduledTime = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                
-                // If time has passed today, schedule for tomorrow
-                if (before(now)) {
-                    add(Calendar.DAY_OF_MONTH, 1)
-                }
-            }
-            
-            val delayMs = scheduledTime.timeInMillis - now.timeInMillis
-            delay(delayMs)
-            
-            sendDailyBriefing()
-        }
-    }
+    // scheduleMorningBriefing() was removed here. It was never called, and it
+    // scheduled by holding a coroutine open with delay() — which does not
+    // survive process death, as its own comment acknowledged. DailySummaryWorker
+    // (registered in WorkScheduler) does this properly through WorkManager.
 
     /**
      * Send daily briefing notification
      */
-    fun sendDailyBriefing() {
+    /**
+     * Send the morning briefing.
+     *
+     * Takes the day's actual figures. It previously took no arguments and sent a
+     * hardcoded "Partly cloudy, high of 72°F" regardless of the real forecast,
+     * while WeatherWorker was already fetching the real numbers to pass in.
+     */
+    fun sendDailyBriefing(
+        summary: String,
+        highTemp: Int,
+        lowTemp: Int,
+        precipChance: Int
+    ) {
+        val rain = if (precipChance >= 30) " · $precipChance% chance of rain" else ""
         val notification = createNotification(
             channelId = NotificationType.DAILY_BRIEFING.channelId,
             title = "☀️ Good Morning!",
-            message = "Today's forecast: Partly cloudy, high of 72°F. Perfect day for outdoor activities!",
+            message = "$summary · High $highTemp° / Low $lowTemp°$rain",
             priority = NotificationCompat.PRIORITY_DEFAULT
         )
 

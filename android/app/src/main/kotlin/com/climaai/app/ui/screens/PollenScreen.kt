@@ -362,7 +362,7 @@ private fun AllergyTipsCard(overallLevel: Int) {
             tips.forEach { tip ->
                 Row(verticalAlignment = Alignment.Top) {
                     Icon(
-                        Icons.Default.LightbulbOutline,
+                        Icons.Default.Lightbulb,
                         contentDescription = null,
                         tint = Color(0xFF667EEA),
                         modifier = Modifier.size(18.dp)

@@ -38,14 +38,13 @@ class WeatherWorker(
     private val repository = WeatherRepository(applicationContext)
     private val notificationPrefs = NotificationPrefsManager(applicationContext)
     private val notificationService = NotificationService(applicationContext)
-    private val widgetDataManager = WidgetDataManager(applicationContext)
     
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting weather refresh work")
         
         try {
             // Get saved location from widget data or use default
-            val widgetData = widgetDataManager.getWidgetData()
+            val widgetData = WidgetDataManager.getData(applicationContext)
             val lat = inputData.getDouble(KEY_LATITUDE, widgetData?.latitude ?: 37.7749)
             val lon = inputData.getDouble(KEY_LONGITUDE, widgetData?.longitude ?: -122.4194)
             val forceNotification = inputData.getBoolean(KEY_FORCE_NOTIFICATION, false)
@@ -58,17 +57,12 @@ class WeatherWorker(
                     val weather = result.data
                     
                     // Update widget data
-                    widgetDataManager.saveWidgetData(
-                        lat = lat,
-                        lon = lon,
-                        temperature = weather.current.temperature,
-                        weatherCode = weather.current.weatherCode,
+                    WidgetDataManager.updateWidgets(
+                        context = applicationContext,
+                        weather = weather,
                         locationName = weather.location?.name ?: "Current Location",
-                        humidity = weather.current.humidity,
-                        windSpeed = weather.current.windSpeed,
-                        feelsLike = weather.current.feelsLike,
-                        hourlyTemps = weather.hourly.take(6).map { it.temperature.toInt() },
-                        hourlyCodes = weather.hourly.take(6).map { it.weatherCode }
+                        latitude = lat,
+                        longitude = lon
                     )
                     
                     // Update all widgets
@@ -107,14 +101,20 @@ class WeatherWorker(
             }
             
             if (rainSoon && (forceNotification || notificationPrefs.canSendRainAlert())) {
-                val rainHour = weather.hourly.take(3).firstOrNull { 
-                    it.precipitationProbability > 60 || it.weatherCode in 51..82 
+                val rainIndex = weather.hourly.take(3).indexOfFirst {
+                    it.precipitationProbability > 60 || it.weatherCode in 51..82
                 }
-                
+                // indexOfFirst returns -1 when none match, and getOrNull(-1) is null.
+                val rainHour = weather.hourly.getOrNull(rainIndex)
+
                 if (rainHour != null) {
                     notificationService.sendRainAlert(
-                        precipitationChance = rainHour.precipitationProbability,
-                        estimatedTime = "within the next hour"
+                        minutesUntilRain = rainIndex * 60,
+                        intensity = when (rainHour.weatherCode) {
+                            in 63..67, in 81..82 -> "heavy"
+                            in 61..62, 80 -> "moderate"
+                            else -> "light"
+                        }
                     )
                     notificationPrefs.recordRainAlert()
                     Log.d(TAG, "Rain alert sent")
@@ -128,10 +128,9 @@ class WeatherWorker(
             
             if (severeCode && (forceNotification || notificationPrefs.canSendSevereAlert())) {
                 notificationService.sendSevereWeatherAlert(
-                    alertType = "Thunderstorm",
-                    severity = "Moderate",
-                    description = "Thunderstorm activity detected in your area",
-                    actionRequired = "Seek shelter if outdoors"
+                    title = "⛈️ Thunderstorm Warning",
+                    message = "Thunderstorm activity detected in your area. Seek shelter if outdoors.",
+                    severity = "moderate"
                 )
                 notificationPrefs.recordSevereAlert()
                 Log.d(TAG, "Severe weather alert sent")
@@ -144,8 +143,7 @@ class WeatherWorker(
             
             if (highUV && (forceNotification || notificationPrefs.canSendUVAlert())) {
                 notificationService.sendUVWarning(
-                    uvIndex = weather.current.uvIndex.toInt(),
-                    riskLevel = if (weather.current.uvIndex >= 11) "Extreme" else "Very High"
+                    uvIndex = weather.current.uvIndex.toInt()
                 )
                 notificationPrefs.recordUVAlert()
                 Log.d(TAG, "UV alert sent")
@@ -170,7 +168,6 @@ class DailySummaryWorker(
     private val repository = WeatherRepository(applicationContext)
     private val notificationPrefs = NotificationPrefsManager(applicationContext)
     private val notificationService = NotificationService(applicationContext)
-    private val widgetDataManager = WidgetDataManager(applicationContext)
     
     override suspend fun doWork(): Result {
         Log.d(TAG, "Sending daily summary")
@@ -183,7 +180,7 @@ class DailySummaryWorker(
         }
         
         try {
-            val widgetData = widgetDataManager.getWidgetData()
+            val widgetData = WidgetDataManager.getData(applicationContext)
             val lat = widgetData?.latitude ?: 37.7749
             val lon = widgetData?.longitude ?: -122.4194
             

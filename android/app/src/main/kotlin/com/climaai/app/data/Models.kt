@@ -17,7 +17,7 @@ data class WeatherResponse(
 data class CurrentWeather(
     val temperature: Double,
     @SerializedName("feels_like") val feelsLike: Double,
-    @SerializedName("feels_like_shade") val feelsLikeShade: Double?,
+    @SerializedName("feels_like_shade") val feelsLikeShade: Double? = null,
     val humidity: Int,
     @SerializedName("wind_speed") val windSpeed: Double,
     @SerializedName("wind_direction") val windDirection: Int,
@@ -36,7 +36,7 @@ data class HourlyWeather(
     val time: Date,
     val temperature: Double,
     @SerializedName("feels_like") val feelsLike: Double,
-    @SerializedName("feels_like_shade") val feelsLikeShade: Double?,
+    @SerializedName("feels_like_shade") val feelsLikeShade: Double? = null,
     @SerializedName("precipitation_probability") val precipitationProbability: Int,
     val precipitation: Double,
     @SerializedName("weather_code") val weatherCode: Int,
@@ -56,7 +56,7 @@ data class DailyWeather(
     val sunrise: String,
     val sunset: String,
     @SerializedName("precipitation_sum") val precipitationSum: Double,
-    @SerializedName("snow_accumulation") val snowAccumulation: Double?,
+    @SerializedName("snow_accumulation") val snowAccumulation: Double? = null,
     @SerializedName("precipitation_probability") val precipitationProbability: Int,
     @SerializedName("weather_code") val weatherCode: Int,
     @SerializedName("weather_description") val weatherDescription: String,
@@ -181,7 +181,9 @@ data class UserRegister(
     val password: String,
     @SerializedName("full_name") val fullName: String?,
     val platform: String = "android",
-    @SerializedName("device_token") val deviceToken: String?
+    // Optional: only present once FCM has issued a token, which is not
+    // guaranteed at registration time.
+    @SerializedName("device_token") val deviceToken: String? = null
 )
 
 data class TokenResponse(
@@ -231,7 +233,15 @@ data class SubscriptionPlan(
     @SerializedName("billing_period") val billingPeriod: String,
     @SerializedName("trial_days") val trialDays: Int,
     val savings: String?,
-    val features: List<String>
+    val features: List<String>,
+    /**
+     * Localised price string from Play Billing, e.g. "£4.49".
+     *
+     * Not sent by the backend — `price` and `currency` are the API's fields.
+     * This carries the store's regionalised price when the client has it, so the
+     * paywall can show what the user will actually be charged.
+     */
+    val displayPrice: String? = null
 )
 
 data class APIError(

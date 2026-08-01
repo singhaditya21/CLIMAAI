@@ -1,6 +1,7 @@
 package com.climaai.app.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -60,7 +61,9 @@ val onboardingPages = listOf(
     )
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+// HorizontalPager and rememberPagerState are ExperimentalFoundationApi in the
+// Compose version this project targets.
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
     authViewModel: AuthViewModel,

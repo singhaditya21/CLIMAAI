@@ -106,7 +106,7 @@ private fun ExtraLargeWidgetContent(
                         style = TextStyle(
                             color = ColorProvider(Color.White),
                             fontSize = 36.sp,
-                            fontWeight = FontWeight.Light
+                            fontWeight = FontWeight.Normal
                         )
                     )
                     Row {

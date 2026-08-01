@@ -7,7 +7,10 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.material3.ripple
+// androidx.compose.material3.ripple only exists from Material3 1.3, which needs
+// a newer Kotlin than this project is on. rememberRipple is the equivalent for
+// Material3 1.2.
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -68,7 +71,7 @@ fun Modifier.clickableWithHaptic(
     val view = LocalView.current
     this.clickable(
         interactionSource = remember { MutableInteractionSource() },
-        indication = ripple(color = Color.White.copy(alpha = 0.3f))
+        indication = rememberRipple(color = Color.White.copy(alpha = 0.3f))
     ) {
         performHaptic(view, hapticType)
         onClick()

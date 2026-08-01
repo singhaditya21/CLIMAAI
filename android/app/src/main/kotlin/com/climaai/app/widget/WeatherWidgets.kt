@@ -25,9 +25,7 @@ class SmallWeatherWidget : GlanceAppWidget() {
     
     override val sizeMode = SizeMode.Single
     
-    @Composable
-    override fun Content() {
-        val context = LocalContext.current
+    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
         val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
         
         val temperature = prefs.getFloat("temperature", 20f)
@@ -91,9 +89,7 @@ class MediumWeatherWidget : GlanceAppWidget() {
     
     override val sizeMode = SizeMode.Single
     
-    @Composable
-    override fun Content() {
-        val context = LocalContext.current
+    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
         val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
         
         val temperature = prefs.getFloat("temperature", 20f)
@@ -202,9 +198,7 @@ class LargeWeatherWidget : GlanceAppWidget() {
     
     override val sizeMode = SizeMode.Single
     
-    @Composable
-    override fun Content() {
-        val context = LocalContext.current
+    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
         val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
         
         val temperature = prefs.getFloat("temperature", 20f)

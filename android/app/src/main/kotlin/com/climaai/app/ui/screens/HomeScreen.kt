@@ -774,7 +774,7 @@ private fun getWeatherIcon(code: Int): ImageVector {
         0 -> Icons.Default.WbSunny
         1, 2 -> Icons.Default.WbCloudy
         3 -> Icons.Default.Cloud
-        45, 48 -> Icons.Default.Foggy
+        45, 48 -> Icons.Default.Cloud
         in 51..67 -> Icons.Default.Grain
         in 71..77 -> Icons.Default.AcUnit
         in 80..82 -> Icons.Default.Grain

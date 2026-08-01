@@ -185,10 +185,10 @@ private fun AQIStatusCard(aqi: Int) {
 @Composable
 private fun PollutantGrid(airQuality: AirQuality) {
     val pollutants = listOf(
-        Triple("PM2.5", airQuality.pm2_5 ?: 0.0, "μg/m³"),
+        Triple("PM2.5", airQuality.pm25, "μg/m³"),
         Triple("PM10", airQuality.pm10 ?: 0.0, "μg/m³"),
         Triple("O₃", airQuality.ozone ?: 0.0, "μg/m³"),
-        Triple("NO₂", airQuality.nitrogen_dioxide ?: 0.0, "μg/m³")
+        Triple("NO₂", airQuality.nitrogenDioxide, "μg/m³")
     )
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -339,7 +339,7 @@ private fun getHealthRecommendations(aqi: Int): List<Pair<androidx.compose.ui.gr
     else -> listOf(
         Pair(Icons.Default.Home, "Stay indoors and keep windows closed"),
         Pair(Icons.Default.Masks, "Wear N95 mask if going outside"),
-        Pair(Icons.Default.AirPurifier, "Use air purifier indoors"),
+        Pair(Icons.Default.Air, "Use air purifier indoors"),
         Pair(Icons.Default.Block, "Avoid all outdoor physical activities")
     )
 }

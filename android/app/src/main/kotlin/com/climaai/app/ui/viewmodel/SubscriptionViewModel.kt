@@ -60,6 +60,9 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         const val PRODUCT_MONTHLY = BillingManager.PRODUCT_MONTHLY
         const val PRODUCT_ANNUAL = BillingManager.PRODUCT_YEARLY
         const val PRODUCT_LIFETIME = BillingManager.PRODUCT_LIFETIME
+
+        /** Matches SubscriptionService.TRIAL_DAYS on the backend. */
+        const val TRIAL_DAYS = 7
     }
 
     init {
@@ -134,8 +137,12 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                         SubscriptionPlan(
                             id = "premium_monthly",
                             name = "Premium Monthly",
-                            price = billingManager.getFormattedPrice(PRODUCT_MONTHLY) ?: "$4.99",
-                            period = "month",
+                            price = 4.99,
+                            currency = "USD",
+                            billingPeriod = "month",
+                            trialDays = TRIAL_DAYS,
+                            savings = null,
+                            displayPrice = billingManager.getFormattedPrice(PRODUCT_MONTHLY),
                             features = listOf(
                                 "16-day extended forecast",
                                 "Unlimited AI insights",
@@ -147,8 +154,12 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                         SubscriptionPlan(
                             id = "premium_annual",
                             name = "Premium Annual",
-                            price = billingManager.getFormattedPrice(PRODUCT_ANNUAL) ?: "$39.99",
-                            period = "year",
+                            price = 39.99,
+                            currency = "USD",
+                            billingPeriod = "year",
+                            trialDays = TRIAL_DAYS,
+                            savings = "33%",
+                            displayPrice = billingManager.getFormattedPrice(PRODUCT_ANNUAL),
                             features = listOf(
                                 "Everything in Monthly",
                                 "Save 33% ($20/year)",

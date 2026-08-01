@@ -84,8 +84,8 @@ class AuthViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val tokenResponse = response.body()!!
-                    saveToken(context, tokenResponse.access_token)
-                    ApiClient.setAuthToken(tokenResponse.access_token)
+                    saveToken(context, tokenResponse.accessToken)
+                    ApiClient.setAuthToken(tokenResponse.accessToken)
                     loadCurrentUser()
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -118,8 +118,8 @@ class AuthViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val tokenResponse = response.body()!!
-                    saveToken(context, tokenResponse.access_token)
-                    ApiClient.setAuthToken(tokenResponse.access_token)
+                    saveToken(context, tokenResponse.accessToken)
+                    ApiClient.setAuthToken(tokenResponse.accessToken)
                     loadCurrentUser()
                 } else {
                     val errorBody = response.errorBody()?.string()

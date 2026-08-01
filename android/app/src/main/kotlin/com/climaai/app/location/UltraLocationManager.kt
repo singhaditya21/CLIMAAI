@@ -363,7 +363,10 @@ class UltraLocationManager(private val context: Context) {
             .build()
 
         locationCallback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
+            // Must be the Play Services type. This class declares its own
+            // LocationResult (see above), which shadows it and makes the
+            // override silently fail to match.
+            override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
                 result.locations.lastOrNull()?.let { location ->
                     _location.value = location
                     _locationQuality.value = LocationQuality.from(location.accuracy)
