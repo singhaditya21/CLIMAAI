@@ -108,7 +108,10 @@ jobs:
   # iOS — build for a simulator, then run the test suite on one
   # ==========================================================================
   ios:
-    runs-on: macos-14
+    # macos-15, not macos-14: XcodeGen writes objectVersion 77 (the Xcode 16
+    # pbxproj format) and Xcode 15.4 on the macos-14 image cannot read it —
+    # xcodebuild fails with "Unable to read project" before compiling anything.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 

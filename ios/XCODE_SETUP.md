@@ -1,5 +1,9 @@
 # ClimaAI iOS — Xcode project
 
+> **Requires Xcode 16 or newer.** The generated project uses `objectVersion = 77`,
+> the Xcode 16 pbxproj format. Xcode 15 reports "Unable to read project" and will
+> not open it — confirmed on a CI runner with Xcode 15.4.
+
 `ClimaAI.xcodeproj` is committed, so you can clone and open:
 
 ```bash
