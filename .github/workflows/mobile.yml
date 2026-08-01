@@ -143,6 +143,25 @@ jobs:
             echo "Usually just objectVersion. Run 'cd ios && xcodegen generate' to resync."
           fi
 
+      # Discover a simulator rather than naming one. Hardcoding "iPhone 15"
+      # broke as soon as the runner image moved to Xcode 16.4, whose simulator
+      # set starts at iPhone 16.
+      - name: Pick a simulator
+        id: sim
+        run: |
+          # One line deliberately: a multi-line python -c inside YAML inside
+          # shell is a three-way quoting hazard. Picks the last available
+          # iPhone, skipping watchOS runtimes and unavailable devices.
+          UDID=$(xcrun simctl list devices available --json | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; c=[v for rt,ds in d.items() if 'iOS' in rt for v in ds if v.get('isAvailable') and 'iPhone' in v['name']]; print(c[-1]['udid'] if c else '')")
+          if [ -z "$UDID" ]; then
+            echo "::error::No available iPhone simulator on this runner."
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using simulator $UDID"
+          xcrun simctl list devices available | grep -i "$UDID" || true
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
       # Signing is off: a simulator build needs no certificate, so this runs
       # without any Apple Developer credentials.
       - name: Build for simulator
@@ -151,7 +170,7 @@ jobs:
           xcodebuild build \
             -project ClimaAI.xcodeproj \
             -scheme ClimaAI \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Test on simulator
@@ -160,7 +179,7 @@ jobs:
           xcodebuild test \
             -project ClimaAI.xcodeproj \
             -scheme ClimaAI \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -destination 'id=${{ steps.sim.outputs.udid }}' \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Upload results on failure
