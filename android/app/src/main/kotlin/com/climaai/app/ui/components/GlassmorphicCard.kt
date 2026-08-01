@@ -85,16 +85,18 @@ fun GlassmorphicCard(
                     )
                 )
             }
-            .graphicsLayer {
-                // Apply blur effect on Android 12+
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    renderEffect = RenderEffect.createBlurEffect(
-                        blurRadius.toPx() / 4,
-                        blurRadius.toPx() / 4,
-                        Shader.TileMode.CLAMP
-                    ).asComposeRenderEffect()
-                }
-            },
+            // No renderEffect here. A renderEffect on this Surface's own
+            // graphics layer blurs everything drawn *in* that layer — which is
+            // the card's own children — so every temperature, label and icon
+            // rendered unreadable. Glassmorphism blurs the backdrop behind a
+            // card, not its contents.
+            //
+            // The glass look comes from the translucent surface colour, the
+            // gradient border, the radial glow above and the inner white
+            // gradient below. A true backdrop blur needs the background
+            // composed into a separate layer and blurred there; worth doing
+            // properly rather than by blurring the text.
+            ,
         color = backgroundColor,
         shape = shape,
         shadowElevation = 0.dp
