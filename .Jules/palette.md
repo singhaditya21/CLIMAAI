@@ -1,0 +1,3 @@
+## 2026-08-04 - Safely Adding Form Submission Loading States
+**Learning:** When making vanilla JavaScript forms asynchronous, directly modifying the submission button's state `disabled` or `innerHTML` via `e.submitter` can lead to permanently disabled buttons if an error occurs. Ensure the async logic relies on `e.submitter` properly.
+**Action:** When adding visual loading states in vanilla JS, always wrap the async execution in a `try/finally` block to ensure that state restorations (like resetting `innerHTML` and `disabled`) are guaranteed to execute regardless of API success or failure, and always null-check `e.submitter`.
