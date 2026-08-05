@@ -4,6 +4,13 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>ClimaAI Widgets</string>
+    <!-- Without this key the simulator refuses to install the whole app:
+         "MissingBundleExecutable ... missing or invalid CFBundleExecutable".
+         The app builds fine, because the build never validates the extension's
+         plist — only installd does, so the failure appears one stage after the
+         one a build fix would touch. -->
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key>
