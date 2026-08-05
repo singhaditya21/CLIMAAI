@@ -24,7 +24,7 @@ class APIClient {
         #if DEBUG
         self.baseURL = "http://localhost:8000"
         #else
-        self.baseURL = "https://api.climaai.com" // Replace with production URL
+        self.baseURL = "https://api.climaai.com"
         #endif
     }
     
