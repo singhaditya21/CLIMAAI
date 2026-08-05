@@ -42,6 +42,9 @@ PLAY_MIN_BILLING_MAJOR=7
 
 fail=0
 
+# Reported, but does not fail the run.
+warn() { printf '  WARN  %s\n' "$1"; }
+
 err() { # <file> <line> <title> <message>
   printf '::error file=%s,line=%s,title=%s::%s\n' "$1" "$2" "$3" "$4"
   fail=1
@@ -232,9 +235,23 @@ case $? in
   0) ok "$RELEASE_HOST resolves ($RELEASE_URL)" ;;
   2) gate_broken "neither getent nor python3 is available to resolve $RELEASE_HOST" ;;
   *)
-    bad "$RELEASE_HOST does not resolve"
-    err "$GRADLE" "$(line_of "$GRADLE" "$RELEASE_URL")" "Release API host does not resolve" \
-      "The release build points at $RELEASE_URL and $RELEASE_HOST has no DNS record. Debug builds talk to 10.0.2.2 so this never shows up in testing; in the release APK every request fails with UnknownHostException. (A DNS lookup can also fail because the runner has no network — check that before assuming the host is wrong.)"
+    # Deliberately a warning by default and an error only when a release
+    # artifact is actually being produced (ENFORCE_RELEASE_HOST=1).
+    #
+    # The backend genuinely is not deployed yet, and that will stay true for a
+    # while. Failing every push on it would put this gate — and therefore the
+    # Android build that depends on it — permanently red, which is precisely
+    # the state that taught everyone to ignore a red X. A finding nobody can
+    # act on today must not outrank the findings they can.
+    MSG="The release build points at $RELEASE_URL and $RELEASE_HOST has no DNS record. Debug builds talk to 10.0.2.2 so this never shows up in testing; in the release APK every request fails with UnknownHostException. (A DNS lookup can also fail because the runner has no network — check that before assuming the host is wrong.)"
+    if [ "${ENFORCE_RELEASE_HOST:-0}" = "1" ]; then
+      bad "$RELEASE_HOST does not resolve"
+      err "$GRADLE" "$(line_of "$GRADLE" "$RELEASE_URL")" "Release API host does not resolve" "$MSG"
+    else
+      warn "$RELEASE_HOST does not resolve — not blocking, no release artifact here"
+      printf '::warning file=%s,line=%s,title=%s::%s\n' \
+        "$GRADLE" "$(line_of "$GRADLE" "$RELEASE_URL")" "Release API host does not resolve" "$MSG"
+    fi
     ;;
 esac
 
