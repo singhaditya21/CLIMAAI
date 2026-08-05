@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # Collect build outputs into the repo-level dist/ layout.
 #
 #   dist/<Platform>/<variant>/<version>-<sha>/<artifact>
@@ -15,6 +15,10 @@
 #   ./scripts/collect-artifacts.sh ios
 #
 # Copies only — it never builds. Run your build first, then this.
+#
+# Deliberately bash, not zsh: this runs on the ubuntu-latest CI runners,
+# which ship no zsh. A zsh shebang there fails as "cannot execute: required
+# file not found" — an error naming neither zsh nor this script.
 
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -52,7 +56,7 @@ copy_artifact() {
 }
 
 collect_android() {
-  print "\nAndroid"
+  printf '\nAndroid\n'
   copy_artifact Android debug   "android/app/build/outputs/apk/debug/app-debug.apk"
   copy_artifact Android debug   "android/wear/build/outputs/apk/debug/wear-debug.apk"
   copy_artifact Android release "android/app/build/outputs/apk/release/app-release.apk"
@@ -64,25 +68,25 @@ collect_android() {
 }
 
 collect_ios() {
-  print "\nIPA"
+  printf '\nIPA\n'
   # Xcode archive/export locations. Nothing here yet — the iOS build is on hold
   # (see ios/XCODE_SETUP.md), so these are expected to be skipped for now.
   copy_artifact IPA release "ios/build/export/ClimaAI.ipa"
   copy_artifact IPA debug   "ios/build/export-debug/ClimaAI.ipa"
 }
 
-print "Collecting into dist/  (stamp: $STAMP)"
+printf 'Collecting into dist/  (stamp: %s)\n' "$STAMP"
 case "$TARGET" in
   android) collect_android ;;
   ios|ipa) collect_ios ;;
   all)     collect_android; collect_ios ;;
-  *)       print "unknown target: $TARGET (expected android, ios or all)"; exit 2 ;;
+  *)       printf 'unknown target: %s (expected android, ios or all)\n' "$TARGET"; exit 2 ;;
 esac
 
-print "\n$copied copied, $skipped not present"
+printf '\n%d copied, %d not present\n' "$copied" "$skipped"
 if (( copied > 0 )); then
-  print "\ndist/ now contains:"
+  printf '\ndist/ now contains:\n'
   find "$ROOT/dist" -mindepth 3 -maxdepth 3 -type d 2>/dev/null | sed "s|$ROOT/|  |"
 fi
-[[ -n "$DIRTY" ]] && print "\nNote: working tree is modified, so artifacts are stamped -dirty."
+[[ -n "$DIRTY" ]] && printf '\nNote: working tree is modified, so artifacts are stamped -dirty.\n'
 exit 0
