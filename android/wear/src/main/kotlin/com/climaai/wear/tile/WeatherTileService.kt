@@ -1,36 +1,49 @@
 package com.climaai.wear.tile
 
-import android.content.Context
 import androidx.wear.tiles.*
 import androidx.wear.tiles.material.*
 import androidx.wear.tiles.material.layouts.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.guava.future
 import com.google.common.util.concurrent.ListenableFuture
+import com.climaai.wear.data.NoDataReason
+import com.climaai.wear.data.WearWeather
+import com.climaai.wear.data.WearWeatherData
 import com.climaai.wear.data.WearWeatherRepository
 
 /**
  * Tile service for glanceable weather information on Wear OS.
  */
 class WeatherTileService : TileService() {
-    
+
     private val scope = CoroutineScope(Dispatchers.IO)
-    
+
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
         return scope.future {
-            val weather = WearWeatherRepository.getWeather()
-            
+            val weather = WearWeatherRepository.getWeather(this@WeatherTileService)
+
+            val layout = when (weather) {
+                is WearWeather.Available -> weatherLayout(weather.data)
+                is WearWeather.Unavailable -> noDataLayout(weather.reason)
+            }
+
             TileBuilders.Tile.Builder()
                 .setResourcesVersion("1")
-                .setFreshnessIntervalMillis(1800000) // 30 minutes
+                // Come back sooner when there is nothing to show, so the tile
+                // recovers as soon as the fix or the network returns instead of
+                // sitting on "No data" for a full refresh period.
+                .setFreshnessIntervalMillis(
+                    if (weather is WearWeather.Available) REFRESH_INTERVAL_MS else RETRY_INTERVAL_MS
+                )
                 .setTimeline(
                     TimelineBuilders.Timeline.Builder()
                         .addTimelineEntry(
                             TimelineBuilders.TimelineEntry.Builder()
                                 .setLayout(
                                     LayoutElementBuilders.Layout.Builder()
-                                        .setRoot(buildTileLayout(weather.temperature, weather.conditionIcon, weather.location))
+                                        .setRoot(layout)
                                         .build()
                                 )
                                 .build()
@@ -40,7 +53,7 @@ class WeatherTileService : TileService() {
                 .build()
         }
     }
-    
+
     override fun onResourcesRequest(requestParams: RequestBuilders.ResourcesRequest): ListenableFuture<ResourceBuilders.Resources> {
         return scope.future {
             ResourceBuilders.Resources.Builder()
@@ -48,31 +61,32 @@ class WeatherTileService : TileService() {
                 .build()
         }
     }
-    
-    private fun buildTileLayout(
-        temperature: Int,
-        icon: String,
-        location: String
-    ): LayoutElementBuilders.LayoutElement {
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
+    }
+
+    private fun weatherLayout(weather: WearWeatherData): LayoutElementBuilders.LayoutElement {
         return PrimaryLayout.Builder(deviceParameters())
             .setContent(
                 LayoutElementBuilders.Column.Builder()
                     .addContent(
                         // Location
-                        Text.Builder(this, location)
+                        Text.Builder(this, weather.location)
                             .setTypography(Typography.TYPOGRAPHY_CAPTION1)
                             .setColor(argb(0xAAFFFFFF.toInt()))
                             .build()
                     )
                     .addContent(
                         // Weather icon
-                        Text.Builder(this, icon)
+                        Text.Builder(this, weather.conditionIcon)
                             .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
                             .build()
                     )
                     .addContent(
                         // Temperature
-                        Text.Builder(this, "${temperature}°")
+                        Text.Builder(this, "${weather.temperature}°")
                             .setTypography(Typography.TYPOGRAPHY_DISPLAY2)
                             .setColor(argb(0xFFFFFFFF.toInt()))
                             .build()
@@ -82,7 +96,34 @@ class WeatherTileService : TileService() {
             )
             .build()
     }
-    
+
+    /**
+     * The tile with no reading behind it. It says so; it does not fall back to a
+     * sample temperature that would look exactly like a real one.
+     */
+    private fun noDataLayout(reason: NoDataReason): LayoutElementBuilders.LayoutElement {
+        return PrimaryLayout.Builder(deviceParameters())
+            .setContent(
+                LayoutElementBuilders.Column.Builder()
+                    .addContent(
+                        Text.Builder(this, NO_VALUE)
+                            .setTypography(Typography.TYPOGRAPHY_DISPLAY2)
+                            .setColor(argb(0xFFFFFFFF.toInt()))
+                            .build()
+                    )
+                    .addContent(
+                        Text.Builder(this, reason.label)
+                            .setTypography(Typography.TYPOGRAPHY_CAPTION1)
+                            .setColor(argb(0xAAFFFFFF.toInt()))
+                            .setMaxLines(2)
+                            .build()
+                    )
+                    .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                    .build()
+            )
+            .build()
+    }
+
     private fun deviceParameters(): DeviceParametersBuilders.DeviceParameters {
         return DeviceParametersBuilders.DeviceParameters.Builder()
             .setScreenWidthDp(192)
@@ -90,10 +131,18 @@ class WeatherTileService : TileService() {
             .setScreenDensity(2f)
             .build()
     }
-    
+
     private fun argb(color: Int): ColorBuilders.ColorProp {
         return ColorBuilders.ColorProp.Builder()
             .setArgb(color)
             .build()
+    }
+
+    private companion object {
+        const val REFRESH_INTERVAL_MS = 30 * 60 * 1000L
+        const val RETRY_INTERVAL_MS = 5 * 60 * 1000L
+
+        /** Stands in for a temperature the watch does not have. */
+        const val NO_VALUE = "--"
     }
 }

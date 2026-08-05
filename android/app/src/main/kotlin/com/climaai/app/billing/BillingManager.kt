@@ -33,7 +33,15 @@ class BillingManager(private val context: Context) : PurchasesUpdatedListener {
     
     private val billingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases()
+        // Billing 8 removed the no-argument enablePendingPurchases(). This is the
+        // documented equivalent of what it used to do. Prepaid plans are left off
+        // because none of the three products is a prepaid subscription — turning
+        // them on would make Play surface prepaid top-ups we do not sell.
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build()
+        )
         .build()
     
     private val _connectionState = MutableStateFlow(BillingConnectionState.DISCONNECTED)
@@ -109,10 +117,24 @@ class BillingManager(private val context: Context) : PurchasesUpdatedListener {
             .setProductList(productList)
             .build()
         
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        // Billing 8 hands back a QueryProductDetailsResult instead of a bare list.
+        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                _products.value = productDetailsList
-                Log.d(TAG, "Found ${productDetailsList.size} products")
+                val fetched = productDetailsResult.productDetailsList
+                _products.value = fetched
+                Log.d(TAG, "Found ${fetched.size} products")
+
+                // A product that is missing, unpublished or misconfigured in Play
+                // Console now comes back here rather than being silently dropped
+                // from the list. Without this the paywall would just show one
+                // fewer plan and nothing would say why.
+                productDetailsResult.unfetchedProductList.forEach { unfetched ->
+                    Log.e(
+                        TAG,
+                        "Product unavailable: ${unfetched.productId} " +
+                            "(status ${unfetched.statusCode})"
+                    )
+                }
             } else {
                 Log.e(TAG, "Product query failed: ${billingResult.debugMessage}")
             }

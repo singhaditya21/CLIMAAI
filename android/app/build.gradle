@@ -28,12 +28,15 @@ def hasReleaseSigning = releaseStorePath != null && !releaseStorePath.isEmpty()
 
 android {
     namespace 'com.climaai.app'
-    compileSdk 34
+    // Play stops accepting new submissions below API 36 on 2026-08-31 (API 35 is
+    // the floor for an update to keep reaching existing users). AGP 8.13 is
+    // tested up to 36, so this is as high as the toolchain goes.
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.climaai.app"
         minSdk 26
-        targetSdk 34
+        targetSdk 36
         versionCode 1
         versionName "1.0.0"
 
@@ -146,7 +149,21 @@ dependencies {
     implementation 'androidx.glance:glance-material3:1.0.0'
 
     // Google Play Billing
-    implementation 'com.android.billingclient:billing-ktx:6.1.0'
+    //
+    // 6.1.0 was below Play's floor twice over: 7.0.0+ is required for uploads
+    // today, 8.0.0+ from 2026-08-31.
+    //
+    // The core artifact, not billing-ktx: every 8.x -ktx build carries Kotlin
+    // 2.1 class metadata, which this project's Kotlin 1.9.22 compiler refuses to
+    // read ("expected version is 1.9.0"), so depending on it fails the build
+    // outright rather than only at some newer version. The core artifact is Java
+    // and has no metadata to reject. BillingManager only ever calls the callback
+    // API — startConnection, queryProductDetailsAsync, queryPurchasesAsync,
+    // acknowledgePurchase, launchBillingFlow — all of which live here; -ktx adds
+    // only the suspend wrappers, which nothing uses. Bump Kotlin first if those
+    // are ever wanted.
+    // AndroidManifest.xml declares this same version to Play; keep them in step.
+    implementation 'com.android.billingclient:billing:8.0.0'
     
     // Coil for image loading
     implementation 'io.coil-kt:coil-compose:2.5.0'
@@ -169,8 +186,14 @@ dependencies {
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
     // Robolectric gives JVM tests a real SharedPreferences, so widget data
     // can be round-tripped without an emulator.
-    testImplementation 'org.robolectric:robolectric:4.11.1'
-    testImplementation 'androidx.test:core:1.5.0'
+    //
+    // Must ship an android-all image for the module's targetSdk or every test in
+    // the class dies at configuration time with "targetSdkVersion=36 >
+    // maxSdkVersion", before a single assertion runs. 4.11.1 topped out at 34, so
+    // it broke the moment targetSdk went to 36; 4.16 is the first with API 36.
+    // Bump this whenever targetSdk moves.
+    testImplementation 'org.robolectric:robolectric:4.16'
+    testImplementation 'androidx.test:core:1.6.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     androidTestImplementation platform('androidx.compose:compose-bom:2024.02.02')

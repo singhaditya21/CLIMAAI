@@ -96,6 +96,69 @@ async def test_activation_marks_the_subscription_active(service, user, db_sessio
     assert status.subscription.plan == SubscriptionPlan.ANNUAL
 
 
+async def test_activation_honours_the_store_expiry(service, user, db_session):
+    """The receipt's expiry wins over the nominal plan length."""
+    expires = datetime.now(timezone.utc) + timedelta(days=2)
+
+    subscription = await service.activate_subscription(
+        user,
+        SubscriptionPlatform.APPLE,
+        SubscriptionPlan.ANNUAL,
+        "txn-expiring-soon",
+        db_session,
+        end_date=expires,
+    )
+
+    assert abs((subscription.subscription_end_date - expires).total_seconds()) < 1
+
+
+async def test_activation_falls_back_to_the_plan_length(service, user, db_session):
+    subscription = await service.activate_subscription(
+        user, SubscriptionPlatform.GOOGLE, SubscriptionPlan.ANNUAL, "txn-no-expiry", db_session
+    )
+
+    length = subscription.subscription_end_date - subscription.subscription_start_date
+
+    assert length.days == 365
+
+
+async def test_a_purchase_cannot_be_redeemed_by_a_second_account(service, user, db_session):
+    """A receipt proves a purchase happened, not who is entitled to it."""
+    await service.activate_subscription(
+        user, SubscriptionPlatform.APPLE, SubscriptionPlan.MONTHLY, "txn-shared", db_session
+    )
+
+    freeloader = User(
+        email="freeloader@example.com",
+        password_hash="not-a-real-hash",
+        full_name="Freeloader",
+        platform="ios",
+    )
+    db_session.add(freeloader)
+    await db_session.commit()
+    await db_session.refresh(freeloader)
+
+    with pytest.raises(ValueError, match="another account"):
+        await service.activate_subscription(
+            freeloader, SubscriptionPlatform.APPLE, SubscriptionPlan.MONTHLY, "txn-shared", db_session
+        )
+
+    assert (await service.check_subscription_status(freeloader, db_session)).is_premium is False
+
+
+async def test_the_buyer_may_re_present_their_own_purchase(service, user, db_session):
+    """Restoring a purchase on a new device must not look like a replay."""
+    await service.activate_subscription(
+        user, SubscriptionPlatform.APPLE, SubscriptionPlan.MONTHLY, "txn-mine", db_session
+    )
+
+    await service.activate_subscription(
+        user, SubscriptionPlatform.APPLE, SubscriptionPlan.MONTHLY, "txn-mine", db_session
+    )
+
+    assert (await service.check_subscription_status(user, db_session)).is_premium is True
+
+
 async def test_expired_subscription_is_not_premium(service, user, db_session):
     """A row left in EXPIRED must not grant access."""
     db_session.add(

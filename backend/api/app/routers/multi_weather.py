@@ -83,15 +83,11 @@ async def get_marine_weather(
     return result
 
 
-@router.get("/alerts")
-async def get_nws_weather_alerts(
-    latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180)
-):
-    """Get active weather alerts from the National Weather Service (US)."""
-    return await weather_service.get_nws_alerts(latitude, longitude)
-
-
+# GET /api/weather/alerts deliberately lives in weather.py, not here. Both
+# routers share the /api/weather prefix and weather.py is registered first, so a
+# duplicate here never serves a request — but it *does* overwrite the real
+# route's entry in the generated OpenAPI schema, which is worse than dead code:
+# the published contract then describes a response the API never returns.
 @router.get("/alerts/{state}")
 async def get_state_weather_alerts(state: str):
     """Get active weather alerts for a US state (e.g., 'CA', 'NY')."""

@@ -60,11 +60,17 @@ class WidgetConfigActivity : ComponentActivity() {
         // Initialize feature gate
         FeatureGate.init(this)
         
+        // The preview below shows the real stored reading rather than a stand-in
+        // one, so nothing on this screen can be read as a weather report for a
+        // place the user is not.
+        val widgetData = WidgetDataManager.getData(this)
+
         setContent {
             ClimaAITheme {
                 WidgetConfigScreen(
                     widgetId = appWidgetId,
                     isPremium = FeatureGate.isPremium(),
+                    data = widgetData,
                     onConfirm = { confirmWidget() },
                     onCancel = { finish() }
                 )
@@ -79,14 +85,13 @@ class WidgetConfigActivity : ComponentActivity() {
             appWidgetId
         )
         setResult(RESULT_OK, resultValue)
-        
-        // Update the widget
-        val appWidgetManager = AppWidgetManager.getInstance(this)
-        // Trigger widget update
-        sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-        })
-        
+
+        // The host draws the new widget itself. What it cannot know is that the
+        // stored reading may be hours old, so ask for a fetch. This used to
+        // broadcast ACTION_APPWIDGET_UPDATE with no component or package set,
+        // which an implicit broadcast to a manifest receiver never delivers.
+        WidgetDataManager.requestRefreshIfStale(this)
+
         finish()
     }
 }
@@ -96,6 +101,7 @@ class WidgetConfigActivity : ComponentActivity() {
 fun WidgetConfigScreen(
     widgetId: Int,
     isPremium: Boolean,
+    data: WidgetData,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -148,6 +154,7 @@ fun WidgetConfigScreen(
             ) {
                 // Preview
                 WidgetPreview(
+                    data = data,
                     backgroundStyle = backgroundStyle,
                     colorTheme = colorTheme,
                     transparency = transparency.toInt(),
@@ -390,6 +397,7 @@ private fun ColorThemeOption(
 
 @Composable
 private fun WidgetPreview(
+    data: WidgetData,
     backgroundStyle: String,
     colorTheme: String,
     transparency: Int,
@@ -443,24 +451,26 @@ private fun WidgetPreview(
                 ) {
                     if (showLocation) {
                         Text(
-                            "New York",
+                            if (data.hasData) data.locationName else NO_DATA,
                             color = Color.White.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("☀️", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        if (data.hasData) {
+                            Text(data.weatherIcon, style = MaterialTheme.typography.titleLarge)
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         Text(
-                            "24°",
+                            if (data.hasData) "${data.currentTemp}°" else NO_DATA,
                             color = Color.White,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (showFeelsLike && !compactMode) {
+                    if (showFeelsLike && !compactMode && data.hasData) {
                         Text(
-                            "Feels like 22°",
+                            "Feels like ${data.feelsLike}°",
                             color = Color.White.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.labelSmall
                         )

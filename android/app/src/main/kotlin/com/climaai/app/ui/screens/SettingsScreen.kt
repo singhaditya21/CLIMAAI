@@ -22,16 +22,28 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.climaai.app.BuildConfig
+import com.climaai.app.data.AppearancePrefs
 import com.climaai.app.data.NotificationPrefsManager
+import com.climaai.app.data.TemperatureUnit
+import com.climaai.app.data.ThemeMode
+import com.climaai.app.data.UnitsPrefs
 import com.climaai.app.data.cache.UsageSummary
 import com.climaai.app.ui.components.AnimatedCounter
 import com.climaai.app.ui.viewmodel.WeatherViewModel
 import com.climaai.app.work.WorkScheduler
 import kotlinx.coroutines.launch
+
+// ClimaAI's published legal pages — the same URLs the store listing declares
+// (docs/APP_STORE.md). Kept here so the rows below link somewhere real rather
+// than showing a chevron that goes nowhere.
+private const val PRIVACY_POLICY_URL = "https://climaai.com/privacy"
+private const val TERMS_OF_SERVICE_URL = "https://climaai.com/terms"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +55,8 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+    val uriHandler = LocalUriHandler.current
+
     val isPremium by viewModel.isPremium.collectAsState()
     val subscriptionStatus by viewModel.subscriptionStatus.collectAsState()
     
@@ -56,9 +69,21 @@ fun SettingsScreen(
     val uvAlertsEnabled by notificationPrefs.uvAlertsEnabled.collectAsState(initial = false)
     val pollenAlertsEnabled by notificationPrefs.pollenAlertsEnabled.collectAsState(initial = false)
     
-    // Settings state
-    var temperatureUnit by remember { mutableStateOf("celsius") }
-    var darkMode by remember { mutableStateOf("auto") }
+    // Unit and theme preferences. Both used to be plain `remember` state, so a
+    // choice was gone the moment the screen left composition and Home never saw
+    // it at all — these are the persisted stores instead.
+    val unitsPrefs = remember { UnitsPrefs(context) }
+    val temperatureUnit by unitsPrefs.temperatureUnit.collectAsState(
+        initial = TemperatureUnit.CELSIUS
+    )
+
+    // Deliberately the same key the Appearance screen writes: two controls for
+    // one setting must not keep two answers.
+    val appearancePrefs = remember { AppearancePrefs(context) }
+    val themeMode by appearancePrefs.themeMode.collectAsState(
+        initial = AppearancePrefs.DEFAULT_THEME
+    )
+
     var showTimePicker by remember { mutableStateOf(false) }
     
     // Time picker state
@@ -101,22 +126,55 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Subscription Card
-                SubscriptionCard(isPremium, subscriptionStatus?.subscription?.plan)
-                
+                SubscriptionCard(
+                    isPremium = isPremium,
+                    currentPlan = subscriptionStatus?.subscription?.plan,
+                    onUpgrade = onNavigateToPaywall
+                )
+
                 // Units Section
                 SettingsSection(title = "Units") {
                     SettingsOptionRow(
                         icon = Icons.Default.Thermostat,
                         title = "Temperature",
-                        value = if (temperatureUnit == "celsius") "°C" else "°F",
+                        value = temperatureUnit.symbol,
                         onClick = {
-                            temperatureUnit = if (temperatureUnit == "celsius") "fahrenheit" else "celsius"
+                            scope.launch {
+                                unitsPrefs.setTemperatureUnit(
+                                    when (temperatureUnit) {
+                                        TemperatureUnit.CELSIUS -> TemperatureUnit.FAHRENHEIT
+                                        TemperatureUnit.FAHRENHEIT -> TemperatureUnit.CELSIUS
+                                    }
+                                )
+                            }
                         }
                     )
                 }
-                
+
                 // Appearance Section
                 SettingsSection(title = "Appearance") {
+                    SettingsOptionRow(
+                        icon = Icons.Default.DarkMode,
+                        title = "Dark Mode",
+                        value = when (themeMode) {
+                            ThemeMode.LIGHT.id -> "Off"
+                            ThemeMode.DARK.id -> "On"
+                            ThemeMode.OLED.id -> "OLED"
+                            else -> "Auto"
+                        },
+                        onClick = {
+                            // OLED is a paid theme reachable only from the
+                            // Appearance screen, so cycling out of it lands back
+                            // on the three modes this row can offer.
+                            val next = when (themeMode) {
+                                ThemeMode.SYSTEM.id -> ThemeMode.LIGHT.id
+                                ThemeMode.LIGHT.id -> ThemeMode.DARK.id
+                                else -> ThemeMode.SYSTEM.id
+                            }
+                            scope.launch { appearancePrefs.setThemeMode(next) }
+                        }
+                    )
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     SettingsNavigationRow(
                         icon = Icons.Default.Palette,
                         title = "Customize Look",
@@ -131,7 +189,7 @@ fun SettingsScreen(
                         }
                     )
                 }
-                
+
                 // Notifications Section - Enhanced
                 SettingsSection(title = "Notifications") {
                     // Daily Summary
@@ -227,8 +285,7 @@ fun SettingsScreen(
                 SettingsSection(title = "Widgets") {
                     SettingsInfoRow(
                         icon = Icons.Default.Widgets,
-                        title = "Add Widget",
-                        value = ""
+                        title = "Add Widget"
                     )
                     Text(
                         text = "Long-press your home screen and select Widgets to add ClimaAI widgets",
@@ -244,44 +301,35 @@ fun SettingsScreen(
                     ApiUsageSection(usage)
                 }
                 
-                // Appearance Section
-                SettingsSection(title = "Appearance") {
-                    SettingsOptionRow(
-                        icon = Icons.Default.DarkMode,
-                        title = "Dark Mode",
-                        value = when (darkMode) {
-                            "light" -> "Off"
-                            "dark" -> "On"
-                            else -> "Auto"
-                        },
-                        onClick = {
-                            darkMode = when (darkMode) {
-                                "auto" -> "light"
-                                "light" -> "dark"
-                                else -> "auto"
-                            }
-                        }
-                    )
-                }
-                
                 // About Section
                 SettingsSection(title = "About") {
                     SettingsInfoRow(
                         icon = Icons.Default.Info,
                         title = "Version",
-                        value = "1.0.0"
+                        // Read from the build rather than typed out, so it cannot
+                        // drift away from what was actually shipped.
+                        value = BuildConfig.VERSION_NAME
+                    )
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    // Open-Meteo's CC BY 4.0 licence requires the credit to be
+                    // visible; the home screen carries it too.
+                    SettingsInfoRow(
+                        icon = Icons.Default.Cloud,
+                        title = "Weather data",
+                        value = "Open-Meteo (CC BY 4.0)",
+                        onClick = { uriHandler.openUri("https://open-meteo.com/") }
                     )
                     HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     SettingsInfoRow(
                         icon = Icons.Default.Policy,
                         title = "Privacy Policy",
-                        value = ""
+                        onClick = { uriHandler.openUri(PRIVACY_POLICY_URL) }
                     )
                     HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     SettingsInfoRow(
                         icon = Icons.Default.Description,
                         title = "Terms of Service",
-                        value = ""
+                        onClick = { uriHandler.openUri(TERMS_OF_SERVICE_URL) }
                     )
                 }
                 
@@ -332,7 +380,11 @@ private fun formatHour(hour: Int): String {
 }
 
 @Composable
-private fun SubscriptionCard(isPremium: Boolean, currentPlan: String?) {
+private fun SubscriptionCard(
+    isPremium: Boolean,
+    currentPlan: String?,
+    onUpgrade: () -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = if (isPremium) Color(0xFF6366F1).copy(alpha = 0.3f)
@@ -369,7 +421,7 @@ private fun SubscriptionCard(isPremium: Boolean, currentPlan: String?) {
             }
             if (!isPremium) {
                 Button(
-                    onClick = { /* Open paywall */ },
+                    onClick = onUpgrade,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFFBBF24)
                     )
@@ -483,15 +535,24 @@ private fun SettingsToggleRow(
     }
 }
 
+/**
+ * A read-only row, optionally one that opens something.
+ *
+ * The chevron is tied to [onClick] rather than to an empty [value]: it used to
+ * appear on every valueless row whether or not there was anywhere to go, which
+ * is how Privacy Policy and Terms came to look tappable while doing nothing.
+ */
 @Composable
 private fun SettingsInfoRow(
     icon: ImageVector,
     title: String,
-    value: String
+    value: String = "",
+    onClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -514,11 +575,14 @@ private fun SettingsInfoRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.6f)
             )
-        } else {
+        }
+        if (onClick != null) {
+            Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.OpenInNew,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.4f)
+                tint = Color.White.copy(alpha = 0.4f),
+                modifier = Modifier.size(18.dp)
             )
         }
     }

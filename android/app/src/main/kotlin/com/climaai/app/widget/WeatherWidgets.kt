@@ -9,8 +9,6 @@ import androidx.glance.*
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.layout.*
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -22,57 +20,60 @@ import com.climaai.app.MainActivity
  * Small weather widget showing current temperature and icon
  */
 class SmallWeatherWidget : GlanceAppWidget() {
-    
+
     override val sizeMode = SizeMode.Single
-    
-    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
-        val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
-        
-        val temperature = prefs.getFloat("temperature", 20f)
-        val weatherCode = prefs.getInt("weather_code", 0)
-        val locationName = prefs.getString("location_name", "Loading...") ?: "Loading..."
-        
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(Color(0xFF1E3A5F))
-                .cornerRadius(16.dp)
-                .clickable(actionStartActivity<MainActivity>())
-                .padding(12.dp)
-        ) {
-            Column(
-                modifier = GlanceModifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalAlignment = Alignment.CenterHorizontally
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val data = WidgetDataManager.getData(context)
+        // A render is the only moment anything notices the reading has aged out.
+        WidgetDataManager.requestRefreshIfStale(context)
+
+        provideContent {
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1E3A5F))
+                    .cornerRadius(16.dp)
+                    .clickable(actionStartActivity<MainActivity>())
+                    .padding(12.dp)
             ) {
-                // Weather icon
-                Text(
-                    text = getWeatherEmoji(weatherCode),
-                    style = TextStyle(fontSize = 32.sp)
-                )
-                
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                
-                // Temperature
-                Text(
-                    text = "${temperature.toInt()}°",
-                    style = TextStyle(
-                        color = ColorProvider(Color.White),
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold
+                Column(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // No icon rather than a sun: a weather code of 0 is what
+                    // "nothing stored" reads back as, and it draws a clear sky.
+                    if (data.hasData) {
+                        Text(
+                            text = data.weatherIcon,
+                            style = TextStyle(fontSize = 32.sp)
+                        )
+
+                        Spacer(modifier = GlanceModifier.height(4.dp))
+                    }
+
+                    // Temperature
+                    Text(
+                        text = if (data.hasData) "${data.currentTemp}°" else NO_DATA,
+                        style = TextStyle(
+                            color = ColorProvider(Color.White),
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
-                
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                
-                // Location
-                Text(
-                    text = locationName,
-                    style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                        fontSize = 12.sp
+
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+
+                    // Location
+                    Text(
+                        text = if (data.hasData) data.locationName else NO_DATA_LABEL,
+                        style = TextStyle(
+                            color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                            fontSize = 12.sp
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -86,91 +87,92 @@ class SmallWeatherWidgetReceiver : GlanceAppWidgetReceiver() {
  * Medium weather widget with current conditions and hourly preview
  */
 class MediumWeatherWidget : GlanceAppWidget() {
-    
+
     override val sizeMode = SizeMode.Single
-    
-    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
-        val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
-        
-        val temperature = prefs.getFloat("temperature", 20f)
-        val feelsLike = prefs.getFloat("feels_like", 18f)
-        val weatherCode = prefs.getInt("weather_code", 0)
-        val weatherDescription = prefs.getString("weather_description", "Clear") ?: "Clear"
-        val locationName = prefs.getString("location_name", "Location") ?: "Location"
-        val humidity = prefs.getInt("humidity", 50)
-        val windSpeed = prefs.getFloat("wind_speed", 10f)
-        
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(Color(0xFF1E3A5F))
-                .cornerRadius(16.dp)
-                .clickable(actionStartActivity<MainActivity>())
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = GlanceModifier.fillMaxSize(),
-                horizontalAlignment = Alignment.Start
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val data = WidgetDataManager.getData(context)
+        WidgetDataManager.requestRefreshIfStale(context)
+
+        provideContent {
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1E3A5F))
+                    .cornerRadius(16.dp)
+                    .clickable(actionStartActivity<MainActivity>())
+                    .padding(16.dp)
             ) {
-                // Left side - Current weather
-                Column(
-                    modifier = GlanceModifier.defaultWeight(),
-                    verticalAlignment = Alignment.CenterVertically
+                Row(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Text(
-                        text = locationName,
-                        style = TextStyle(
-                            color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                            fontSize = 12.sp
-                        )
-                    )
-                    
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Left side - Current weather
+                    Column(
+                        modifier = GlanceModifier.defaultWeight(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = getWeatherEmoji(weatherCode),
-                            style = TextStyle(fontSize = 28.sp)
-                        )
-                        Spacer(modifier = GlanceModifier.width(8.dp))
-                        Text(
-                            text = "${temperature.toInt()}°",
+                            text = if (data.hasData) data.locationName else NO_DATA,
                             style = TextStyle(
-                                color = ColorProvider(Color.White),
-                                fontSize = 40.sp,
-                                fontWeight = FontWeight.Bold
+                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                fontSize = 12.sp
                             )
                         )
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (data.hasData) {
+                                Text(
+                                    text = data.weatherIcon,
+                                    style = TextStyle(fontSize = 28.sp)
+                                )
+                                Spacer(modifier = GlanceModifier.width(8.dp))
+                            }
+                            Text(
+                                text = if (data.hasData) "${data.currentTemp}°" else NO_DATA,
+                                style = TextStyle(
+                                    color = ColorProvider(Color.White),
+                                    fontSize = 40.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+
+                        Text(
+                            text = if (data.hasData) data.condition else NO_DATA_LABEL,
+                            style = TextStyle(
+                                color = ColorProvider(Color.White),
+                                fontSize = 14.sp
+                            )
+                        )
+
+                        // Omitted entirely rather than shown as "Feels like —°",
+                        // which reads like a failed measurement rather than none.
+                        if (data.hasData) {
+                            Text(
+                                text = "Feels like ${data.feelsLike}°",
+                                style = TextStyle(
+                                    color = ColorProvider(Color.White.copy(alpha = 0.6f)),
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
                     }
-                    
-                    Text(
-                        text = weatherDescription,
-                        style = TextStyle(
-                            color = ColorProvider(Color.White),
-                            fontSize = 14.sp
-                        )
-                    )
-                    
-                    Text(
-                        text = "Feels like ${feelsLike.toInt()}°",
-                        style = TextStyle(
-                            color = ColorProvider(Color.White.copy(alpha = 0.6f)),
-                            fontSize = 11.sp
-                        )
-                    )
-                }
-                
-                // Right side - Stats
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatRow("💧", "${humidity}%")
-                    Spacer(modifier = GlanceModifier.height(8.dp))
-                    StatRow("💨", "${windSpeed.toInt()} km/h")
+
+                    // Right side - Stats
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        StatRow("💧", if (data.hasData) "${data.humidity}%" else NO_DATA)
+                        Spacer(modifier = GlanceModifier.height(8.dp))
+                        StatRow("💨", if (data.hasData) "${data.windSpeed} km/h" else NO_DATA)
+                    }
                 }
             }
         }
     }
-    
+
     @Composable
     private fun StatRow(icon: String, value: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -195,125 +197,140 @@ class MediumWeatherWidgetReceiver : GlanceAppWidgetReceiver() {
  * Large weather widget with full forecast
  */
 class LargeWeatherWidget : GlanceAppWidget() {
-    
+
     override val sizeMode = SizeMode.Single
-    
-    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent {
-        val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
-        
-        val temperature = prefs.getFloat("temperature", 20f)
-        val weatherCode = prefs.getInt("weather_code", 0)
-        val weatherDescription = prefs.getString("weather_description", "Clear") ?: "Clear"
-        val locationName = prefs.getString("location_name", "Location") ?: "Location"
-        val aiInsight = prefs.getString("ai_insight", "Great day for outdoor activities!") ?: ""
-        
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(Color(0xFF1E3A5F))
-                .cornerRadius(16.dp)
-                .clickable(actionStartActivity<MainActivity>())
-                .padding(16.dp)
-        ) {
-            Column(modifier = GlanceModifier.fillMaxSize()) {
-                // Header
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = GlanceModifier.defaultWeight()) {
-                        Text(
-                            text = locationName,
-                            style = TextStyle(
-                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                                fontSize = 12.sp
-                            )
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val data = WidgetDataManager.getData(context)
+        WidgetDataManager.requestRefreshIfStale(context)
+
+        provideContent {
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1E3A5F))
+                    .cornerRadius(16.dp)
+                    .clickable(actionStartActivity<MainActivity>())
+                    .padding(16.dp)
+            ) {
+                Column(modifier = GlanceModifier.fillMaxSize()) {
+                    // Header
+                    Row(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = GlanceModifier.defaultWeight()) {
                             Text(
-                                text = getWeatherEmoji(weatherCode),
-                                style = TextStyle(fontSize = 24.sp)
+                                text = if (data.hasData) data.locationName else NO_DATA,
+                                style = TextStyle(
+                                    color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                    fontSize = 12.sp
+                                )
                             )
-                            Spacer(modifier = GlanceModifier.width(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (data.hasData) {
+                                    Text(
+                                        text = data.weatherIcon,
+                                        style = TextStyle(fontSize = 24.sp)
+                                    )
+                                    Spacer(modifier = GlanceModifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (data.hasData) "${data.currentTemp}°" else NO_DATA,
+                                    style = TextStyle(
+                                        color = ColorProvider(Color.White),
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
                             Text(
-                                text = "${temperature.toInt()}°",
+                                text = if (data.hasData) data.condition else NO_DATA_LABEL,
                                 style = TextStyle(
                                     color = ColorProvider(Color.White),
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 14.sp
                                 )
                             )
                         }
+                    }
+
+                    Spacer(modifier = GlanceModifier.height(12.dp))
+
+                    // AI Insight. Only ever shown when one was actually written
+                    // for this reading — there is no stock encouragement to fall
+                    // back on, because a widget cannot know it is a good day for
+                    // anything without the weather it is describing.
+                    val insight = data.aiInsight
+                    if (insight != null) {
+                        Box(
+                            modifier = GlanceModifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF6366F1).copy(alpha = 0.3f))
+                                .cornerRadius(8.dp)
+                                .padding(12.dp)
+                        ) {
+                            Row {
+                                Text(text = "✨", style = TextStyle(fontSize = 16.sp))
+                                Spacer(modifier = GlanceModifier.width(8.dp))
+                                Text(
+                                    text = insight,
+                                    style = TextStyle(
+                                        color = ColorProvider(Color.White),
+                                        fontSize = 12.sp
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = GlanceModifier.height(12.dp))
+                    }
+
+                    // Hourly forecast row, from the stored hourly readings. This
+                    // used to be current temperature +1, +2, +1, +0 against a
+                    // repeat of the current icon — a forecast in appearance only.
+                    if (data.hourlyForecast.isEmpty()) {
                         Text(
-                            text = weatherDescription,
+                            text = "Hourly forecast unavailable",
                             style = TextStyle(
-                                color = ColorProvider(Color.White),
-                                fontSize = 14.sp
+                                color = ColorProvider(Color.White.copy(alpha = 0.5f)),
+                                fontSize = 11.sp
                             )
                         )
+                    } else {
+                        Row(
+                            modifier = GlanceModifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            data.hourlyForecast.forEach { hour ->
+                                HourlyItem(hour)
+                            }
+                        }
                     }
-                }
-                
-                Spacer(modifier = GlanceModifier.height(12.dp))
-                
-                // AI Insight
-                Box(
-                    modifier = GlanceModifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF6366F1).copy(alpha = 0.3f))
-                        .cornerRadius(8.dp)
-                        .padding(12.dp)
-                ) {
-                    Row {
-                        Text(text = "✨", style = TextStyle(fontSize = 16.sp))
-                        Spacer(modifier = GlanceModifier.width(8.dp))
-                        Text(
-                            text = aiInsight,
-                            style = TextStyle(
-                                color = ColorProvider(Color.White),
-                                fontSize = 12.sp
-                            )
-                        )
-                    }
-                }
-                
-                Spacer(modifier = GlanceModifier.height(12.dp))
-                
-                // Hourly forecast row
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    HourlyItem("Now", weatherCode, temperature.toInt())
-                    HourlyItem("1h", weatherCode, (temperature + 1).toInt())
-                    HourlyItem("2h", weatherCode, (temperature + 2).toInt())
-                    HourlyItem("3h", weatherCode, (temperature + 1).toInt())
-                    HourlyItem("4h", weatherCode, temperature.toInt())
                 }
             }
         }
     }
-    
+
     @Composable
-    private fun HourlyItem(time: String, code: Int, temp: Int) {
+    private fun HourlyItem(hour: HourForecast) {
         Column(
             modifier = GlanceModifier.padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = time,
+                text = hour.label,
                 style = TextStyle(
                     color = ColorProvider(Color.White.copy(alpha = 0.6f)),
                     fontSize = 10.sp
                 )
             )
             Text(
-                text = getWeatherEmoji(code),
+                text = hour.icon,
                 style = TextStyle(fontSize = 18.sp)
             )
             Text(
-                text = "$temp°",
+                text = "${hour.temp}°",
                 style = TextStyle(
                     color = ColorProvider(Color.White),
                     fontSize = 12.sp,
@@ -326,19 +343,4 @@ class LargeWeatherWidget : GlanceAppWidget() {
 
 class LargeWeatherWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = LargeWeatherWidget()
-}
-
-// Helper function to get weather emoji from code
-private fun getWeatherEmoji(code: Int): String {
-    return when (code) {
-        0 -> "☀️"
-        1, 2 -> "⛅"
-        3 -> "☁️"
-        45, 48 -> "🌫️"
-        in 51..67 -> "🌧️"
-        in 71..77 -> "❄️"
-        in 80..82 -> "🌧️"
-        in 95..99 -> "⛈️"
-        else -> "☀️"
-    }
 }

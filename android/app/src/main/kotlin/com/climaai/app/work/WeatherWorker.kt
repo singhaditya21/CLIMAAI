@@ -2,19 +2,51 @@ package com.climaai.app.work
 
 import android.content.Context
 import android.util.Log
-import androidx.glance.appwidget.updateAll
 import androidx.work.*
 import com.climaai.app.data.NotificationPrefsManager
 import com.climaai.app.data.WeatherRepository
 import com.climaai.app.data.WeatherResult
-import com.climaai.app.data.cache.generateLocationKey
 import com.climaai.app.service.NotificationService
-import com.climaai.app.widget.SmallWeatherWidget
-import com.climaai.app.widget.MediumWeatherWidget
-import com.climaai.app.widget.LargeWeatherWidget
 import com.climaai.app.widget.WidgetDataManager
 import kotlinx.coroutines.flow.first
-import java.util.concurrent.TimeUnit
+
+/**
+ * The last fix UltraLocationManager wrote to its cache, or null if it has never
+ * resolved one.
+ *
+ * Read straight out of its SharedPreferences rather than through the manager:
+ * constructing one registers a connectivity callback and a main-thread scope, and
+ * asking it for a fresh fix from a background worker would need the background
+ * location permission the app does not hold. The key names below are that class's
+ * private constants — they are duplicated here, so they have to move together.
+ */
+private fun lastKnownFix(context: Context): Pair<Double, Double>? {
+    val prefs = context.getSharedPreferences("climaai_location_cache", Context.MODE_PRIVATE)
+    // The manager stamps a timestamp with every fix it caches. Zero means there
+    // has never been one, and the coordinates would read back as its own 0f
+    // default — which is a real place, in the Gulf of Guinea.
+    if (prefs.getLong("cached_timestamp", 0L) == 0L) return null
+    return prefs.getFloat("cached_lat", 0f).toDouble() to
+        prefs.getFloat("cached_lon", 0f).toDouble()
+}
+
+/**
+ * Where a background refresh should fetch for when it was not handed
+ * coordinates: the app's own record of where the user is, falling back to the
+ * location the last widget update was for.
+ *
+ * Null means we genuinely do not know, and the caller must skip the fetch. There
+ * is deliberately no default location — weather for somewhere the user has never
+ * been, shown under their location's name, is worse than no weather at all.
+ */
+private fun knownLocation(context: Context): Pair<Double, Double>? {
+    lastKnownFix(context)?.let { return it }
+
+    val widgetData = WidgetDataManager.getData(context)
+    val lat = widgetData.latitude ?: return null
+    val lon = widgetData.longitude ?: return null
+    return lat to lon
+}
 
 /**
  * WorkManager worker for background weather refresh.
@@ -28,53 +60,59 @@ class WeatherWorker(
     companion object {
         const val TAG = "WeatherWorker"
         const val WORK_NAME = "weather_refresh"
-        
+
+        /** Unique name for the one-off refreshes enqueued by WorkScheduler. */
+        const val IMMEDIATE_WORK_NAME = "weather_refresh_now"
+
         // Input data keys
         const val KEY_LATITUDE = "latitude"
         const val KEY_LONGITUDE = "longitude"
         const val KEY_FORCE_NOTIFICATION = "force_notification"
     }
-    
+
     private val repository = WeatherRepository(applicationContext)
     private val notificationPrefs = NotificationPrefsManager(applicationContext)
     private val notificationService = NotificationService(applicationContext)
-    
+
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting weather refresh work")
-        
+
         try {
-            // Get saved location from widget data or use default
-            val widgetData = WidgetDataManager.getData(applicationContext)
-            val lat = inputData.getDouble(KEY_LATITUDE, widgetData?.latitude ?: 37.7749)
-            val lon = inputData.getDouble(KEY_LONGITUDE, widgetData?.longitude ?: -122.4194)
+            val target = resolveLocation()
+            if (target == null) {
+                // Nothing to fetch for. Retrying would not help — only the app
+                // resolving a location will — so this is a success with no work
+                // done, and the widgets stay in their no-data state.
+                Log.w(TAG, "No known location; skipping refresh")
+                return Result.success()
+            }
+            val (lat, lon) = target
             val forceNotification = inputData.getBoolean(KEY_FORCE_NOTIFICATION, false)
-            
+
             // Fetch weather (uses cache if recent)
             val result = repository.getWeather(lat, lon, forceRefresh = false)
-            
+
             when (result) {
                 is WeatherResult.Success -> {
                     val weather = result.data
-                    
-                    // Update widget data
-                    WidgetDataManager.updateWidgets(
+
+                    // Stores the reading and repaints every widget — including
+                    // the extra-large one, which the hand-rolled update list here
+                    // left out — before this coroutine returns. A fire-and-forget
+                    // repaint can outlive the process once doWork has finished.
+                    WidgetDataManager.applyWeather(
                         context = applicationContext,
                         weather = weather,
-                        locationName = weather.location?.name ?: "Current Location",
+                        locationName = weather.location.name ?: "Current Location",
                         latitude = lat,
                         longitude = lon
                     )
-                    
-                    // Update all widgets
-                    SmallWeatherWidget().updateAll(applicationContext)
-                    MediumWeatherWidget().updateAll(applicationContext)
-                    LargeWeatherWidget().updateAll(applicationContext)
-                    
+
                     Log.d(TAG, "Widgets updated successfully")
-                    
+
                     // Check notification conditions
                     checkAndSendNotifications(weather, forceNotification)
-                    
+
                     return Result.success()
                 }
                 is WeatherResult.Error -> {
@@ -87,7 +125,25 @@ class WeatherWorker(
             return Result.retry()
         }
     }
-    
+
+    /**
+     * Coordinates for this run, most trustworthy first: the ones handed to it,
+     * then whatever [knownLocation] can dig up.
+     *
+     * Input coordinates are only ever set on a one-off refresh, so they are as
+     * fresh as the caller that asked for it. Absence is detected with NaN rather
+     * than a plausible default, because `getDouble(key, fallback)` returns the
+     * fallback only when the key is *missing* — a key present with a value of 0.0
+     * is what made the previous fallback dead code.
+     */
+    private fun resolveLocation(): Pair<Double, Double>? {
+        val lat = inputData.getDouble(KEY_LATITUDE, Double.NaN)
+        val lon = inputData.getDouble(KEY_LONGITUDE, Double.NaN)
+        if (!lat.isNaN() && !lon.isNaN()) return lat to lon
+
+        return knownLocation(applicationContext)
+    }
+
     private suspend fun checkAndSendNotifications(
         weather: com.climaai.app.data.WeatherResponse,
         forceNotification: Boolean
@@ -180,10 +236,15 @@ class DailySummaryWorker(
         }
         
         try {
-            val widgetData = WidgetDataManager.getData(applicationContext)
-            val lat = widgetData?.latitude ?: 37.7749
-            val lon = widgetData?.longitude ?: -122.4194
-            
+            // Same rule as the refresh worker: no known location means no
+            // briefing, rather than a briefing for San Francisco.
+            val target = knownLocation(applicationContext)
+            if (target == null) {
+                Log.w(TAG, "No known location; skipping daily summary")
+                return Result.success()
+            }
+            val (lat, lon) = target
+
             val result = repository.getWeather(lat, lon, forceRefresh = true)
             
             when (result) {

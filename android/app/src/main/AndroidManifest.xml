@@ -8,10 +8,23 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
-    <!-- Foreground service for widgets (Android 12+) -->
+    <!-- There is no widget foreground service. This is WorkManager's: on API < 31
+         it runs expedited work (WorkScheduler.triggerImmediateRefresh) inside its
+         own SystemForegroundService. WorkManager merges the permission in itself;
+         it is repeated here so the requirement is visible. No typed
+         FOREGROUND_SERVICE_* permission is needed — that requirement only applies
+         to services started on API 34+ devices, and on those the same work runs as
+         an expedited job with no service involved. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- android:enableOnBackInvokedCallback below: at targetSdk 36 Android stops
+         dispatching onBackPressed() and KEYCODE_BACK and drives back through
+         OnBackInvokedCallback whether or not this is declared. Declaring it makes
+         API 33-35 devices behave the same way instead of diverging from Android 16.
+         Safe here because nothing overrides onBackPressed() — back is handled by
+         Navigation Compose through OnBackPressedDispatcher, which registers the
+         platform callback for us. -->
     <application
         android:name=".ClimaAIApplication"
         android:allowBackup="false"
@@ -20,6 +33,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ClimaAI"
+        android:enableOnBackInvokedCallback="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="false">
         
@@ -114,10 +128,12 @@
             </intent-filter>
         </receiver>
         
-        <!-- Google Play Billing -->
+        <!-- Google Play Billing. Play reads this to decide which billing flows the
+             app supports; it must match the billing-ktx version in app/build.gradle
+             or the upload is rejected for the version it claims here. -->
         <meta-data
             android:name="com.google.android.play.billingclient.version"
-            android:value="6.1.0" />
+            android:value="8.0.0" />
     </application>
 
 </manifest>

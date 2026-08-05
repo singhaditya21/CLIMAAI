@@ -5,40 +5,43 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.*
-
-data class DayForecast(
-    val day: String,
-    val icon: String,
-    val high: Int,
-    val low: Int
-)
+import com.climaai.wear.data.WearDayForecast
+import com.climaai.wear.data.WearWeather
+import com.climaai.wear.data.WearWeatherRepository
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ForecastScreen(
     onBack: () -> Unit
 ) {
-    val forecast = remember {
-        listOf(
-            DayForecast("Today", "⛅", 78, 65),
-            DayForecast("Tue", "☀️", 82, 68),
-            DayForecast("Wed", "☀️", 80, 66),
-            DayForecast("Thu", "🌧️", 72, 60),
-            DayForecast("Fri", "⛈️", 68, 58),
-            DayForecast("Sat", "🌤️", 75, 62),
-            DayForecast("Sun", "☀️", 79, 64)
-        )
+    val context = LocalContext.current
+    // Reads the same cached reading the main screen just fetched, so opening
+    // the forecast costs no second request.
+    var weather by remember { mutableStateOf<WearWeather?>(null) }
+
+    LaunchedEffect(Unit) {
+        weather = WearWeatherRepository.getWeather(context)
     }
-    
+
+    val listState = rememberScalingLazyListState()
+
     Scaffold(
         timeText = { TimeText() },
-        positionIndicator = { PositionIndicator(scalingLazyListState = rememberScalingLazyListState()) },
+        positionIndicator = { PositionIndicator(scalingLazyListState = listState) },
         vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }
     ) {
+        val forecast = (weather as? WearWeather.Available)?.data?.daily.orEmpty()
+
         ScalingLazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -51,12 +54,27 @@ fun ForecastScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            
-            items(forecast.size) { index ->
-                val day = forecast[index]
-                ForecastDayChip(day)
+
+            if (weather == null) {
+                item { CircularProgressIndicator() }
+            } else if (forecast.isEmpty()) {
+                // No forecast on hand and nothing to fake in its place.
+                item {
+                    Text(
+                        text = (weather as? WearWeather.Unavailable)?.reason?.description
+                            ?: "No forecast available",
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        color = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            } else {
+                items(forecast.size) { index ->
+                    ForecastDayChip(forecast[index])
+                }
             }
-            
+
             item {
                 Chip(
                     onClick = onBack,
@@ -70,7 +88,7 @@ fun ForecastScreen(
 }
 
 @Composable
-private fun ForecastDayChip(day: DayForecast) {
+private fun ForecastDayChip(day: WearDayForecast) {
     Chip(
         onClick = { },
         label = {
@@ -79,7 +97,7 @@ private fun ForecastDayChip(day: DayForecast) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(day.day, modifier = Modifier.weight(1f))
+                Text(dayLabel(day.date), modifier = Modifier.weight(1f))
                 Text(day.icon)
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -98,4 +116,18 @@ private fun ForecastDayChip(day: DayForecast) {
             .fillMaxWidth()
             .padding(vertical = 2.dp)
     )
+}
+
+/**
+ * "Today" only when the entry really is today. The label is derived at render
+ * time because a cached reading can outlive the midnight it was fetched before.
+ */
+private fun dayLabel(isoDate: String): String {
+    val isoFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val parsed = runCatching { isoFormat.parse(isoDate) }.getOrNull() ?: return NO_VALUE
+    return if (isoFormat.format(Date()) == isoDate) {
+        "Today"
+    } else {
+        SimpleDateFormat("EEE", Locale.getDefault()).format(parsed)
+    }
 }

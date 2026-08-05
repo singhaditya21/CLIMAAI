@@ -1,6 +1,9 @@
 """
 Subscription management router.
 """
+from datetime import datetime, timezone
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
@@ -12,10 +15,18 @@ from ..schemas.subscription import (
     SubscriptionStatusResponse,
 )
 from ..services.auth import get_current_user
+from ..services.receipt_validator import Platform, get_receipt_validator
 from ..services.subscription_service import SubscriptionService
 from ..config import get_settings
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
+
+
+def _expiry_from_millis(expires_ms) -> Optional[datetime]:
+    """Store expiry timestamps are epoch milliseconds, as strings or ints."""
+    if not expires_ms:
+        return None
+    return datetime.fromtimestamp(int(expires_ms) / 1000, tz=timezone.utc)
 
 
 @router.get("/status", response_model=SubscriptionStatusResponse)
@@ -68,29 +79,45 @@ async def activate_subscription(
     Requires valid receipt/purchase token from Apple or Google.
     """
     subscription_service = SubscriptionService()
-    
+    expires_at = None
+
     # Validate receipt based on platform
     try:
         if subscription_data.platform.value == "apple":
-            # Validate Apple receipt
-            receipt_validation = await subscription_service.validate_apple_receipt(
-                subscription_data.receipt_data,
-                sandbox=True  # Set to False in production
+            settings = get_settings()
+
+            # ReceiptValidator asks production first and only falls back to
+            # sandbox on Apple's 21007. The previous call pinned sandbox=True,
+            # which in production rejects every real receipt and accepts any
+            # receipt minted from a free sandbox tester account.
+            is_valid, receipt = await get_receipt_validator().validate_receipt(
+                platform=Platform.IOS,
+                receipt_data=subscription_data.receipt_data,
             )
-            
-            if receipt_validation.get("status") != 0:
+
+            if not is_valid:
                 raise HTTPException(
                     status_code=400,
-                    detail="Invalid Apple receipt"
+                    detail=receipt.get("error", "Invalid Apple receipt")
                 )
-            
-            # Extract transaction ID
-            latest_receipt_info = receipt_validation.get("latest_receipt_info", [])
-            if not latest_receipt_info:
+
+            # Apple validates a receipt for whichever app issued it, so without
+            # this the receipt from any other App Store purchase would pass.
+            if receipt.get("bundle_id") != settings.APPLE_BUNDLE_ID:
+                raise HTTPException(status_code=400, detail="Receipt belongs to a different app")
+
+            if not receipt.get("is_active"):
+                raise HTTPException(status_code=400, detail="Subscription expired")
+
+            # The original transaction id, not the per-renewal one: it is what
+            # the App Store sends in server notifications, so it is the only
+            # value a later RENEW/EXPIRED webhook can match this row on.
+            transaction_id = receipt.get("original_transaction_id")
+            if not transaction_id:
                 raise HTTPException(status_code=400, detail="No transaction found in receipt")
-            
-            transaction_id = latest_receipt_info[0].get("transaction_id")
-            
+
+            expires_at = _expiry_from_millis(receipt.get("expires_date_ms"))
+
         else:  # Google
             # Validate Google purchase
             settings = get_settings()
@@ -126,27 +153,29 @@ async def activate_subscription(
                 )
 
             # Validate expiry
-            expiry_ms = validation_response.get("expiryTimeMillis")
-            if expiry_ms:
-                import time
-                if int(expiry_ms) < time.time() * 1000:
-                    raise HTTPException(status_code=400, detail="Subscription expired")
+            expires_at = _expiry_from_millis(validation_response.get("expiryTimeMillis"))
+            if expires_at and expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Subscription expired")
 
             transaction_id = purchase_token
-        
+
         # Activate subscription
         subscription = await subscription_service.activate_subscription(
             current_user,
             subscription_data.platform,
             subscription_data.plan,
             transaction_id,
-            db
+            db,
+            end_date=expires_at,
         )
-        
+
         return SubscriptionResponse.model_validate(subscription)
-        
+
     except HTTPException:
         raise
+    except ValueError as e:
+        # Raised when the purchase is already linked to another account.
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Subscription activation failed: {str(e)}")
 
@@ -164,8 +193,6 @@ async def validate_subscription(
     
     Returns detailed subscription status including expiration and auto-renewal.
     """
-    from ..services.receipt_validator import get_receipt_validator, Platform
-    
     validator = get_receipt_validator()
     
     try:

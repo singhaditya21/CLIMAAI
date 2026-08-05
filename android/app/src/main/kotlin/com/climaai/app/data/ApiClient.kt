@@ -56,7 +56,9 @@ interface ClimaAIApi {
         @Query("longitude") longitude: Double
     ): Response<Map<String, Any>>
     
-    @GET("/api/weather/radar")
+    // The router mounts the frame list at /radar/frames. /radar on its own is
+    // only the shared prefix of that and the tile route, so it 404s.
+    @GET("/api/weather/radar/frames")
     suspend fun getRadarFrames(): Response<Map<String, Any>>
     
     @GET("/api/weather/alerts")
@@ -71,10 +73,14 @@ interface ClimaAIApi {
     ): Response<NWSStateAlertsResponse>
     
     // AI endpoints (Premium)
+    // The router names these latitude/longitude like every other endpoint here.
+    // Sending lat/lon made FastAPI reject the call with a 422 for a missing
+    // required query parameter — the error the AI Insights card led to, and one
+    // no amount of retrying could clear.
     @GET("/api/insights")
     suspend fun getAIInsights(
-        @Query("lat") latitude: Double,
-        @Query("lon") longitude: Double
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double
     ): Response<AIInsightsResponse>
     
     @GET("/api/summary")
@@ -113,12 +119,12 @@ interface ClimaAIApi {
     @POST("/api/auth/register")
     suspend fun register(@Body user: UserRegister): Response<TokenResponse>
     
+    // The router reads a JSON UserLogin body. This was declared as an OAuth2
+    // style form post with a "username" field, so FastAPI rejected it with a 422
+    // before it ever looked at the credentials — every sign-in failed, and the
+    // screen reported it as bad credentials.
     @POST("/api/auth/login")
-    @FormUrlEncoded
-    suspend fun login(
-        @Field("username") email: String,
-        @Field("password") password: String
-    ): Response<TokenResponse>
+    suspend fun loginRequest(@Body credentials: UserLogin): Response<TokenResponse>
 
     @POST("/api/auth/forgot-password")
     suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<Map<String, String>>
@@ -126,8 +132,10 @@ interface ClimaAIApi {
     @GET("/api/auth/me")
     suspend fun getCurrentUser(): Response<User>
     
-    @PUT("/api/users/preferences")
-    suspend fun updatePreferences(@Body preferences: UserPreferences): Response<User>
+    // There is no /api/users router at all; preferences are saved through the
+    // auth router's user update, which expects them nested under "preferences".
+    @PUT("/api/auth/me")
+    suspend fun updatePreferences(@Body update: UserUpdateRequest): Response<User>
     
     // Subscription endpoints
     @GET("/api/subscriptions/status")
@@ -272,24 +280,24 @@ interface ClimaAIApi {
         @Body request: TrackEventRequest
     ): Response<Map<String, String>>
     
+    // Every personalization route resolves the user from the bearer token. The
+    // user_id query these used to send is not a parameter any of them declares,
+    // so it was ignored — a caller passing one was not choosing a profile, it
+    // just read its own.
     @GET("/personalization/profile")
-    suspend fun getPersonalizationProfile(
-        @Query("user_id") userId: String = "demo_user"
-    ): Response<UserPreferenceProfile>
-    
+    suspend fun getPersonalizationProfile(): Response<UserPreferenceProfile>
+
     @GET("/personalization/recommendations")
     suspend fun getPersonalizedRecommendations(
         @Query("temperature") temperature: Double,
         @Query("humidity") humidity: Int,
         @Query("uv_index") uvIndex: Double,
-        @Query("precipitation_probability") precipProbability: Int,
-        @Query("user_id") userId: String = "demo_user"
+        @Query("precipitation_probability") precipProbability: Int
     ): Response<PersonalizedContentResponse>
-    
+
     @GET("/personalization/should-notify")
     suspend fun shouldNotify(
-        @Query("notification_type") notificationType: String,
-        @Query("user_id") userId: String = "demo_user"
+        @Query("notification_type") notificationType: String
     ): Response<ShouldNotifyResponse>
     
     @POST("/personalization/profile/update")
@@ -338,6 +346,22 @@ interface ClimaAIApi {
         @Query("end_date") endDate: String
     ): Response<HistoricalWeatherData>
 }
+
+/**
+ * Sign in with the two fields the caller actually holds.
+ *
+ * An extension rather than a member so that fixing the wire format above did not
+ * ripple out into every call site: Retrofit needs the body as a single object,
+ * but nobody calling this has one.
+ */
+suspend fun ClimaAIApi.login(email: String, password: String): Response<TokenResponse> =
+    loginRequest(UserLogin(email = email, password = password))
+
+// Body of PUT /api/auth/me. Every field on the router's UserUpdate is optional,
+// so this only carries the part the app actually changes.
+data class UserUpdateRequest(
+    val preferences: UserPreferences
+)
 
 // Request/Response classes for subscriptions
 data class ReceiptValidationRequest(

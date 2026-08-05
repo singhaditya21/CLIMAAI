@@ -5,12 +5,17 @@ plugins {
 
 android {
     namespace 'com.climaai.wear'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.climaai.wear"
         minSdk 30
-        targetSdk 34
+        // Wear OS is carved out of the phone requirement: Play asks watch apps
+        // for API 35 or higher, not 36. Targeting 35 meets that; targeting 36
+        // would opt this module into Android 16 behaviour changes (predictive
+        // back, large-screen resizability) that nothing here has been run
+        // against. Compiled against 36 either way.
+        targetSdk 35
         versionCode 1
         versionName "1.0.0"
     }
@@ -70,7 +75,12 @@ dependencies {
     // Networking
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    
+
+    // Location — same version as app/. Fused rather than the platform
+    // LocationManager because it is the only provider that falls back to the
+    // tethered phone on watches without their own GPS.
+    implementation 'com.google.android.gms:play-services-location:21.1.0'
+
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'

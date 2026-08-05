@@ -90,9 +90,18 @@ data class OpenMeteoAirQualityResponse(
     val hourly: OpenMeteoHourlyAirQuality?
 )
 
+/**
+ * Pollen is reported in grains/m³ and is fractional (Berlin answers 36.9 for mugwort),
+ * so the pollen fields have to be Double: declared as Int, Gson threw while reading the
+ * body and the caller lost the *entire* air quality response — AQI included — for every
+ * location that actually has pollen coverage.
+ *
+ * Pollen is also null outside the CAMS Europe domain, and us_aqi is null where Open-Meteo
+ * has no AQI model, so null here means "not reported", never zero.
+ */
 data class OpenMeteoCurrentAirQuality(
     val time: String,
-    @SerializedName("us_aqi") val usAqi: Int,
+    @SerializedName("us_aqi") val usAqi: Int?,
     val pm10: Double,
     @SerializedName("pm2_5") val pm25: Double,
     @SerializedName("carbon_monoxide") val carbonMonoxide: Double?,
@@ -100,26 +109,27 @@ data class OpenMeteoCurrentAirQuality(
     @SerializedName("sulphur_dioxide") val sulphurDioxide: Double?,
     val ozone: Double?,
     @SerializedName("uv_index") val uvIndex: Double?,
-    @SerializedName("alder_pollen") val alderPollen: Int?,
-    @SerializedName("birch_pollen") val birchPollen: Int?,
-    @SerializedName("grass_pollen") val grassPollen: Int?,
-    @SerializedName("mugwort_pollen") val mugwortPollen: Int?,
-    @SerializedName("olive_pollen") val olivePollen: Int?,
-    @SerializedName("ragweed_pollen") val ragweedPollen: Int?
+    @SerializedName("alder_pollen") val alderPollen: Double?,
+    @SerializedName("birch_pollen") val birchPollen: Double?,
+    @SerializedName("grass_pollen") val grassPollen: Double?,
+    @SerializedName("mugwort_pollen") val mugwortPollen: Double?,
+    @SerializedName("olive_pollen") val olivePollen: Double?,
+    @SerializedName("ragweed_pollen") val ragweedPollen: Double?
 )
 
+/** Hourly series. Individual entries are null wherever the source has no value for that hour. */
 data class OpenMeteoHourlyAirQuality(
     val time: List<String>,
-    val pm10: List<Double>?,
-    @SerializedName("pm2_5") val pm25: List<Double>?,
-    @SerializedName("us_aqi") val usAqi: List<Int>?,
-    @SerializedName("uv_index") val uvIndex: List<Double>?,
-    @SerializedName("alder_pollen") val alderPollen: List<Int>?,
-    @SerializedName("birch_pollen") val birchPollen: List<Int>?,
-    @SerializedName("grass_pollen") val grassPollen: List<Int>?,
-    @SerializedName("mugwort_pollen") val mugwortPollen: List<Int>?,
-    @SerializedName("olive_pollen") val olivePollen: List<Int>?,
-    @SerializedName("ragweed_pollen") val ragweedPollen: List<Int>?
+    val pm10: List<Double?>?,
+    @SerializedName("pm2_5") val pm25: List<Double?>?,
+    @SerializedName("us_aqi") val usAqi: List<Int?>?,
+    @SerializedName("uv_index") val uvIndex: List<Double?>?,
+    @SerializedName("alder_pollen") val alderPollen: List<Double?>?,
+    @SerializedName("birch_pollen") val birchPollen: List<Double?>?,
+    @SerializedName("grass_pollen") val grassPollen: List<Double?>?,
+    @SerializedName("mugwort_pollen") val mugwortPollen: List<Double?>?,
+    @SerializedName("olive_pollen") val olivePollen: List<Double?>?,
+    @SerializedName("ragweed_pollen") val ragweedPollen: List<Double?>?
 )
 
 // ============================================================
@@ -182,11 +192,26 @@ data class RainViewerSatellite(
 )
 
 data class RainViewerFrame(
+    /** Unix seconds the frame was captured for. */
     val time: Long,
+    /** Opaque path issued by the index, e.g. "/v2/radar/470e284220fa". */
     val path: String
 ) {
-    fun getTileUrl(z: Int, x: Int, y: Int): String {
-        return "https://tilecache.rainviewer.com$path/256/$z/$x/$y/2/1_1.png"
+    /**
+     * Tile URL template for this frame, with the {z}/{x}/{y} placeholders left for
+     * the map library to fill in.
+     *
+     * [path] is an opaque id, not a timestamp — a URL built out of [time] (or out of a
+     * frame index) 404s, so the path has to be carried through from weather-maps.json
+     * verbatim. [host] likewise comes from the index rather than being hard-coded.
+     */
+    fun tileUrlTemplate(host: String, colorScheme: Int = COLOR_SCHEME_UNIVERSAL_BLUE): String {
+        return "$host$path/256/{z}/{x}/{y}/$colorScheme/1_1.png"
+    }
+
+    companion object {
+        /** RainViewer's default palette and the only one its public docs still list. */
+        const val COLOR_SCHEME_UNIVERSAL_BLUE = 2
     }
 }
 

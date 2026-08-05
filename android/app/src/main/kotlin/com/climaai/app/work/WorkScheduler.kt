@@ -12,33 +12,36 @@ import java.util.concurrent.TimeUnit
 object WorkScheduler {
     
     private const val TAG = "WorkScheduler"
-    
+
+    /** Refresh interval used when a caller has no opinion. */
+    const val DEFAULT_INTERVAL_MINUTES = 30
+
     /**
      * Schedule periodic weather refresh for widget updates.
      * @param context Application context
      * @param intervalMinutes Refresh interval (15, 30, or 60)
+     *
+     * Deliberately carries no coordinates. A PeriodicWorkRequest keeps the input
+     * data it was built with for the life of the schedule, so a location baked in
+     * here would go on being used long after the user had left it; the worker
+     * resolves the location per run instead. The version that did pass
+     * coordinates wrote `latitude ?: 0.0`, which put the key in the input data
+     * with a value of 0.0 whenever the caller had none — making the worker's own
+     * fallback unreachable and sending every refresh to the Gulf of Guinea.
      */
     fun scheduleWeatherRefresh(
         context: Context,
-        intervalMinutes: Int = 30,
-        latitude: Double? = null,
-        longitude: Double? = null
+        intervalMinutes: Int = DEFAULT_INTERVAL_MINUTES
     ) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-        
-        val inputData = workDataOf(
-            WeatherWorker.KEY_LATITUDE to (latitude ?: 0.0),
-            WeatherWorker.KEY_LONGITUDE to (longitude ?: 0.0)
-        )
-        
+
         val request = PeriodicWorkRequestBuilder<WeatherWorker>(
             intervalMinutes.toLong(), TimeUnit.MINUTES,
             5, TimeUnit.MINUTES // Flex interval
         )
             .setConstraints(constraints)
-            .setInputData(inputData)
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
                 WorkRequest.MIN_BACKOFF_MILLIS,
@@ -103,7 +106,12 @@ object WorkScheduler {
     }
     
     /**
-     * Trigger an immediate weather refresh (one-time).
+     * Trigger an immediate weather refresh (one-time) for a location the caller
+     * knows.
+     *
+     * The app should call this whenever it resolves or changes location: the
+     * periodic schedule carries none, and the worker's own fallback can only ever
+     * be as fresh as the last fix the location manager cached.
      */
     fun triggerImmediateRefresh(
         context: Context,
@@ -116,17 +124,49 @@ object WorkScheduler {
             WeatherWorker.KEY_LONGITUDE to longitude,
             WeatherWorker.KEY_FORCE_NOTIFICATION to forceNotification
         )
-        
+
         val request = OneTimeWorkRequestBuilder<WeatherWorker>()
             .setInputData(inputData)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
-        
-        WorkManager.getInstance(context).enqueue(request)
-        
+
+        // REPLACE: these coordinates are newer than whatever a queued refresh is
+        // carrying, and a refresh of the place the user just left is wasted work.
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            WeatherWorker.IMMEDIATE_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request
+        )
+
         Log.d(TAG, "Triggered immediate weather refresh")
     }
-    
+
+    /**
+     * Refresh once for whatever location the worker can resolve for itself.
+     *
+     * Used by the widgets, which can tell their reading has aged out but have no
+     * idea where it should come from.
+     */
+    fun requestWidgetRefresh(context: Context) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val request = OneTimeWorkRequestBuilder<WeatherWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        // KEEP: every widget on the home screen redraws at once, and each must
+        // not cancel the fetch the previous one just started.
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            WeatherWorker.IMMEDIATE_WORK_NAME,
+            ExistingWorkPolicy.KEEP,
+            request
+        )
+
+        Log.d(TAG, "Requested widget refresh")
+    }
+
     /**
      * Cancel all scheduled work.
      */
@@ -149,13 +189,5 @@ object WorkScheduler {
     fun cancelDailySummary(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(DailySummaryWorker.WORK_NAME)
         Log.d(TAG, "Cancelled daily summary work")
-    }
-    
-    /**
-     * Update location for weather refresh.
-     */
-    fun updateLocation(context: Context, latitude: Double, longitude: Double) {
-        // Cancel existing and reschedule with new location
-        scheduleWeatherRefresh(context, 30, latitude, longitude)
     }
 }

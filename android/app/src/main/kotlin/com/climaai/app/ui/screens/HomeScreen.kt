@@ -1,6 +1,7 @@
 package com.climaai.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +30,7 @@ import com.climaai.app.ui.viewmodel.WeatherViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,12 +38,21 @@ fun HomeScreen(
     viewModel: WeatherViewModel,
     onNavigateToForecast: () -> Unit,
     onNavigateToAI: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToLocationSwitcher: () -> Unit
 ) {
+    val context = LocalContext.current
     val weatherState by viewModel.weatherState.collectAsState()
     val location by viewModel.location.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    
+
+    // Readings arrive from the API in Celsius; this is the unit they are shown
+    // in. Settings writes it, so it survives a restart and this screen follows.
+    val unitsPrefs = remember { UnitsPrefs(context) }
+    val temperatureUnit by unitsPrefs.temperatureUnit.collectAsState(
+        initial = TemperatureUnit.CELSIUS
+    )
+
     // NEW: Cache and refresh state
     val lastUpdatedText by viewModel.lastUpdatedText.collectAsState()
     val isFromCache by viewModel.isFromCache.collectAsState()
@@ -116,8 +129,8 @@ fun HomeScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Location picker */ }) {
-                        Icon(Icons.Default.LocationOn, "Location")
+                    IconButton(onClick = onNavigateToLocationSwitcher) {
+                        Icon(Icons.Default.LocationOn, "Change location")
                     }
                 },
                 actions = {
@@ -214,6 +227,7 @@ fun HomeScreen(
                     is WeatherState.Success -> {
                         WeatherContent(
                             weather = state.data,
+                            temperatureUnit = temperatureUnit,
                             isRefreshing = isRefreshing,
                             canRefresh = canRefresh,
                             onRefresh = { viewModel.forceRefresh() },
@@ -231,6 +245,7 @@ fun HomeScreen(
 @Composable
 private fun WeatherContent(
     weather: WeatherResponse,
+    temperatureUnit: TemperatureUnit,
     isRefreshing: Boolean,
     canRefresh: Boolean,
     onRefresh: () -> Unit,
@@ -257,20 +272,21 @@ private fun WeatherContent(
             item {
                 CurrentWeatherCard(
                     current = weather.current,
-                    daily = weather.daily
+                    daily = weather.daily,
+                    temperatureUnit = temperatureUnit
                 )
             }
-            
+
             // Quick Stats Row
             item {
                 QuickStatsRow(weather.current, weather.airQuality)
             }
-            
+
             // Hourly Forecast
             item {
-                HourlyForecastSection(weather.hourly)
+                HourlyForecastSection(weather.hourly, temperatureUnit)
             }
-            
+
             // AI Insights Preview
             item {
                 AIInsightsPreviewCard(onClick = onNavigateToAI)
@@ -280,6 +296,7 @@ private fun WeatherContent(
             item {
                 DailyForecastPreview(
                     daily = weather.daily.take(5),
+                    temperatureUnit = temperatureUnit,
                     onViewAll = onNavigateToForecast
                 )
             }
@@ -291,36 +308,56 @@ private fun WeatherContent(
                 }
             }
             
-            // Data Source Indicator (for demo)
+            // Data source attribution
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Powered by free, open-source APIs",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.3f)
-                    )
-                }
+                OpenMeteoAttribution()
             }
-            
+
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
 
+/**
+ * Required credit for the forecast data.
+ *
+ * Open-Meteo publishes under CC BY 4.0, which only permits use if the source is
+ * named wherever the data is shown. The line this replaced ("Powered by free,
+ * open-source APIs") credited nobody, so the app was out of licence. It is not
+ * decoration and must not be dropped or faded out of legibility.
+ */
+@Composable
+private fun OpenMeteoAttribution() {
+    val uriHandler = LocalUriHandler.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Weather data by Open-Meteo.com, licensed CC BY 4.0",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.clickable {
+                uriHandler.openUri("https://open-meteo.com/")
+            }
+        )
+    }
+}
+
 @Composable
 private fun CurrentWeatherCard(
     current: CurrentWeather,
-    daily: List<DailyWeather> = emptyList()
+    daily: List<DailyWeather>,
+    temperatureUnit: TemperatureUnit
 ) {
     val todayForecast = daily.firstOrNull()
-    
+
     GlassmorphicCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -346,7 +383,7 @@ private fun CurrentWeatherCard(
             
             // Animated temperature counter
             AnimatedTemperature(
-                temperature = current.temperature,
+                temperature = temperatureUnit.fromCelsius(current.temperature),
                 fontSize = 72.sp,
                 fontWeight = FontWeight.Light,
                 color = Color.White
@@ -368,15 +405,19 @@ private fun CurrentWeatherCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // The big reading above is a bare degree sign, so this line
+                // carries the unit for the whole card.
                 FadeInText(
-                    text = "Feels like ${current.feelsLike.toInt()}°",
+                    text = "Feels like ${temperatureUnit.fromCelsius(current.feelsLike).roundToInt()}" +
+                        temperatureUnit.symbol,
                     fontSize = 14.sp,
                     color = Color.White.copy(alpha = 0.6f),
                     delay = 400
                 )
                 todayForecast?.let { today ->
                     FadeInText(
-                        text = "H:${today.temperatureMax.toInt()}° L:${today.temperatureMin.toInt()}°",
+                        text = "H:${temperatureUnit.fromCelsius(today.temperatureMax).roundToInt()}° " +
+                            "L:${temperatureUnit.fromCelsius(today.temperatureMin).roundToInt()}°",
                         fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.6f),
                         delay = 500
@@ -512,7 +553,10 @@ private fun StatCard(
 }
 
 @Composable
-private fun HourlyForecastSection(hourly: List<HourlyWeather>) {
+private fun HourlyForecastSection(
+    hourly: List<HourlyWeather>,
+    temperatureUnit: TemperatureUnit
+) {
     GlassmorphicCard(
         modifier = Modifier.cardEntrance(delay = 100),
         cornerRadius = 16.dp,
@@ -529,7 +573,7 @@ private fun HourlyForecastSection(hourly: List<HourlyWeather>) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(hourly.take(12)) { hour ->
-                    HourlyItem(hour)
+                    HourlyItem(hour, temperatureUnit)
                 }
             }
         }
@@ -537,7 +581,7 @@ private fun HourlyForecastSection(hourly: List<HourlyWeather>) {
 }
 
 @Composable
-private fun HourlyItem(hour: HourlyWeather) {
+private fun HourlyItem(hour: HourlyWeather, temperatureUnit: TemperatureUnit) {
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     
     Column(
@@ -557,7 +601,7 @@ private fun HourlyItem(hour: HourlyWeather) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "${hour.temperature.toInt()}°",
+            text = "${temperatureUnit.fromCelsius(hour.temperature).roundToInt()}°",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Medium,
             color = Color.White
@@ -624,6 +668,7 @@ private fun AIInsightsPreviewCard(onClick: () -> Unit) {
 @Composable
 private fun DailyForecastPreview(
     daily: List<DailyWeather>,
+    temperatureUnit: TemperatureUnit,
     onViewAll: () -> Unit
 ) {
     GlassmorphicCard(
@@ -648,7 +693,7 @@ private fun DailyForecastPreview(
             }
             
             daily.forEachIndexed { index, day ->
-                DailyForecastRow(day, index)
+                DailyForecastRow(day, index, temperatureUnit)
                 if (index < daily.lastIndex) {
                     HorizontalDivider(
                         color = Color.White.copy(alpha = 0.1f),
@@ -661,7 +706,11 @@ private fun DailyForecastPreview(
 }
 
 @Composable
-private fun DailyForecastRow(day: DailyWeather, dayIndex: Int) {
+private fun DailyForecastRow(
+    day: DailyWeather,
+    dayIndex: Int,
+    temperatureUnit: TemperatureUnit
+) {
     val dayName = when (dayIndex) {
         0 -> "Today"
         1 -> "Tomorrow"
@@ -711,13 +760,13 @@ private fun DailyForecastRow(day: DailyWeather, dayIndex: Int) {
         }
         
         Text(
-            text = "${day.temperatureMin.toInt()}°",
+            text = "${temperatureUnit.fromCelsius(day.temperatureMin).roundToInt()}°",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.White.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "${day.temperatureMax.toInt()}°",
+            text = "${temperatureUnit.fromCelsius(day.temperatureMax).roundToInt()}°",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = Color.White

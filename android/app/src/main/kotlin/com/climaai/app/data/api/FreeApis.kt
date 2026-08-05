@@ -137,12 +137,12 @@ interface RainViewerApi {
     
     companion object {
         const val BASE_URL = "https://api.rainviewer.com/"
-        
-        // Tile URL format: https://tilecache.rainviewer.com/v2/radar/{timestamp}/256/{z}/{x}/{y}/2/1_1.png
-        fun getRadarTileUrl(timestamp: Long, z: Int, x: Int, y: Int): String {
-            return "https://tilecache.rainviewer.com/v2/radar/$timestamp/256/$z/$x/$y/2/1_1.png"
-        }
-        
+
+        // Tile URLs are built with RainViewerFrame.tileUrlTemplate() from the path and host
+        // this endpoint returns. There is deliberately no helper that assembles a tile URL
+        // from a timestamp: RainViewer now serves opaque frame ids (/v2/radar/470e284220fa),
+        // so anything derived from the frame's time or its position in the list 404s.
+
         fun create(): RainViewerApi {
             return Retrofit.Builder()
                 .baseUrl(BASE_URL)

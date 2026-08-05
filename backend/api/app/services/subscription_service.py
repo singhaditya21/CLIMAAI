@@ -2,12 +2,12 @@
 Subscription service for validation and management.
 """
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..models import User, Subscription, SubscriptionStatus, SubscriptionPlatform, SubscriptionPlan
 from ..schemas.subscription import SubscriptionStatusResponse
 from ..config import get_settings
-import httpx
 import json
 import logging
 import asyncio
@@ -40,6 +40,10 @@ class SubscriptionService:
                 SubscriptionStatus.GRACE_PERIOD
             ]))
             .order_by(Subscription.created_at.desc())
+            # order_by + scalar_one_or_none() is a contradiction without this:
+            # a user holding two live rows would raise MultipleResultsFound
+            # rather than getting the most recent one the ordering asks for.
+            .limit(1)
         )
         subscription = result.scalar_one_or_none()
         
@@ -136,17 +140,26 @@ class SubscriptionService:
         platform: SubscriptionPlatform,
         plan: SubscriptionPlan,
         transaction_id: str,
-        db: AsyncSession
+        db: AsyncSession,
+        end_date: Optional[datetime] = None,
     ) -> Subscription:
-        """Activate a paid subscription."""
+        """Activate a paid subscription.
+
+        `end_date` is the expiry the store reported for this purchase. Pass it
+        whenever the receipt carries one: assuming a full period from *now*
+        grants 30 or 365 fresh days to a receipt that expires tomorrow.
+        """
         now = datetime.now(timezone.utc)
-        
-        # Calculate end date
-        if plan == SubscriptionPlan.MONTHLY:
-            end_date = now + timedelta(days=30)
-        else:  # ANNUAL
-            end_date = now + timedelta(days=365)
-        
+
+        await self._reject_reused_transaction(user, platform, transaction_id, db)
+
+        if end_date is None:
+            # No store expiry available — fall back to the nominal period.
+            if plan == SubscriptionPlan.MONTHLY:
+                end_date = now + timedelta(days=30)
+            else:  # ANNUAL
+                end_date = now + timedelta(days=365)
+
         # Check for existing subscription
         result = await db.execute(
             select(Subscription)
@@ -192,25 +205,41 @@ class SubscriptionService:
             await db.commit()
             await db.refresh(subscription)
             return subscription
-    
-    async def validate_apple_receipt(self, receipt_data: str, sandbox: bool = True) -> dict:
+
+    async def _reject_reused_transaction(
+        self,
+        user: User,
+        platform: SubscriptionPlatform,
+        transaction_id: str,
+        db: AsyncSession,
+    ) -> None:
+        """Refuse a purchase that is already linked to a different account.
+
+        A validated receipt proves that a purchase happened, not who is holding
+        it. Anyone can replay a receipt they obtained once — their own, or one
+        posted publicly — so without this check a single $4.99 purchase
+        activates premium on an unlimited number of accounts.
         """
-        Validate Apple App Store receipt.
-        Note: This is a simplified version. Production should use App Store Server API.
-        """
-        settings = get_settings()
-        url = "https://sandbox.itunes.apple.com/verifyReceipt" if sandbox else "https://buy.itunes.apple.com/verifyReceipt"
-        
-        payload = {
-            "receipt-data": receipt_data,
-            "password": settings.APPLE_SHARED_SECRET,
-            "exclude-old-transactions": True
-        }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, timeout=10.0)
-            return response.json()
-    
+        token_column = (
+            Subscription.apple_transaction_id
+            if platform == SubscriptionPlatform.APPLE
+            else Subscription.google_purchase_token
+        )
+
+        result = await db.execute(
+            select(Subscription)
+            .where(token_column == transaction_id)
+            .where(Subscription.user_id != user.id)
+            .limit(1)
+        )
+
+        if result.scalar_one_or_none() is not None:
+            logger.warning(
+                "Rejected activation: purchase %s is already linked to another account",
+                transaction_id,
+            )
+            raise ValueError("This purchase is already linked to another account")
+
     async def validate_google_purchase(self, package_name: str, product_id: str, purchase_token: str) -> dict:
         """
         Validate Google Play purchase using Google Play Developer API.

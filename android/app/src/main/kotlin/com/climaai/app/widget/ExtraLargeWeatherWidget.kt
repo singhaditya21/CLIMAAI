@@ -26,37 +26,32 @@ class ExtraLargeWeatherWidget : GlanceAppWidget() {
     
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val data = WidgetDataManager.getData(context)
-        
+        // A render is the only moment anything notices the reading has aged out.
+        WidgetDataManager.requestRefreshIfStale(context)
+
         provideContent {
-            ExtraLargeWidgetContent(
-                locationName = data.locationName,
-                currentTemp = data.currentTemp,
-                currentIcon = data.weatherIcon,
-                condition = data.condition,
-                high = data.high,
-                low = data.low,
-                humidity = data.humidity,
-                windSpeed = data.windSpeed,
-                forecast = data.dailyForecast,
-                lastUpdated = data.lastUpdated
-            )
+            ExtraLargeWidgetContent(data)
         }
     }
 }
 
 @Composable
-private fun ExtraLargeWidgetContent(
-    locationName: String,
-    currentTemp: Int,
-    currentIcon: String,
-    condition: String,
-    high: Int,
-    low: Int,
-    humidity: Int,
-    windSpeed: Int,
-    forecast: List<DayForecast>,
-    lastUpdated: String
-) {
+private fun ExtraLargeWidgetContent(data: WidgetData) {
+    val hasData = data.hasData
+    val locationName = if (hasData) data.locationName else NO_DATA
+    val condition = if (hasData) data.condition else NO_DATA_LABEL
+    val currentTemp = if (hasData) "${data.currentTemp}°" else NO_DATA
+    // High and low come from the daily forecast, which can be missing even when
+    // the current conditions are not.
+    val high = if (hasData && data.high != null) "H:${data.high}°" else "H:$NO_DATA"
+    val low = if (hasData && data.low != null) "L:${data.low}°" else "L:$NO_DATA"
+    val humidity = if (hasData) "${data.humidity}%" else NO_DATA
+    // Open-Meteo reports wind in km/h and the rest of the app labels it that
+    // way; this widget said "mph", turning a 25 km/h breeze into a 25 mph one.
+    val windSpeed = if (hasData) "${data.windSpeed} km/h" else NO_DATA
+    val forecast = data.dailyForecast
+    val lastUpdated = data.lastUpdated
+
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -93,16 +88,20 @@ private fun ExtraLargeWidgetContent(
                     )
                 }
                 
-                Text(
-                    text = currentIcon,
-                    style = TextStyle(fontSize = 40.sp)
-                )
-                
-                Spacer(GlanceModifier.width(8.dp))
-                
+                // No icon rather than a sun: a weather code of 0 is what
+                // "nothing stored" reads back as, and it draws a clear sky.
+                if (hasData) {
+                    Text(
+                        text = data.weatherIcon,
+                        style = TextStyle(fontSize = 40.sp)
+                    )
+
+                    Spacer(GlanceModifier.width(8.dp))
+                }
+
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "${currentTemp}°",
+                        text = currentTemp,
                         style = TextStyle(
                             color = ColorProvider(Color.White),
                             fontSize = 36.sp,
@@ -111,7 +110,7 @@ private fun ExtraLargeWidgetContent(
                     )
                     Row {
                         Text(
-                            text = "H:${high}°",
+                            text = high,
                             style = TextStyle(
                                 color = ColorProvider(Color(0xFFFF8A65)),
                                 fontSize = 11.sp
@@ -119,7 +118,7 @@ private fun ExtraLargeWidgetContent(
                         )
                         Spacer(GlanceModifier.width(4.dp))
                         Text(
-                            text = "L:${low}°",
+                            text = low,
                             style = TextStyle(
                                 color = ColorProvider(Color(0xFF64B5F6)),
                                 fontSize = 11.sp
@@ -140,12 +139,12 @@ private fun ExtraLargeWidgetContent(
                     .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                StatItem("💧", "${humidity}%", "Humidity", GlanceModifier.defaultWeight())
-                StatItem("💨", "${windSpeed} mph", "Wind", GlanceModifier.defaultWeight())
+                StatItem("💧", humidity, "Humidity", GlanceModifier.defaultWeight())
+                StatItem("💨", windSpeed, "Wind", GlanceModifier.defaultWeight())
             }
-            
+
             Spacer(GlanceModifier.height(12.dp))
-            
+
             // 7-day forecast
             Text(
                 text = "7-Day Forecast",
@@ -156,7 +155,7 @@ private fun ExtraLargeWidgetContent(
                 ),
                 modifier = GlanceModifier.padding(bottom = 4.dp)
             )
-            
+
             Column(
                 modifier = GlanceModifier
                     .fillMaxWidth()
@@ -164,6 +163,15 @@ private fun ExtraLargeWidgetContent(
                     .cornerRadius(12.dp)
                     .padding(8.dp)
             ) {
+                if (forecast.isEmpty()) {
+                    Text(
+                        text = "Forecast unavailable",
+                        style = TextStyle(
+                            color = ColorProvider(Color.White.copy(alpha = 0.5f)),
+                            fontSize = 11.sp
+                        )
+                    )
+                }
                 forecast.take(7).forEachIndexed { index, day ->
                     ForecastRow(day)
                     if (index < forecast.size - 1 && index < 6) {

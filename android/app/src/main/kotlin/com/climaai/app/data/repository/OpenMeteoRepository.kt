@@ -3,6 +3,9 @@ package com.climaai.app.data.repository
 import android.util.Log
 import com.climaai.app.data.*
 import com.climaai.app.data.api.*
+import com.climaai.app.ui.screens.PollenData
+import com.climaai.app.ui.screens.PollenDay
+import com.climaai.app.ui.screens.PollenSpecies
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -53,6 +56,30 @@ object OpenMeteoRepository {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Network error", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Fetch pollen levels from the same Open-Meteo air quality endpoint the weather
+     * enrichment uses.
+     *
+     * Open-Meteo sources pollen from CAMS, whose domain is Europe: everywhere else every
+     * species comes back null. Those nulls are carried through untouched so the screen can
+     * say "not reported here" instead of showing a number nothing measured.
+     */
+    suspend fun getPollen(lat: Double, lon: Double): Result<PollenData> = withContext(Dispatchers.IO) {
+        try {
+            val response = airQualityApi.getAirQuality(lat, lon)
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(mapPollen(response.body()!!))
+            } else {
+                Log.e(TAG, "Air quality API error: ${response.code()}")
+                Result.failure(Exception("Pollen service returned ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Pollen fetch failed", e)
             Result.failure(e)
         }
     }
@@ -184,7 +211,9 @@ object OpenMeteoRepository {
      */
     private fun mapAirQuality(data: OpenMeteoAirQualityResponse): AirQuality? {
         val current = data.current ?: return null
-        val aqi = current.usAqi
+        // No AQI means no category and no recommendation either; reporting the absence is
+        // honest, whereas the old non-null Int quietly turned a missing value into 0/"Good".
+        val aqi = current.usAqi ?: return null
 
         val category = when {
             aqi <= 50 -> "Good"
@@ -215,5 +244,52 @@ object OpenMeteoRepository {
             category = category,
             healthRecommendation = recommendation
         )
+    }
+
+    /**
+     * Map the air quality response to the six pollen species Open-Meteo publishes.
+     *
+     * Mold is not one of them, so it is not part of the model at all — the previous
+     * screen's mold reading had no source behind it.
+     */
+    private fun mapPollen(data: OpenMeteoAirQualityResponse): PollenData {
+        val current = data.current
+
+        return PollenData(
+            readings = mapOf(
+                PollenSpecies.ALDER to current?.alderPollen,
+                PollenSpecies.BIRCH to current?.birchPollen,
+                PollenSpecies.OLIVE to current?.olivePollen,
+                PollenSpecies.GRASS to current?.grassPollen,
+                PollenSpecies.MUGWORT to current?.mugwortPollen,
+                PollenSpecies.RAGWEED to current?.ragweedPollen
+            ),
+            forecast = data.hourly?.let { mapPollenForecast(it) } ?: emptyList()
+        )
+    }
+
+    /**
+     * Collapse the hourly series into one figure per day by taking that day's highest
+     * reading across all species — the number an allergy sufferer plans around. A day the
+     * source says nothing about stays null instead of collapsing to zero.
+     */
+    private fun mapPollenForecast(hourly: OpenMeteoHourlyAirQuality): List<PollenDay> {
+        val series = listOfNotNull(
+            hourly.alderPollen,
+            hourly.birchPollen,
+            hourly.olivePollen,
+            hourly.grassPollen,
+            hourly.mugwortPollen,
+            hourly.ragweedPollen
+        )
+
+        return hourly.time.indices
+            .groupBy { hourly.time[it].substringBefore('T') }
+            .map { (date, hours) ->
+                PollenDay(
+                    date = date,
+                    peak = hours.flatMap { hour -> series.mapNotNull { it.getOrNull(hour) } }.maxOrNull()
+                )
+            }
     }
 }

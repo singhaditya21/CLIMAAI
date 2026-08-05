@@ -201,16 +201,23 @@ class PersonalizationService:
                 "message": f"Temperature is {temp}°, above your preferred {profile.hot_threshold}°"
             })
         
-        # Time-based recommendations
+        # Time-based recommendations.
+        #
+        # The sensitivity gates below read >= rather than >. _learn_preferences
+        # never writes uv_sensitivity or outdoor_activity_score, so every
+        # profile that has ever existed holds exactly the 0.5 default; a strict
+        # > against that default made both branches unreachable for every user
+        # rather than merely rare. >= treats the default as "average
+        # sensitivity", which is what the thresholds were describing.
         if current_hour in profile.active_hours:
-            if weather.get("uv_index", 0) > 6 and profile.uv_sensitivity > 0.5:
+            if weather.get("uv_index", 0) > 6 and profile.uv_sensitivity >= 0.5:
                 recommendations["notifications"].append({
                     "type": "uv_warning",
                     "message": "High UV during your active hours - don't forget sunscreen!"
                 })
         
         # Outdoor activity likelihood
-        if profile.outdoor_activity_score > 0.6:
+        if profile.outdoor_activity_score >= 0.5:
             precip_prob = weather.get("precipitation_probability", 0)
             if precip_prob > 50:
                 recommendations["activity_suggestions"].append(
