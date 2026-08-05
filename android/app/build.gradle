@@ -40,6 +40,13 @@ android {
         versionCode 1
         versionName "1.0.0"
 
+        // Licence switch, both build types: empty means Open-Meteo's free,
+        // non-commercial tier; a commercial key (gradle.properties
+        // openMeteoApiKey) moves every request to the customer- host. The
+        // release gate hard-fails MONETIZATION_ENABLED=true without it.
+        buildConfigField "String", "OPEN_METEO_API_KEY",
+                "\"${project.findProperty('openMeteoApiKey') ?: ''}\""
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -61,7 +68,15 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            buildConfigField "String", "API_BASE_URL", '"https://api.climaai.com"'
+            // api.climaai.com belongs to a third party (registered June 2024
+            // via joker.com), so no hardcoded host can ever be correct here.
+            // The real backend host is whatever the Cloud Run deploy produces —
+            // paste it into gradle.properties as climaaiApiBaseUrl. While the
+            // property is empty, an RFC 2606 .invalid sentinel stands in:
+            // syntactically valid for Retrofit, guaranteed to fail DNS fast,
+            // impossible to mistake for a real backend.
+            buildConfigField "String", "API_BASE_URL",
+                    "\"${(project.findProperty('climaaiApiBaseUrl') ?: '').trim() ?: 'https://unconfigured.invalid/'}\""
             // Paywall stays dark until the weather-data licensing allows charging:
             // Open-Meteo's free tier is non-commercial. Flip only with a commercial
             // data licence in place.
