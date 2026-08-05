@@ -29,12 +29,15 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy application code
 COPY . .
 
-# Expose port
+# EXPOSE is documentation only; the runtime port is whatever $PORT says.
 EXPOSE 8000
 
-# Health check
+# Health check (local docker only — Cloud Run ignores HEALTHCHECK and probes
+# the $PORT it injects). raise_for_status() so a 500 counts as unhealthy.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/health')"
+    CMD python -c 'import httpx, os; httpx.get("http://localhost:" + os.environ.get("PORT", "8000") + "/health").raise_for_status()'
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form so ${PORT} expands: Cloud Run injects PORT (8080) and routes
+# traffic there — a hardcoded 8000 never passes readiness. 8000 remains the
+# fallback for local `docker run` without -e PORT.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

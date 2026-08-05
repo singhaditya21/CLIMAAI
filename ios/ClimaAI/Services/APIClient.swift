@@ -28,14 +28,18 @@ class APIClient {
         #if DEBUG
         self.baseURL = "http://localhost:8000"
         #else
-        guard let configured = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
-              !configured.isEmpty else {
-            // No invented fallback host: a release build without a configured
-            // backend cannot work, and failing here names the actual problem
-            // instead of timing out on every request.
-            fatalError("API_BASE_URL missing from Info.plist — a release build needs a backend origin")
-        }
-        self.baseURL = configured
+        // Same unconfigured-backend scheme as Android's climaaiApiBaseUrl: a
+        // missing or empty value falls back to an RFC 2606 .invalid sentinel —
+        // syntactically valid for URL construction, guaranteed to fail DNS
+        // fast, and impossible to mistake for a real host. Requests then fail
+        // exactly as they do offline and the app degrades, rather than
+        // crashing at launch over a config gap or inventing a hostname that
+        // could be someone else's domain.
+        let configured = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String ?? ""
+        let origin = configured.isEmpty ? "https://unconfigured.invalid/" : configured
+        // Endpoints below all start with "/", so drop a trailing slash to keep
+        // a pasted "https://xyz.run.app/" from producing "//" request paths.
+        self.baseURL = origin.hasSuffix("/") ? String(origin.dropLast()) : origin
         #endif
     }
     

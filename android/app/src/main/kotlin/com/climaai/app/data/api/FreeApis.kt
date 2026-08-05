@@ -1,5 +1,6 @@
 package com.climaai.app.data.api
 
+import com.climaai.app.BuildConfig
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -7,13 +8,31 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 /**
- * Open-Meteo API - Free weather data, no API key required.
+ * Open-Meteo commercial-licence switch, shared by both Open-Meteo endpoints
+ * below. The free tier is keyless but licensed for non-commercial use only;
+ * the paid API lives on the customer- twin of each host and authenticates
+ * with an `apikey` query parameter. An empty `openMeteoApiKey` in
+ * gradle.properties means the free tier; pasting a bought key moves every
+ * call to the licensed host — no code change. See docs/LICENSING.md.
+ */
+internal object OpenMeteoLicence {
+    // null (not "") so Retrofit drops the apikey parameter entirely on the
+    // free tier instead of sending an empty one.
+    val API_KEY: String? = BuildConfig.OPEN_METEO_API_KEY.ifBlank { null }
+
+    fun host(freeHost: String): String =
+        if (API_KEY == null) freeHost else freeHost.replace("https://", "https://customer-")
+}
+
+/**
+ * Open-Meteo API - Free weather data, no API key required
+ * (non-commercial tier; see OpenMeteoLicence for the paid switch).
  * https://open-meteo.com/
- * 
+ *
  * Rate limit: 10,000 requests/day for non-commercial use.
  */
 interface OpenMeteoApi {
-    
+
     @GET("v1/forecast")
     suspend fun getWeather(
         @Query("latitude") latitude: Double,
@@ -22,12 +41,13 @@ interface OpenMeteoApi {
         @Query("hourly") hourly: String = HOURLY_PARAMS,
         @Query("daily") daily: String = DAILY_PARAMS,
         @Query("timezone") timezone: String = "auto",
-        @Query("forecast_days") forecastDays: Int = 16
+        @Query("forecast_days") forecastDays: Int = 16,
+        @Query("apikey") apiKey: String? = OpenMeteoLicence.API_KEY
     ): Response<OpenMeteoWeatherResponse>
-    
+
     companion object {
-        const val BASE_URL = "https://api.open-meteo.com/"
-        
+        val BASE_URL = OpenMeteoLicence.host("https://api.open-meteo.com/")
+
         const val CURRENT_PARAMS = "temperature_2m,relative_humidity_2m,apparent_temperature," +
             "is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover," +
             "pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m," +
@@ -53,23 +73,25 @@ interface OpenMeteoApi {
 }
 
 /**
- * Open-Meteo Air Quality API - Free pollen and AQI data.
+ * Open-Meteo Air Quality API - Free pollen and AQI data
+ * (non-commercial tier; see OpenMeteoLicence for the paid switch).
  * https://open-meteo.com/en/docs/air-quality-api
  */
 interface OpenMeteoAirQualityApi {
-    
+
     @GET("v1/air-quality")
     suspend fun getAirQuality(
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double,
         @Query("current") current: String = CURRENT_PARAMS,
         @Query("hourly") hourly: String = HOURLY_PARAMS,
-        @Query("forecast_days") forecastDays: Int = 5
+        @Query("forecast_days") forecastDays: Int = 5,
+        @Query("apikey") apiKey: String? = OpenMeteoLicence.API_KEY
     ): Response<OpenMeteoAirQualityResponse>
-    
+
     companion object {
-        const val BASE_URL = "https://air-quality-api.open-meteo.com/"
-        
+        val BASE_URL = OpenMeteoLicence.host("https://air-quality-api.open-meteo.com/")
+
         const val CURRENT_PARAMS = "us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide," +
             "sulphur_dioxide,ozone,uv_index,alder_pollen,birch_pollen,grass_pollen," +
             "mugwort_pollen,olive_pollen,ragweed_pollen"

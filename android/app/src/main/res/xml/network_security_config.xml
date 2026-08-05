@@ -23,16 +23,14 @@
         local backend at all.
     -->
 
-    <!-- Production domains with certificate pinning -->
-    <domain-config cleartextTrafficPermitted="false">
-        <!-- ClimaAI Backend -->
-        <domain includeSubdomains="true">api.climaai.com</domain>
-        <domain includeSubdomains="true">climaai.com</domain>
-        <trust-anchors>
-            <certificates src="system" />
-        </trust-anchors>
-    </domain-config>
-    
+    <!--
+        No first-party backend block. climaai.com is registered to an unrelated
+        third party, so a domain-config for it would pin someone else's host to
+        this app's name — worse than pinning nothing. The real backend origin is
+        a Cloud Run URL configured via gradle.properties (climaaiApiBaseUrl),
+        and *.run.app is fully covered by the HTTPS-only base-config above.
+    -->
+
     <!-- Free Weather APIs (HTTPS only) -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">api.open-meteo.com</domain>

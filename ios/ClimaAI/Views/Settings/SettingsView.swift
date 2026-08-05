@@ -100,11 +100,11 @@ struct SettingsView: View {
                 
                 // About Section
                 Section {
-                    Link(destination: URL(string: "https://climaai.com/terms")!) {
+                    Link(destination: URL(string: "https://singhaditya21.github.io/CLIMAAI/terms.html")!) {
                         Label("Terms of Service", systemImage: "doc.text")
                     }
                     
-                    Link(destination: URL(string: "https://climaai.com/privacy")!) {
+                    Link(destination: URL(string: "https://singhaditya21.github.io/CLIMAAI/privacy.html")!) {
                         Label("Privacy Policy", systemImage: "hand.raised")
                     }
                     

@@ -219,6 +219,8 @@ class WeatherService:
             "forecast_days": 16,  # Maximum for free tier
         }
         
+        # Free host, or the licensed customer- host when a key is configured
+        url, params = settings.open_meteo_request(url, params)
         try:
             response = await self.http_client.get(url, params=params)
             response.raise_for_status()
@@ -370,7 +372,9 @@ class WeatherService:
             "longitude": longitude,
             "current": ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone"],
         }
-        
+        # Free host, or the licensed customer- host when a key is configured
+        url, params = settings.open_meteo_request(url, params)
+
         try:
             response = await self.http_client.get(url, params=params)
             response.raise_for_status()

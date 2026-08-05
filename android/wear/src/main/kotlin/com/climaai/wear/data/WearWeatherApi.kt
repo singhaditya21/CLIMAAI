@@ -1,5 +1,7 @@
 package com.climaai.wear.data
 
+import com.climaai.wear.BuildConfig
+
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -25,11 +27,23 @@ interface WearWeatherApi {
         @Query("current") current: String = CURRENT_PARAMS,
         @Query("daily") daily: String = DAILY_PARAMS,
         @Query("timezone") timezone: String = "auto",
-        @Query("forecast_days") forecastDays: Int = 7
+        @Query("forecast_days") forecastDays: Int = 7,
+        // null (not "") so Retrofit drops the parameter entirely on the free
+        // tier — the free host rejects an empty apikey.
+        @Query("apikey") apiKey: String? =
+            BuildConfig.OPEN_METEO_API_KEY.ifBlank { null }
     ): Response<WearForecastResponse>
 
     companion object {
-        private const val BASE_URL = "https://api.open-meteo.com/"
+        // The customer host is the commercially licensed tier; the plain host
+        // is free and non-commercial. Which one the watch uses must follow the
+        // same key as the phone, or flipping the licence on would leave the
+        // wear app still calling the free tier.
+        private val BASE_URL =
+            if (BuildConfig.OPEN_METEO_API_KEY.isNotBlank())
+                "https://customer-api.open-meteo.com/"
+            else
+                "https://api.open-meteo.com/"
 
         private const val CURRENT_PARAMS =
             "temperature_2m,apparent_temperature,relative_humidity_2m,is_day,weather_code,wind_speed_10m"

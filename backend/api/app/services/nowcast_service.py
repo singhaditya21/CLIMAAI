@@ -234,7 +234,9 @@ class NowcastService:
             "timezone": "auto"
         }
         
-        response = await self.http_client.get(self.OPEN_METEO_URL, params=params)
+        # Free host, or the licensed customer- host when a key is configured
+        url, params = settings.open_meteo_request(self.OPEN_METEO_URL, params)
+        response = await self.http_client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
         

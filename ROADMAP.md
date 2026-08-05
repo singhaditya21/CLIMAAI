@@ -45,7 +45,11 @@ verified on an emulator:
   non-commercial free tier applies to us the same way it does to Breezy
   Weather. CC-BY attribution is shown in-app (Settings), and Nominatim search
   credits © OpenStreetMap contributors. See
-  [docs/WEATHER_APIS.md](docs/WEATHER_APIS.md).
+  [docs/WEATHER_APIS.md](docs/WEATHER_APIS.md). The commercial switch is now
+  wired on both sides: pasting a bought key into `OPEN_METEO_API_KEY`
+  (backend) / `openMeteoApiKey` (gradle.properties) moves every Open-Meteo
+  call to the licensed `customer-` host — procedure and gaps in
+  [docs/LICENSING.md](docs/LICENSING.md).
 - **Honest store metadata** — [docs/APP_STORE.md](docs/APP_STORE.md) rewritten
   to describe the app that exists; the Play-required
   privacy / terms / account-deletion pages exist as static HTML in `docs/`
@@ -76,8 +80,12 @@ These are hard blockers, not nice-to-haves:
 4. **Conditions for flipping `MONETIZATION_ENABLED` back on.** The flag stays
    `false` until **all** of the following hold, in order:
    - the data-licensing conflict is resolved — either a paid Open-Meteo
-     commercial plan, or the primary source moved to one whose free tier
-     permits commercial use (WeatherAPI.com, 1M calls/month);
+     commercial plan (the key switch is wired; the release gate fails
+     `MONETIZATION_ENABLED=true` with an empty `openMeteoApiKey`, and the
+     wear module + backend geocoding call sites listed in
+     [docs/LICENSING.md](docs/LICENSING.md) are closed), or the primary
+     source moved to one whose free tier permits commercial use
+     (WeatherAPI.com, 1M calls/month);
    - a paid tier exists that is worth money (the audit: charging for days
      8–16 of a free API is not it);
    - the purchase path actually grants entitlements end-to-end

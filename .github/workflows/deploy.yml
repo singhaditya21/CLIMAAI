@@ -14,7 +14,11 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
   SERVICE_NAME: climaai-api
-  REGISTRY: gcr.io
+  # Artifact Registry, not gcr.io: new GCP projects cannot push to Container
+  # Registry (deprecated, and its backing bucket is never provisioned), so a
+  # gcr.io push fails on exactly the fresh project this pipeline targets.
+  # scripts/deploy/bootstrap-gcp.sh creates the 'climaai' repository.
+  AR_REPO: climaai
 
 jobs:
   # ==========================================================================
@@ -82,11 +86,13 @@ jobs:
     needs: test
     # Deployment has never been configured: GCP_SA_KEY is unset, so this job
     # failed at 'Authenticate to Google Cloud' on every backend push — a
-    # permanent red that says nothing. Skip cleanly until the secret exists;
-    # the moment it is added, deploys resume with no other change.
+    # permanent red that says nothing. Skip cleanly until the secrets exist;
+    # the moment they are added, deploys resume with no other change.
+    # Both secrets are required: a key without a project id builds an image
+    # path with an empty segment and fails at push, after auth succeeded.
     # (`secrets` cannot appear in an `if:`, hence the env indirection.)
     env:
-      HAS_GCP: ${{ secrets.GCP_SA_KEY != '' }}
+      HAS_GCP: ${{ secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT_ID != '' }}
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.build.outputs.image }}
@@ -102,7 +108,7 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::GCP_SA_KEY is not set — build/deploy steps are skipped, not failed. Add the secret to enable deploys."
+            echo "::notice::GCP_SA_KEY and/or GCP_PROJECT_ID is not set — build/deploy steps are skipped, not failed. Run scripts/deploy/bootstrap-gcp.sh to set both and enable deploys."
           fi
 
       - name: Set up Docker Buildx
@@ -115,15 +121,17 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Configure Docker for GCR
+      - name: Configure Docker for Artifact Registry
         if: ${{ env.HAS_GCP == 'true' }}
-        run: gcloud auth configure-docker
+        # configure-docker needs the registry host spelled out; bare
+        # `configure-docker` only covers the deprecated gcr.io hosts.
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
       - name: Build and Push
         if: ${{ env.HAS_GCP == 'true' }}
         id: build
         run: |
-          IMAGE="${REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:${{ github.sha }}"
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/${SERVICE_NAME}:${{ github.sha }}"
           docker build -t ${IMAGE} ./backend/api
           docker push ${IMAGE}
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
@@ -136,14 +144,17 @@ jobs:
     # Skipped (not failed) while no GCP credential is configured.
     if: ${{ needs.build.outputs.configured == 'true' }}
     runs-on: ubuntu-latest
-    
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+
     steps:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          
+
       - name: Deploy to Cloud Run
+        id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
@@ -157,9 +168,12 @@ jobs:
             REDIS_URL=REDIS_URL:latest
             OPENAI_API_KEY=OPENAI_API_KEY:latest
             JWT_SECRET=JWT_SECRET:latest
+          # min-instances=0: a warm instance bills ~24/7, and this app has zero
+          # users — cold starts are the right trade until launch. Raise it only
+          # when real traffic makes cold-start latency a measured problem.
           flags: |
             --allow-unauthenticated
-            --min-instances=1
+            --min-instances=0
             --max-instances=10
             --memory=1Gi
             --cpu=1
@@ -167,8 +181,10 @@ jobs:
             --timeout=60s
 
       - name: Show URL
+        # This is the value to paste into gradle.properties as
+        # climaaiApiBaseUrl=<url> once the backend is live.
         run: |
-          echo "Deployed to: https://${SERVICE_NAME}-${PROJECT_ID}.run.app"
+          echo "Deployed to: ${{ steps.deploy.outputs.url }}"
 
   # ==========================================================================
   # Post-Deploy Health Check
@@ -176,15 +192,20 @@ jobs:
   health-check:
     needs: deploy
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Wait for deployment
         run: sleep 30
-        
+
       - name: Health Check
+        # The URL comes from the deploy step's output: Cloud Run URLs embed the
+        # project *number* (or a hash), so guessing one from the project id
+        # produces a hostname that never resolves. /health answers 200 even in
+        # degraded (no database yet) mode — it reports per-component status —
+        # so a fresh project's first deploy passes this gate.
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://${SERVICE_NAME}-${PROJECT_ID}.run.app/health)
+            "${{ needs.deploy.outputs.url }}/health")
           if [ "$response" != "200" ]; then
             echo "Health check failed with status: $response"
             exit 1

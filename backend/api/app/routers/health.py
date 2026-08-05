@@ -8,7 +8,7 @@ from ..services.pollen_service import PollenService, get_pollen_service
 from ..services.health_index_service import HealthIndexService
 from ..services.activity_service import ActivityForecastService, ActivityType
 from ..services.weather_service import WeatherService, get_weather_service
-from ..database import get_db
+from ..database import get_db, require_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -188,6 +188,10 @@ async def get_flu_risk(
 async def get_migraine_risk(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
+    # require_db first: without it this endpoint spent 10s timing out against
+    # the unconfigured engine and surfaced a 500, while every sibling answered
+    # a clean 503 in degraded mode.
+    _db_ok: None = Depends(require_db),
     db: AsyncSession = Depends(get_db),
     weather_service: WeatherService = Depends(get_weather_service),
 ):

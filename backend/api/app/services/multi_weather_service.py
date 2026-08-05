@@ -28,6 +28,11 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 from collections import defaultdict
 
+# Only for the Open-Meteo licence switch; every other key still arrives via the
+# constructor's config dict. Resolved at request time so a key set after import
+# (or patched in a test) is honoured.
+from ..config import get_settings
+
 logger = logging.getLogger(__name__)
 
 # Default timeout for all API calls (seconds)
@@ -382,7 +387,7 @@ class MultiSourceWeatherService:
     # =========================================================================
     
     async def _fetch_open_meteo(self, lat: float, lon: float) -> Dict:
-        """Open-Meteo (free, no key). Primary weather source."""
+        """Open-Meteo (keyless free tier, or licensed host). Primary weather source."""
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
             "latitude": lat,
@@ -392,6 +397,7 @@ class MultiSourceWeatherService:
             "forecast_days": 7,
             "timezone": "auto"
         }
+        url, params = get_settings().open_meteo_request(url, params)
         resp = await self.client.get(url, params=params)
         resp.raise_for_status()
         data = resp.json()
@@ -843,6 +849,7 @@ class MultiSourceWeatherService:
                 "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
                 "timezone": "auto"
             }
+            url, params = get_settings().open_meteo_request(url, params)
             resp = await self.client.get(url, params=params)
             resp.raise_for_status()
             data = resp.json()

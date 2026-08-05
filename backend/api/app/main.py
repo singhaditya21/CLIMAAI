@@ -2,13 +2,15 @@
 ClimaAI FastAPI Application.
 Main entry point for the weather API backend.
 """
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import asyncio
 import time
+import redis.asyncio as redis
 from .config import get_settings
-from .database import init_db
+from .database import database_status, init_db, require_db
 from .services.weather_service import get_weather_service, close_weather_service
 from .services.radar_service import get_radar_service, close_radar_service
 from .services.pollen_service import get_pollen_service, close_pollen_service
@@ -37,9 +39,15 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     print("🚀 Starting ClimaAI API...")
-    await init_db()
-    print("✅ Database initialized")
-    
+    # init_db reports an absent/unreachable database instead of raising: the
+    # first deploy on a fresh project has an empty DATABASE_URL secret, and a
+    # crash loop here would read as a broken pipeline. Weather and consensus
+    # need no DB; the DB-backed routers answer 503 via require_db.
+    if await init_db():
+        print("✅ Database initialized")
+    else:
+        print("⚠️ Running degraded: DB-backed endpoints return 503 until DATABASE_URL is set")
+
     # Initialize weather service
     get_weather_service()
     print("✅ Weather service initialized")
@@ -115,14 +123,39 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+async def _redis_status() -> str:
+    """Component state for /health: 'ok' or 'unavailable'."""
+    url = settings.REDIS_URL.strip()
+    if not url:
+        return "unavailable"
+    client = redis.from_url(url)
+    try:
+        await asyncio.wait_for(client.ping(), timeout=2.0)
+        return "ok"
+    except Exception:
+        return "unavailable"
+    finally:
+        await client.aclose()
+
+
 # Health check
 @app.get("/health", tags=["health"])
 async def health_check():
-    """Health check endpoint."""
+    """Health check with per-component status.
+
+    Answers 200 whenever the process serves traffic: Cloud Run must not kill a
+    container that is up but still waiting for its database to be configured.
+    The components object is where degradation shows.
+    """
     return {
         "status": "healthy",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "components": {
+            "api": "ok",
+            "database": await database_status(),
+            "redis": await _redis_status(),
+        },
     }
 
 
@@ -137,15 +170,21 @@ async def root():
     }
 
 
-# Register routers
-app.include_router(users_router)
+# Register routers. Routers whose every endpoint needs the database (directly
+# or through get_current_user) carry the require_db guard: when the app booted
+# without a database they answer 503 with a clear detail instead of surfacing
+# a connect timeout as a 500 deep inside a handler. Weather, consensus,
+# precipitation and the health indices stay fully functional without a DB.
+_db_backed = [Depends(require_db)]
+app.include_router(users_router, dependencies=_db_backed)
 app.include_router(weather_router)
-app.include_router(ai_router)
-app.include_router(subscriptions_router)
-app.include_router(locations_router)
-app.include_router(alerts_router)
-app.include_router(notifications_router)
-app.include_router(personalization_router)
+# AI insights are premium-gated, and verifying premium needs the database.
+app.include_router(ai_router, dependencies=_db_backed)
+app.include_router(subscriptions_router, dependencies=_db_backed)
+app.include_router(locations_router, dependencies=_db_backed)
+app.include_router(alerts_router, dependencies=_db_backed)
+app.include_router(notifications_router, dependencies=_db_backed)
+app.include_router(personalization_router, dependencies=_db_backed)
 app.include_router(precipitation_router)
 app.include_router(health_router)
 app.include_router(multi_weather_router)

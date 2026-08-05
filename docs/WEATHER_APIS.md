@@ -18,7 +18,13 @@ rough order of cost:
 
 1. **Buy an Open-Meteo commercial plan.** Standard is 1M calls/month, with
    Professional at 5M and Enterprise above 50M. Pricing is only shown at Stripe
-   checkout, so budget it before committing.
+   checkout, so budget it before committing. The switch is already wired on
+   both sides: paste the bought key into `OPEN_METEO_API_KEY` (backend env) and
+   `openMeteoApiKey` (gradle.properties) and every call moves to the licensed
+   `customer-` host with the key attached — full procedure in
+   [LICENSING.md](LICENSING.md). `scripts/ci/check-release-config.sh` fails any
+   build where `MONETIZATION_ENABLED=true` while the key is empty, so the flip
+   cannot happen out of order.
 2. **Shift the primary source to one whose free tier permits commercial use.**
    WeatherAPI.com allows commercial use on its free tier at 1M calls/month —
    which is both more generous and more permissive than Open-Meteo's free tier.
@@ -56,7 +62,7 @@ app satisfies it:
 
 | Source | Key | Free tier | Coverage | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Open-Meteo | none | 10k/day, non-commercial only | Global | Primary. See licensing above |
+| Open-Meteo | optional | 10k/day, non-commercial only | Global | Primary. Commercial key switch wired ([LICENSING.md](LICENSING.md)) |
 | MET Norway | none | Fair use | Global, best in Nordics | Requires a `User-Agent` |
 | NWS | none | "Reasonable use" | US only | Alerts; 400s outside the US |
 | 7Timer! | none | Unstated | Global | Astronomy-oriented, coarse |

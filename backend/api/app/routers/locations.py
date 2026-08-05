@@ -40,15 +40,21 @@ async def search_locations(
     Returns location suggestions with coordinates.
     """
     try:
+        # Routed through the licence helper like every other Open-Meteo call:
+        # with a commercial key configured this becomes the customer- host.
+        geo_url, geo_params = get_settings().open_meteo_request(
+            "https://geocoding-api.open-meteo.com/v1/search",
+            {
+                "name": query,
+                "count": limit,
+                "language": "en",
+                "format": "json",
+            },
+        )
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "https://geocoding-api.open-meteo.com/v1/search",
-                params={
-                    "name": query,
-                    "count": limit,
-                    "language": "en",
-                    "format": "json"
-                },
+                geo_url,
+                params=geo_params,
                 timeout=10.0
             )
             response.raise_for_status()

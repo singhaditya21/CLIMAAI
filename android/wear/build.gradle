@@ -8,6 +8,12 @@ android {
     compileSdk 36
 
     defaultConfig {
+        // Same licence switch as :app — empty means the free, non-commercial
+        // Open-Meteo tier; set (via gradle.properties openMeteoApiKey) it moves
+        // requests to the customer host.
+        buildConfigField "String", "OPEN_METEO_API_KEY",
+                "\"${project.findProperty('openMeteoApiKey') ?: ''}\""
+
         applicationId "com.climaai.wear"
         minSdk 30
         // Wear OS is carved out of the phone requirement: Play asks watch apps
@@ -38,6 +44,7 @@ android {
     
     buildFeatures {
         compose true
+        buildConfig true
     }
     
     composeOptions {

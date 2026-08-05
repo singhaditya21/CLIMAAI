@@ -50,12 +50,14 @@
 	</array>
 	
 	<!-- Backend origin for release builds; DEBUG builds use localhost instead
-	     (see APIClient.init). Mirrors Android's API_BASE_URL buildConfigField
-	     in android/app/build.gradle, including its value — the host is not
-	     deployed yet, and the same warning the Android release gate emits
-	     applies here. -->
+	     (see APIClient.init). Mirrors Android's climaaiApiBaseUrl handling in
+	     android/gradle.properties: no backend exists yet — and climaai.com
+	     belongs to an unrelated third party — so this holds the same RFC 2606
+	     sentinel the Android release build falls back to, which fails DNS fast
+	     instead of sending traffic to someone else's host. Replace it with the
+	     Cloud Run URL that scripts/deploy/bootstrap-gcp.sh prints. -->
 	<key>API_BASE_URL</key>
-	<string>https://api.climaai.com</string>
+	<string>https://unconfigured.invalid/</string>
 
 	<!-- Location Permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>

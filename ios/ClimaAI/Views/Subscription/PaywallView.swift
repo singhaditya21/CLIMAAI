@@ -150,9 +150,9 @@ struct PaywallView: View {
                         
                         // Terms and Privacy
                         HStack(spacing: 16) {
-                            Link("Terms", destination: URL(string: "https://climaai.com/terms")!)
+                            Link("Terms", destination: URL(string: "https://singhaditya21.github.io/CLIMAAI/terms.html")!)
                             Text("•")
-                            Link("Privacy", destination: URL(string: "https://climaai.com/privacy")!)
+                            Link("Privacy", destination: URL(string: "https://singhaditya21.github.io/CLIMAAI/privacy.html")!)
                         }
                         .font(.caption)
                         .foregroundColor(.secondary)

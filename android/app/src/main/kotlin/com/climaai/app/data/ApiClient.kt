@@ -443,6 +443,13 @@ object ApiClient {
         .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
         .create()
     
+    // In an unconfigured release build API_BASE_URL is the RFC 2606 sentinel
+    // https://unconfigured.invalid/ (see build.gradle). That is safe to build
+    // against: baseUrl() only parses the URL — no DNS, no connection — and
+    // create() returns a lazy proxy, so this object never touches the network
+    // until a call executes. Those calls fail fast with UnknownHostException,
+    // which every repository already treats as offline. Keep it that way: no
+    // eager health checks or warm-up pings against the base URL at init.
     private val retrofit = Retrofit.Builder()
         .baseUrl(BuildConfig.API_BASE_URL)
         .client(okHttpClient)

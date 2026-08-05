@@ -174,9 +174,9 @@ struct RegisterView: View {
                 Toggle(isOn: $acceptedTerms) {
                     HStack(spacing: 4) {
                         Text("I agree to the")
-                        Link("Terms", destination: URL(string: "https://climaai.com/terms")!)
+                        Link("Terms", destination: URL(string: "https://singhaditya21.github.io/CLIMAAI/terms.html")!)
                         Text("and")
-                        Link("Privacy Policy", destination: URL(string: "https://climaai.com/privacy")!)
+                        Link("Privacy Policy", destination: URL(string: "https://singhaditya21.github.io/CLIMAAI/privacy.html")!)
                     }
                     .font(.caption)
                 }

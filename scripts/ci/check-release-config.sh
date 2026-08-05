@@ -206,15 +206,22 @@ fi
 
 printf '\nRelease API host\n'
 
-# The URL is nested inside two layers of quoting ('"https://..."'), so match the
-# scheme directly rather than trying to count quote characters.
-RELEASE_URL=$(sed -n '/release[[:space:]]*{/,/^[[:space:]]*}/p' "$GRADLE" \
-  | sed -n "s/.*API_BASE_URL.*\(https\{0,1\}:\/\/[^\"']*\).*/\1/p" | head -1)
-[[ -n $RELEASE_URL ]] || gate_broken "no release API_BASE_URL buildConfigField found in $GRADLE"
+# build.gradle interpolates the origin from the climaaiApiBaseUrl property, so
+# the property file is the single source of truth for what release builds talk
+# to. An empty property becomes this RFC 2606 sentinel (valid URL, fails DNS
+# fast, cannot belong to anyone) — the deliberate "no backend yet" state, as
+# opposed to a host that is configured but wrong.
+PROPS=android/gradle.properties
+SENTINEL='https://unconfigured.invalid/'
 
-# `https*` rather than `https\{0,1\}`: BSD sed splits the s command on the comma
-# inside the brace expression and dies with "braces not balanced".
-RELEASE_HOST=$(printf '%s' "$RELEASE_URL" | sed -e 's|^https*://||' -e 's|[:/].*||')
+[[ -f $PROPS ]] || gate_broken "$PROPS not found — the release host cannot be checked."
+grep -q 'climaaiApiBaseUrl' "$GRADLE" \
+  || gate_broken "release API_BASE_URL in $GRADLE no longer reads the climaaiApiBaseUrl property — this check would be looking at the wrong knob."
+grep -q '^climaaiApiBaseUrl=' "$PROPS" \
+  || gate_broken "no climaaiApiBaseUrl property in $PROPS — the release build has nothing to read."
+
+RELEASE_URL=$(sed -n 's/^climaaiApiBaseUrl=//p' "$PROPS" | head -1 | tr -d '[:space:]')
+PROP_LINE=$(line_of "$PROPS" 'climaaiApiBaseUrl=')
 
 resolves() { # <host>
   if command -v getent >/dev/null 2>&1 && getent hosts "$1" >/dev/null 2>&1; then
@@ -230,33 +237,78 @@ except OSError:
 PY
 }
 
-resolves "$RELEASE_HOST"
-case $? in
-  0) ok "$RELEASE_HOST resolves ($RELEASE_URL)" ;;
-  2) gate_broken "neither getent nor python3 is available to resolve $RELEASE_HOST" ;;
-  *)
-    # Deliberately a warning by default and an error only when a release
-    # artifact is actually being produced (ENFORCE_RELEASE_HOST=1).
-    #
-    # The backend genuinely is not deployed yet, and that will stay true for a
-    # while. Failing every push on it would put this gate — and therefore the
-    # Android build that depends on it — permanently red, which is precisely
-    # the state that taught everyone to ignore a red X. A finding nobody can
-    # act on today must not outrank the findings they can.
-    MSG="The release build points at $RELEASE_URL and $RELEASE_HOST has no DNS record. Debug builds talk to 10.0.2.2 so this never shows up in testing; in the release APK every request fails with UnknownHostException. (A DNS lookup can also fail because the runner has no network — check that before assuming the host is wrong.)"
-    if [ "${ENFORCE_RELEASE_HOST:-0}" = "1" ]; then
-      bad "$RELEASE_HOST does not resolve"
-      err "$GRADLE" "$(line_of "$GRADLE" "$RELEASE_URL")" "Release API host does not resolve" "$MSG"
-    else
-      warn "$RELEASE_HOST does not resolve — not blocking, no release artifact here"
-      printf '::warning file=%s,line=%s,title=%s::%s\n' \
-        "$GRADLE" "$(line_of "$GRADLE" "$RELEASE_URL")" "Release API host does not resolve" "$MSG"
-    fi
-    ;;
-esac
+if [[ -z $RELEASE_URL || $RELEASE_URL == "$SENTINEL" ]]; then
+  # Deliberately a warning by default and an error only when a release
+  # artifact is actually being produced (ENFORCE_RELEASE_HOST=1).
+  #
+  # The backend genuinely is not deployed yet, and that will stay true for a
+  # while. Failing every push on it would put this gate — and therefore the
+  # Android build that depends on it — permanently red, which is precisely
+  # the state that taught everyone to ignore a red X. A finding nobody can
+  # act on today must not outrank the findings they can.
+  MSG="climaaiApiBaseUrl is empty, so release builds fall back to the $SENTINEL sentinel and every request fails fast with UnknownHostException. To configure a real backend: run scripts/deploy/bootstrap-gcp.sh (after gcloud auth login), take the *.run.app URL it prints — the deploy log records it too — and paste it into $PROPS as climaaiApiBaseUrl=."
+  if [ "${ENFORCE_RELEASE_HOST:-0}" = "1" ]; then
+    bad "climaaiApiBaseUrl is not configured — no backend for a release artifact"
+    err "$PROPS" "$PROP_LINE" "Release backend not configured" "$MSG"
+  else
+    warn "climaaiApiBaseUrl is not configured — not blocking, no release artifact here"
+    printf '::warning file=%s,line=%s,title=%s::%s\n' \
+      "$PROPS" "$PROP_LINE" "Release backend not configured" "$MSG"
+  fi
+else
+  # `https*` rather than `https\{0,1\}`: BSD sed splits the s command on the
+  # comma inside the brace expression and dies with "braces not balanced".
+  RELEASE_HOST=$(printf '%s' "$RELEASE_URL" | sed -e 's|^https*://||' -e 's|[:/].*||')
+
+  resolves "$RELEASE_HOST"
+  case $? in
+    0) ok "$RELEASE_HOST resolves ($RELEASE_URL)" ;;
+    2) gate_broken "neither getent nor python3 is available to resolve $RELEASE_HOST" ;;
+    *)
+      # A configured host that does not resolve is likely a paste error; same
+      # warn-by-default rationale as above, hard only when releasing.
+      MSG="climaaiApiBaseUrl points release builds at $RELEASE_URL and $RELEASE_HOST has no DNS record. Debug builds talk to 10.0.2.2 so this never shows up in testing; in the release APK every request fails with UnknownHostException. (A DNS lookup can also fail because the runner has no network — check that before assuming the host is wrong.)"
+      if [ "${ENFORCE_RELEASE_HOST:-0}" = "1" ]; then
+        bad "$RELEASE_HOST does not resolve"
+        err "$PROPS" "$PROP_LINE" "Release API host does not resolve" "$MSG"
+      else
+        warn "$RELEASE_HOST does not resolve — not blocking, no release artifact here"
+        printf '::warning file=%s,line=%s,title=%s::%s\n' \
+          "$PROPS" "$PROP_LINE" "Release API host does not resolve" "$MSG"
+      fi
+      ;;
+  esac
+fi
 
 # ---------------------------------------------------------------------------
-# 5. Runtime permissions: checked but never requested
+# 5. Monetization vs. data licence
+# ---------------------------------------------------------------------------
+
+printf '\nMonetization vs. data licence\n'
+
+# Unconditional — no ENFORCE flag softens this one. The weather data comes from
+# Open-Meteo's free tier, which is licensed for non-commercial use only, so
+# "charging users" and "no commercial key" must never be true at the same time
+# in any mode: the combination has to be structurally impossible to ship, not
+# merely warned about and documented.
+grep -q '^openMeteoApiKey=' "$PROPS" \
+  || gate_broken "no openMeteoApiKey property in $PROPS — the monetization/licence check has nothing to read."
+
+OPEN_METEO_KEY=$(sed -n 's/^openMeteoApiKey=//p' "$PROPS" | head -1 | tr -d '[:space:]')
+MON_LINE=$(grep -nE 'MONETIZATION_ENABLED"[[:space:]]*,[[:space:]]*"true"' "$GRADLE" | head -1 | cut -d: -f1)
+
+if [[ -n $MON_LINE && -z $OPEN_METEO_KEY ]]; then
+  bad "MONETIZATION_ENABLED is true with no commercial Open-Meteo key"
+  err "$GRADLE" "$MON_LINE" "Charging for non-commercially licensed data" \
+    "MONETIZATION_ENABLED is true while openMeteoApiKey in $PROPS is empty. The app's weather data is Open-Meteo's free tier, licensed for non-commercial use only — charging users for it violates that licence, so this gate makes the combination structurally impossible rather than merely documented. Either keep monetization off, or buy a commercial Open-Meteo licence and put its key in openMeteoApiKey first. This check has no override flag."
+elif [[ -n $MON_LINE ]]; then
+  ok "monetization enabled and a commercial Open-Meteo key is configured"
+else
+  ok "monetization disabled — no commercial data licence needed"
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Runtime permissions: checked but never requested
 # ---------------------------------------------------------------------------
 
 printf '\nRuntime permissions\n'

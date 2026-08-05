@@ -13,7 +13,12 @@ import java.util.*
 
 /**
  * Weather data source using Open-Meteo API.
- * Free, no API key required.
+ *
+ * Keyless free tier by default — licensed for non-commercial use only. When
+ * BuildConfig.OPEN_METEO_API_KEY is set (gradle.properties `openMeteoApiKey`,
+ * bought with an Open-Meteo API subscription), every call made through the
+ * APIs below moves to the licensed customer- host with the key attached; this
+ * repository needs no change for the flip. See docs/LICENSING.md.
  *
  * Primary data source for standalone mode (no backend needed).
  */
