@@ -1,0 +1,4 @@
+
+## 2024-06-25 - Robust Loading States on Form Submission
+**Learning:** In vanilla JavaScript forms, the `e.submitter` property reliably identifies the specific button that triggered the submit event. This is crucial for multi-button forms. However, standard testing environments (like some Playwright form submission triggers) might not populate this property if triggered via standard native mechanisms that bypass the pointer event. Wrapping loading state teardown in a `try/finally` block is essential to ensure buttons are re-enabled even if the async API call throws an exception, preventing permanently disabled UI states.
+**Action:** Use `e.submitter` within a null-check to apply loading indicators directly to the interaction point, and strictly use `try/finally` for state restoration in all async UI handlers.
