@@ -1,14 +1,20 @@
 package com.climaai.app.work
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.work.*
 import com.climaai.app.data.NotificationPrefsManager
+import com.climaai.app.data.UnitsPrefs
 import com.climaai.app.data.WeatherRepository
 import com.climaai.app.data.WeatherResult
 import com.climaai.app.service.NotificationService
 import com.climaai.app.widget.WidgetDataManager
 import kotlinx.coroutines.flow.first
+import kotlin.math.roundToInt
 
 /**
  * The last fix UltraLocationManager wrote to its cache, or null if it has never
@@ -68,11 +74,47 @@ class WeatherWorker(
         const val KEY_LATITUDE = "latitude"
         const val KEY_LONGITUDE = "longitude"
         const val KEY_FORCE_NOTIFICATION = "force_notification"
+
+        // Channel and id for the notification expedited work shows on API 26-30.
+        // Not in NotificationService's channel enum: those are alerts the user
+        // opted into, this is plumbing they may silence wholesale.
+        private const val REFRESH_CHANNEL_ID = "background_refresh"
+        private const val REFRESH_CHANNEL_NAME = "Background refresh"
+        private const val REFRESH_NOTIFICATION_ID = 990001
     }
 
     private val repository = WeatherRepository(applicationContext)
     private val notificationPrefs = NotificationPrefsManager(applicationContext)
     private val notificationService = NotificationService(applicationContext)
+
+    /**
+     * On API 26-30 WorkManager runs expedited work as a foreground service, and
+     * CoroutineWorker's default implementation throws — which turned every
+     * [WorkScheduler.triggerImmediateRefresh] on those releases into a crash.
+     * Low importance: this is a refresh in progress, not something to buzz about.
+     */
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = applicationContext
+                .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            // Idempotent; settings the user changed on the channel are kept.
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    REFRESH_CHANNEL_ID,
+                    REFRESH_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_LOW
+                )
+            )
+        }
+
+        val notification = NotificationCompat.Builder(applicationContext, REFRESH_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_compass) // Same stand-in as NotificationService
+            .setContentTitle("Updating weather")
+            .setOngoing(true)
+            .build()
+
+        return ForegroundInfo(REFRESH_NOTIFICATION_ID, notification)
+    }
 
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting weather refresh work")
@@ -251,12 +293,16 @@ class DailySummaryWorker(
                 is WeatherResult.Success -> {
                     val weather = result.data
                     val today = weather.daily.firstOrNull()
-                    
+
                     if (today != null) {
+                        // The briefing prints a bare degree sign, so the numbers
+                        // must be in the unit the user reads, not the Celsius the
+                        // API reports in.
+                        val unit = UnitsPrefs(applicationContext).temperatureUnit.first()
                         notificationService.sendDailyBriefing(
                             summary = "Today: ${weather.current.weatherDescription}",
-                            highTemp = today.temperatureMax.toInt(),
-                            lowTemp = today.temperatureMin.toInt(),
+                            highTemp = unit.fromCelsius(today.temperatureMax).roundToInt(),
+                            lowTemp = unit.fromCelsius(today.temperatureMin).roundToInt(),
                             precipChance = today.precipitationProbability
                         )
                         Log.d(TAG, "Daily summary sent")

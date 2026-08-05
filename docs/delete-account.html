@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClimaAI — Delete Your Account</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1f2b; --muted: #5b6472; --accent: #2563eb;
+    --card: #f4f6fa; --border: #dde3ec; --danger: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420; --fg: #e8ecf3; --muted: #9aa5b5; --accent: #7aa2ff;
+      --card: #1a2130; --border: #2a3347; --danger: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .25rem; }
+  h2 { font-size: 1.3rem; margin: 2.2rem 0 .6rem; }
+  .meta { color: var(--muted); margin-bottom: 2rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.25rem; margin: 1rem 0;
+  }
+  .steps li { margin-bottom: .5rem; }
+  a { color: var(--accent); }
+  ul, ol { padding-left: 1.3rem; }
+  nav { margin-bottom: 2rem; font-size: .95rem; }
+  nav a { margin-right: 1rem; }
+  code { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: .1em .35em; font-size: .9em; }
+  .danger { color: var(--danger); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+<nav>
+  <a href="index.html">ClimaAI</a>
+  <a href="privacy.html">Privacy Policy</a>
+  <a href="terms.html">Terms of Service</a>
+</nav>
+
+<h1>Delete Your Account</h1>
+<p class="meta">ClimaAI &middot; Last updated 5 August 2026</p>
+
+<p>A ClimaAI account is optional — the app works fully without one. If you
+created one and want it gone, deletion is built into the app, takes effect
+immediately, and removes everything.</p>
+
+<h2>Delete in the app</h2>
+<div class="card">
+<ol class="steps">
+  <li>Open <strong>ClimaAI</strong> and sign in (the Account section only
+      appears when you are signed in).</li>
+  <li>Go to <strong>Settings</strong>.</li>
+  <li>Under <strong>Account</strong>, tap <strong>Delete account</strong>.</li>
+  <li>Confirm twice — deletion is the one action in the app that cannot be
+      undone, so it asks you to be sure.</li>
+</ol>
+</div>
+<p>The account is deleted the moment you confirm. There is no waiting or
+"deactivation" period.</p>
+
+<h2>What gets deleted</h2>
+<p>The in-app flow calls the API's delete-user endpoint
+(<code>DELETE /api/auth/me</code>), which permanently removes the account row
+and, by database cascade, every record attached to it:</p>
+<ul>
+  <li>Email address, password hash, and display name</li>
+  <li>Preferences and default location</li>
+  <li>Saved favourite locations</li>
+  <li>Device push-notification tokens</li>
+  <li>Weather alert history</li>
+  <li>Any subscription records</li>
+</ul>
+<p class="danger">Deletion is immediate and permanent. There is no soft
+delete, no backup restore path, and no retention window.</p>
+<p>Anonymous data is unaffected because none of it is yours: cached forecast
+readings on the server are keyed to map coordinates, not to accounts, and the
+app's local cache lives on your device (removed by uninstalling the app).</p>
+
+<h2>If you can't use the app</h2>
+<p>If you no longer have the app installed or can't sign in, email
+<a href="mailto:singhaditya21@gmail.com">singhaditya21@gmail.com</a> from the
+address you registered with and ask for deletion. We will delete the account
+and confirm, normally within a few days and at most within 30.</p>
+
+<h2>Questions</h2>
+<p>Anything unclear about deletion or your data:
+<a href="mailto:singhaditya21@gmail.com">singhaditya21@gmail.com</a> — see
+also the <a href="privacy.html">Privacy Policy</a>.</p>
+
+</main>
+</body>
+</html>

@@ -11,6 +11,7 @@ import com.climaai.app.data.cache.CachePolicy
 import com.climaai.app.data.cache.RefreshTracker
 import com.climaai.app.data.cache.UsageSummary
 import com.climaai.app.data.repository.OpenMeteoRepository
+import com.climaai.app.data.wear.WearSync
 import com.climaai.app.location.UltraLocationManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,39 +93,21 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     // =========================================================================
     // New API State Flows
     // =========================================================================
-    
+    // Only flows something actually collects live here. This file used to
+    // declare eight more (pollen, nowcast, flu/migraine risk, activities, NWS
+    // alerts, UV, marine) and refresh them all on every fetch — burning
+    // metered provider quota (Storm Glass: 10 calls/day) to fill state no
+    // screen or widget ever read. Re-add a flow only together with its UI.
+
     private val _alertsState = MutableStateFlow<List<com.climaai.app.data.api.AlertData>>(emptyList())
     val alertsState = _alertsState.asStateFlow()
-    
-    private val _pollenState = MutableStateFlow<com.climaai.app.data.api.PollenTodayResponse?>(null)
-    val pollenState = _pollenState.asStateFlow()
-    
-    private val _precipNowcast = MutableStateFlow<com.climaai.app.data.api.PrecipitationNowcast?>(null)
-    val precipNowcast = _precipNowcast.asStateFlow()
-    
-    private val _fluRisk = MutableStateFlow<com.climaai.app.data.api.FluRiskResponse?>(null)
-    val fluRisk = _fluRisk.asStateFlow()
-    
-    private val _migraineRisk = MutableStateFlow<com.climaai.app.data.api.MigraineRiskResponse?>(null)
-    val migraineRisk = _migraineRisk.asStateFlow()
-    
-    private val _activities = MutableStateFlow<List<com.climaai.app.data.api.ActivityForecastItem>>(emptyList())
-    val activities = _activities.asStateFlow()
-    
+
     private val _favoriteLocations = MutableStateFlow<List<com.climaai.app.data.api.FavoriteLocationData>>(emptyList())
     val favoriteLocations = _favoriteLocations.asStateFlow()
-    
-    private val _nwsAlerts = MutableStateFlow<List<com.climaai.app.data.api.NWSAlert>>(emptyList())
-    val nwsAlerts = _nwsAlerts.asStateFlow()
-    
+
+    // Feeds HomeScreen's forecast-confidence card via the consensus field.
     private val _multiSourceWeather = MutableStateFlow<com.climaai.app.data.api.MultiSourceWeatherResponse?>(null)
     val multiSourceWeather = _multiSourceWeather.asStateFlow()
-    
-    private val _uvIndex = MutableStateFlow<com.climaai.app.data.api.UVIndexData?>(null)
-    val uvIndex = _uvIndex.asStateFlow()
-    
-    private val _marineWeather = MutableStateFlow<com.climaai.app.data.api.MarineWeatherData?>(null)
-    val marineWeather = _marineWeather.asStateFlow()
     
     init {
         checkSubscriptionStatus()
@@ -240,9 +223,13 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     _dataSource.value = "Open-Meteo"
                     updateLastUpdatedText()
                     refreshUsageStats()
-                    
+
                     Log.d("WeatherViewModel", "Weather loaded from Open-Meteo")
-                    
+
+                    // Mirror the fresh data to a paired watch; fire-and-forget,
+                    // no-op when none is paired.
+                    WearSync.publish(getApplication(), enrichedWeather)
+
                     // Try to fetch AI insights from backend (graceful degradation)
                     fetchAIInsights(lat, lon)
                     
@@ -314,7 +301,11 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     _dataSource.value = "Open-Meteo"
                     updateLastUpdatedText()
                     refreshUsageStats()
-                    
+
+                    // Mirror the fresh data to a paired watch; fire-and-forget,
+                    // no-op when none is paired.
+                    WearSync.publish(getApplication(), enrichedWeather)
+
                     // Try AI insights
                     fetchAIInsights(loc.latitude, loc.longitude)
                     
@@ -340,91 +331,33 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
     
     /**
-     * Fetch additional data from all new API endpoints (non-blocking).
+     * Fetch the secondary backend data that the UI actually renders
+     * (non-blocking). Anything fetched here must have a consumer — see the
+     * note on the state-flow block above before adding calls back.
      */
     private fun fetchAdditionalData(lat: Double, lon: Double) {
         viewModelScope.launch {
             // Fetch in parallel using multiple coroutines
             launch { fetchAlerts(lat, lon) }
-            launch { fetchPollen(lat, lon) }
-            launch { fetchPrecipNowcast(lat, lon) }
-            launch { fetchHealthRisks(lat, lon) }
-            launch { fetchActivities(lat, lon) }
-            launch { fetchNWSAlerts(lat, lon) }
             launch { fetchMultiSourceWeather(lat, lon) }
-            launch { fetchUVIndex(lat, lon) }
-            launch { fetchMarineWeather(lat, lon) }
             launch { fetchFavoriteLocations() }
         }
     }
-    
+
     private suspend fun fetchAlerts(lat: Double, lon: Double) {
         repository.getAlerts(lat, lon).fold(
             onSuccess = { response -> _alertsState.value = response.alerts },
             onFailure = { Log.w("WeatherViewModel", "Alerts unavailable: ${it.message}") }
         )
     }
-    
-    private suspend fun fetchPollen(lat: Double, lon: Double) {
-        repository.getTodaysPollen(lat, lon).fold(
-            onSuccess = { response -> _pollenState.value = response },
-            onFailure = { Log.w("WeatherViewModel", "Pollen unavailable: ${it.message}") }
-        )
-    }
-    
-    private suspend fun fetchPrecipNowcast(lat: Double, lon: Double) {
-        repository.getPrecipitationNowcast(lat, lon).fold(
-            onSuccess = { response -> _precipNowcast.value = response },
-            onFailure = { Log.w("WeatherViewModel", "Precip nowcast unavailable: ${it.message}") }
-        )
-    }
-    
-    private suspend fun fetchHealthRisks(lat: Double, lon: Double) {
-        repository.getFluRisk(lat, lon).fold(
-            onSuccess = { response -> _fluRisk.value = response },
-            onFailure = { Log.w("WeatherViewModel", "Flu risk unavailable: ${it.message}") }
-        )
-        repository.getMigraineRisk(lat, lon).fold(
-            onSuccess = { response -> _migraineRisk.value = response },
-            onFailure = { Log.w("WeatherViewModel", "Migraine risk unavailable: ${it.message}") }
-        )
-    }
-    
-    private suspend fun fetchActivities(lat: Double, lon: Double) {
-        repository.getAllActivities(lat, lon).fold(
-            onSuccess = { response -> _activities.value = response.activities },
-            onFailure = { Log.w("WeatherViewModel", "Activities unavailable: ${it.message}") }
-        )
-    }
-    
-    private suspend fun fetchNWSAlerts(lat: Double, lon: Double) {
-        repository.getWeatherAlertsNWS(lat, lon).fold(
-            onSuccess = { response -> _nwsAlerts.value = response.alerts },
-            onFailure = { Log.w("WeatherViewModel", "NWS alerts unavailable: ${it.message}") }
-        )
-    }
-    
+
     private suspend fun fetchMultiSourceWeather(lat: Double, lon: Double) {
         repository.getMultiSourceWeather(lat, lon).fold(
             onSuccess = { response -> _multiSourceWeather.value = response },
             onFailure = { Log.w("WeatherViewModel", "Multi-source unavailable: ${it.message}") }
         )
     }
-    
-    private suspend fun fetchUVIndex(lat: Double, lon: Double) {
-        repository.getUVIndex(lat, lon).fold(
-            onSuccess = { response -> _uvIndex.value = response },
-            onFailure = { Log.w("WeatherViewModel", "UV index unavailable: ${it.message}") }
-        )
-    }
-    
-    private suspend fun fetchMarineWeather(lat: Double, lon: Double) {
-        repository.getMarineWeather(lat, lon).fold(
-            onSuccess = { response -> _marineWeather.value = response },
-            onFailure = { Log.w("WeatherViewModel", "Marine weather unavailable: ${it.message}") }
-        )
-    }
-    
+
     private suspend fun fetchFavoriteLocations() {
         repository.getFavoriteLocations().fold(
             onSuccess = { response -> _favoriteLocations.value = response.favorites },
@@ -516,7 +449,11 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 if (result.networkError) {
                     _rateLimitMessage.value = "Showing cached data. ${result.networkErrorMessage}"
                 }
-                
+
+                // Backend-fallback path counts as a successful fetch too; keep
+                // the watch in step with whatever the phone is showing.
+                WearSync.publish(getApplication(), result.data)
+
                 fetchAIInsights(lat, lon)
                 fetchAdditionalData(lat, lon)
             }

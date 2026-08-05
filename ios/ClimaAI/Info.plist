@@ -49,6 +49,14 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	
+	<!-- Backend origin for release builds; DEBUG builds use localhost instead
+	     (see APIClient.init). Mirrors Android's API_BASE_URL buildConfigField
+	     in android/app/build.gradle, including its value — the host is not
+	     deployed yet, and the same warning the Android release gate emits
+	     applies here. -->
+	<key>API_BASE_URL</key>
+	<string>https://api.climaai.com</string>
+
 	<!-- Location Permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ClimaAI needs your location to provide accurate, hyper-local weather forecasts and AI-powered insights for your area.</string>

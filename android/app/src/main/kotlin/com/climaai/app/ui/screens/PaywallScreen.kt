@@ -265,13 +265,14 @@ fun PaywallScreen(
 
 @Composable
 private fun PremiumFeaturesList() {
+    // No "No Ads" entry: the app carries no ads on any tier, so removing them
+    // is not a thing Premium can honestly sell.
     val features = listOf(
         Triple(Icons.Default.DateRange, "16-Day Forecast", "Extended weather predictions"),
         Triple(Icons.Default.Psychology, "Unlimited AI Insights", "Personalized recommendations"),
         Triple(Icons.Default.DirectionsRun, "Activity Forecasts", "Best times for any activity"),
         Triple(Icons.Default.Map, "Advanced Radar", "High-resolution weather maps"),
-        Triple(Icons.Default.Spa, "Health Alerts", "Pollen, UV, and air quality"),
-        Triple(Icons.Default.Block, "No Ads", "Clean, distraction-free experience")
+        Triple(Icons.Default.Spa, "Health Alerts", "Pollen, UV, and air quality")
     )
 
     Column(

@@ -25,12 +25,34 @@ class RiskLevel(str, Enum):
     VERY_HIGH = "very_high"
 
 
+class InsightSource(str, Enum):
+    """Where insight text came from, so clients never dress templates up as AI.
+
+    Without OPENAI_API_KEY (or with ENABLE_AI_INSIGHTS off) every insight is
+    rule-generated template text; a client has no way to tell unless the
+    response says so.
+    """
+    RULES = "rules"
+    LLM = "llm"
+
+
+def _generated_by():
+    """The default is RULES on every model, not LLM: cached insights written
+    before this field existed deserialize without it, and mislabelling LLM text
+    as rules is harmless where the reverse is dishonest."""
+    return Field(
+        default=InsightSource.RULES,
+        description="'llm' when a language model wrote this, 'rules' for template text",
+    )
+
+
 class OutfitRecommendation(BaseModel):
     """AI-generated outfit recommendation."""
     summary: str = Field(..., description="Brief outfit suggestion")
     details: str = Field(..., description="Detailed clothing recommendations")
     accessories: List[str] = Field(default=[], description="Suggested accessories")
     layer_recommendation: str = Field(..., description="Layering advice")
+    generated_by: InsightSource = _generated_by()
 
 
 class ActivityRecommendation(BaseModel):
@@ -40,10 +62,15 @@ class ActivityRecommendation(BaseModel):
     best_time: str
     reasoning: str
     precautions: List[str] = Field(default=[])
+    generated_by: InsightSource = _generated_by()
 
 
 class HealthInsight(BaseModel):
-    """Health-related weather insights."""
+    """Health-related weather insights.
+
+    Always rule-computed from UV/AQI/heat thresholds — no LLM is involved even
+    when one is configured — so generated_by stays at its RULES default.
+    """
     uv_risk: RiskLevel
     uv_advice: str
     air_quality_risk: RiskLevel
@@ -53,6 +80,7 @@ class HealthInsight(BaseModel):
     allergy_risk: Optional[RiskLevel] = None
     allergy_advice: Optional[str] = None
     general_health_tips: List[str] = Field(default=[])
+    generated_by: InsightSource = _generated_by()
 
 
 class TravelRiskAnalysis(BaseModel):
@@ -63,6 +91,7 @@ class TravelRiskAnalysis(BaseModel):
     travel_tips: List[str] = Field(default=[])
     best_travel_times: List[str] = Field(default=[])
     worst_travel_times: List[str] = Field(default=[])
+    generated_by: InsightSource = _generated_by()
 
 
 class DailySummary(BaseModel):
@@ -72,6 +101,7 @@ class DailySummary(BaseModel):
     highlights: List[str] = Field(..., description="Key points to know")
     warnings: List[str] = Field(default=[], description="Weather warnings")
     best_times: dict = Field(default={}, description="Best times for various activities")
+    generated_by: InsightSource = _generated_by()
 
 
 class AIInsightsResponse(BaseModel):
@@ -82,3 +112,11 @@ class AIInsightsResponse(BaseModel):
     health: HealthInsight
     travel: Optional[TravelRiskAnalysis] = None
     cached: bool = Field(default=False)
+    generated_by: InsightSource = Field(
+        default=InsightSource.RULES,
+        description=(
+            "'llm' only when every section a language model *can* write actually "
+            "was written by one. Health is always rule-computed and does not "
+            "count against this. Each section also carries its own flag."
+        ),
+    )

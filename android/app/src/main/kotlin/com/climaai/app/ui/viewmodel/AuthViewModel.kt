@@ -34,6 +34,13 @@ sealed class ForgotPasswordState {
     data class Error(val message: String) : ForgotPasswordState()
 }
 
+sealed class DeleteAccountState {
+    object Idle : DeleteAccountState()
+    object Loading : DeleteAccountState()
+    object Deleted : DeleteAccountState()
+    data class Error(val message: String) : DeleteAccountState()
+}
+
 /**
  * ViewModel for authentication and onboarding
  */
@@ -44,6 +51,9 @@ class AuthViewModel : ViewModel() {
 
     private val _forgotPasswordState = MutableStateFlow<ForgotPasswordState>(ForgotPasswordState.Idle)
     val forgotPasswordState: StateFlow<ForgotPasswordState> = _forgotPasswordState.asStateFlow()
+
+    private val _deleteAccountState = MutableStateFlow<DeleteAccountState>(DeleteAccountState.Idle)
+    val deleteAccountState: StateFlow<DeleteAccountState> = _deleteAccountState.asStateFlow()
 
     private val _onboardingState = MutableStateFlow(OnboardingState())
     val onboardingState: StateFlow<OnboardingState> = _onboardingState.asStateFlow()
@@ -166,6 +176,40 @@ class AuthViewModel : ViewModel() {
         ApiClient.setAuthToken(null)
         _authState.value = AuthState.Idle
         _isLoggedIn.value = false
+    }
+
+    /**
+     * Permanently delete the account on the server, then drop the local session.
+     *
+     * Local state is only cleared after the server confirms: clearing first
+     * would sign the user out while their account still exists, which reads as
+     * "deleted" when nothing was.
+     */
+    fun deleteAccount(context: Context) {
+        viewModelScope.launch {
+            _deleteAccountState.value = DeleteAccountState.Loading
+
+            try {
+                val response = ApiClient.api.deleteAccount()
+
+                if (response.isSuccessful) {
+                    logout(context)
+                    _deleteAccountState.value = DeleteAccountState.Deleted
+                } else {
+                    _deleteAccountState.value = DeleteAccountState.Error(
+                        "Could not delete the account (HTTP ${response.code()}). Please try again."
+                    )
+                }
+            } catch (e: Exception) {
+                _deleteAccountState.value = DeleteAccountState.Error(
+                    e.message ?: "Network error. Please try again."
+                )
+            }
+        }
+    }
+
+    fun resetDeleteAccountState() {
+        _deleteAccountState.value = DeleteAccountState.Idle
     }
 
     /**

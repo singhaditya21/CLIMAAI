@@ -28,9 +28,9 @@ struct HourlyScrollView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .scrollTargetLayout()
+                .snapTargetLayoutIfAvailable()
             }
-            .scrollTargetBehavior(.viewAligned)
+            .snapScrollBehaviorIfAvailable()
         }
         .padding(.vertical, 14)
         .background(
@@ -41,6 +41,31 @@ struct HourlyScrollView: View {
                         .stroke(.white.opacity(0.08), lineWidth: 1)
                 )
         )
+    }
+}
+
+private extension View {
+    /// `scrollTargetLayout`/`scrollTargetBehavior(.viewAligned)` are iOS 17+
+    /// and the deployment target is iOS 16 — same situation, and same guard
+    /// pattern, as `widgetContainerBackground()` in
+    /// ClimaAIWidget/WidgetBackground.swift. On iOS 16 the row scrolls freely
+    /// instead of snapping to items: a lost nicety, not lost data.
+    @ViewBuilder
+    func snapTargetLayoutIfAvailable() -> some View {
+        if #available(iOS 17.0, *) {
+            self.scrollTargetLayout()
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func snapScrollBehaviorIfAvailable() -> some View {
+        if #available(iOS 17.0, *) {
+            self.scrollTargetBehavior(.viewAligned)
+        } else {
+            self
+        }
     }
 }
 

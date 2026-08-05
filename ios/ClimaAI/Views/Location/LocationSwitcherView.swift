@@ -92,7 +92,9 @@ struct LocationSwitcherView: View {
             TextField("Search cities...", text: $searchText)
                 .textFieldStyle(.plain)
                 .autocorrectionDisabled()
-                .onChange(of: searchText) { _, newValue in
+                // Single-parameter onChange: the two-parameter form is iOS 17+
+                // and the deployment target is iOS 16.
+                .onChange(of: searchText) { newValue in
                     Task {
                         await performSearch(query: newValue)
                     }

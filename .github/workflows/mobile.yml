@@ -341,21 +341,58 @@ jobs:
 
       # Discover a simulator rather than naming one. Hardcoding "iPhone 15"
       # broke as soon as the runner image moved to Xcode 16.4, whose simulator
-      # set starts at iPhone 16.
-      - name: Pick a simulator
+      # set starts at iPhone 16 — and some images have shipped with no iPhone
+      # devices pre-created at all, which is where "No available iPhone
+      # simulator on this runner" came from. So: pick any available iPhone,
+      # and when there is none, create one from the newest iPhone device type
+      # on the newest iOS runtime. No model name appears anywhere.
+      - name: Pick or create a simulator
         id: sim
         run: |
-          # One line deliberately: a multi-line python -c inside YAML inside
-          # shell is a three-way quoting hazard. Picks the last available
-          # iPhone, skipping watchOS runtimes and unavailable devices.
-          UDID=$(xcrun simctl list devices available --json | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; c=[v for rt,ds in d.items() if 'iOS' in rt for v in ds if v.get('isAvailable') and 'iPhone' in v['name']]; print(c[-1]['udid'] if c else '')")
+          # A single-quoted heredoc, not python -c: the script needs several
+          # lines, and the quoted delimiter keeps YAML and the shell from
+          # touching any of it.
+          UDID=$(python3 <<'PY'
+          import json, subprocess, sys
+
+          def sim_list(*args):
+              out = subprocess.run(("xcrun", "simctl", "list", "-j", *args),
+                                   check=True, capture_output=True, text=True).stdout
+              return json.loads(out)
+
+          devices = sim_list("devices", "available")["devices"]
+          iphones = [d for rt, ds in devices.items() if "iOS" in rt
+                     for d in ds if d.get("isAvailable") and "iPhone" in d["name"]]
+          if iphones:
+              print(iphones[-1]["udid"])
+              sys.exit(0)
+
+          # simctl lists device types in release order, so the last iPhone
+          # entry is the newest; pair it with the highest-versioned available
+          # iOS runtime, which always supports the newest hardware.
+          device_types = [t["identifier"]
+                          for t in sim_list("devicetypes")["devicetypes"]
+                          if t["identifier"].startswith("com.apple.CoreSimulator.SimDeviceType.iPhone")]
+          runtimes = [r for r in sim_list("runtimes", "available")["runtimes"]
+                      if r.get("isAvailable")
+                      and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS")]
+          if not device_types or not runtimes:
+              sys.exit("no iPhone device type or iOS runtime installed on this runner")
+          runtime = max(runtimes, key=lambda r: tuple(int(p) for p in r["version"].split(".")))
+          created = subprocess.run(
+              ("xcrun", "simctl", "create", "CI iPhone", device_types[-1], runtime["identifier"]),
+              check=True, capture_output=True, text=True).stdout.strip()
+          print(created)
+          PY
+          )
           if [ -z "$UDID" ]; then
-            echo "::error::No available iPhone simulator on this runner."
+            echo "::error::No iPhone simulator available and none could be created."
             xcrun simctl list devices available
+            xcrun simctl list devicetypes
+            xcrun simctl list runtimes
             exit 1
           fi
           echo "Using simulator $UDID"
-          xcrun simctl list devices available | grep -i "$UDID" || true
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       # Signing is off: a simulator build needs no certificate, so this runs

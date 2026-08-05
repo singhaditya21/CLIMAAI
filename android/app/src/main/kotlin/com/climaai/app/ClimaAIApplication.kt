@@ -1,7 +1,6 @@
 package com.climaai.app
 
 import android.app.Application
-import com.climaai.app.ads.AdManager
 import com.climaai.app.billing.BillingManager
 import com.climaai.app.service.NotificationService
 import com.climaai.app.work.WorkScheduler
@@ -14,9 +13,6 @@ class ClimaAIApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
-        // Initialize AdMob
-        AdManager.initialize(this)
 
         // Initialize billing
         val billingManager = BillingManager.getInstance(this)

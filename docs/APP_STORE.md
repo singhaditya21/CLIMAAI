@@ -1,360 +1,134 @@
-# App Store Metadata for ClimaAI
+# Store Listing for ClimaAI
+
+Every claim in this file must be true of the build being submitted. The previous
+version of this listing sold AI insights (off in the shipped config), minute-level
+rain alerts (never implemented), and a premium tier (monetization is compiled out
+— `MONETIZATION_ENABLED=false`). If a feature is behind a flag that is off, it
+does not belong here.
 
 ## App Information
 
-**Name**: ClimaAI - AI Weather
+**Name**: ClimaAI
 
-**Subtitle**: Smart Weather with AI Insights
+**Subtitle / tagline**: Forecasts that tell you how sure they are
 
-**Category**: Primary: Weather, Secondary: Productivity
+**Category**: Weather
 
-## App Description
+**Price**: Free. No ads, no in-app purchases, no subscriptions.
 
-### Short Description (170 characters max)
+## Short Description (Google Play, 80 characters max)
 
-Get intelligent weather forecasts powered by AI. Know what to wear, when to go out, and how weather affects your health - all in one beautiful app.
+Multi-source weather with an honest confidence readout. Free, no ads or account.
 
-### Full Description
+## Full Description
 
-**Your Personal Weather Assistant, Powered by AI**
+**Most weather apps show you one model's answer. ClimaAI shows you whether the
+models agree.**
 
-ClimaAI transforms weather data into actionable insights that help you plan your perfect day. More than just temperatures and forecasts, ClimaAI tells you exactly what you need to know.
+ClimaAI queries multiple independent forecast providers — Open-Meteo, MET Norway,
+the US National Weather Service and others — and compares their answers. When
+they agree, you get a confident forecast. When they don't, ClimaAI says so,
+plainly: the median, the range, and a high / medium / low confidence rating for
+temperature, precipitation and wind. Other apps show you one model, or let you
+pick one — ClimaAI tells you how much they actually agree.
 
-**🤖 AI-Powered Intelligence**
+**Forecasts**
+• Current conditions, hourly and daily forecasts
+• Cross-source consensus card: median, min–max range, and a confidence rating
+  computed from how much the sources disagree
+• The consensus is plain arithmetic over real model output — never invented,
+  and hidden entirely when fewer than two sources respond
 
-• "What should I wear?" - Get smart outfit recommendations based on the full day's weather
-• Personalized activity suggestions with optimal timing
-• Natural language weather summaries that actually make sense
-• Health insights including UV risk, air quality impact, and heat stress warnings
+**Radar**
+• Live precipitation radar with animated recent frames (RainViewer)
 
-**🌤️ Comprehensive Weather Data**
+**Air Quality**
+• Air Quality Index with pollutant breakdown (PM2.5, PM10, NO₂, O₃, SO₂, CO)
+• UV index
 
-FREE Features:
-• Current conditions with feels-like temperature
-• 24-hour detailed hourly forecast
-• 7-day daily forecast
-• Sunrise & sunset times
-• Wind, precipitation, and humidity
-• Real-time weather conditions
+**Pollen — Europe only**
+• Species-level pollen counts (alder, birch, grass, mugwort, olive, ragweed)
+• Pollen data comes from CAMS, whose coverage is Europe. Outside Europe the
+  pollen screen shows "no data for this location" — it will not guess
 
-PREMIUM Features:
-• Extended 16-day forecast
-• Minute-by-minute rain predictions
-• Severe weather alerts
-• Storm tracking
+**Widgets & Wear OS**
+• Home-screen widgets showing your location's latest synced reading
+• Wear OS app, tile and complications mirroring the phone's most recent data
+• If nothing has synced yet, widgets and the watch show an explicit no-data
+  state rather than a plausible-looking number
 
-**🌬️ Air Quality & Health**
+**Notifications (optional, off by default)**
+• Daily weather summary at a time you choose
+• Rain and severe-weather notifications
 
-• Air Quality Index (AQI) with health recommendations
-• Pollution breakdown (PM2.5, PM10, NO₂, O₃, SO₂, CO)
-• UV index and exposure risk
-• Allergy and asthma impact warnings
-• Heat stress analysis
-
-**🎯 Smart Recommendations**
-
-Premium subscribers get:
-• Best times for outdoor activities
-• Exercise timing optimization
-• Travel weather risk analysis
-• Farming and marine advisories
-• Beach conditions (coastal areas)
-
-**✨ Beautiful Design**
-
-• Clean, modern interface
-• Stunning gradient weather backgrounds
-• Smooth animations
-• Dark mode support
-• Accessible for all users
-• Location-based auto-updates
-
-**🔒 Privacy First**
-
-• Your location data stays on your device
-• No tracking or data selling
-• GDPR compliant
-• Transparent data usage
-
-**💎 Try Premium Free for 7 Days**
-
-Start your free trial and unlock all AI-powered features:
-• Monthly: $4.99/month
-• Annual: $39.99/year (Save 33%!)
-
-Weather data powered by Open-Meteo, AI insights powered by advanced language models.
-
-Download ClimaAI today and never be caught off guard by the weather again!
-
----
-
-**Support**: support@climaai.com
-**Privacy Policy**: https://climaai.com/privacy
-**Terms of Service**: https://climaai.com/terms
+**Free means free**
+• Every feature included
+• No ads, no trackers, no third-party analytics SDKs
+• No account required — an optional account only syncs your saved locations,
+  and can be deleted in-app at any time
 
 ## Keywords
 
-weather, forecast, AI, intelligent, outfit, activity, air quality, UV index, hourly, daily, premium, insights, health, travel, alerts, radar, temperature, rain, snow, wind
-
-## Promotional Text (170 characters)
-
-NEW: AI-Powered Health Insights! Get personalized warnings about UV exposure, air quality, and heat stress. Start your 7-day free trial today!
+weather, forecast, multi-source, forecast confidence, ensemble, radar,
+air quality, pollen, widgets, wear os
 
 ## What's New (1.0.0)
 
-🎉 Welcome to ClimaAI!
+First release: multi-source forecasts with a per-variable confidence readout,
+precipitation radar, air quality, Europe-only pollen counts, home-screen
+widgets, and a Wear OS app with tile and complications.
 
-The most intelligent weather app is here. Get AI-powered insights that tell you:
-• What to wear for the day
-• Best times for outdoor activities
-• How weather affects your health
-• Travel risk analysis
+## URLs
 
-Features:
-✅ Free 7-day trial of all premium features
-✅ Beautiful, modern design
-✅ Current weather & 7-day forecast (free)
-✅ Extended 16-day forecast (premium)
-✅ AI weather insights (premium)
-✅ Air quality monitoring
-✅ Dark mode support
-✅ Location-based automatic updates
-
-Start your free trial today and experience weather forecasting reimagined!
-
-## Support URL
-
-https://climaai.com/support
-
-## Marketing URL
-
-https://climaai.com
-
-## Privacy Policy URL
-
-https://climaai.com/privacy
-
-## Copyright
-
-© 2024 ClimaAI Inc. All rights reserved.
+- **Privacy Policy**: https://singhaditya21.github.io/CLIMAAI/privacy.html
+- **Terms of Service**: https://singhaditya21.github.io/CLIMAAI/terms.html
+- **Account Deletion**: https://singhaditya21.github.io/CLIMAAI/delete-account.html
+- **Support contact**: singhaditya21@gmail.com
 
 ## Age Rating
 
-4+ (No objectionable content)
+Everyone / 4+ (no objectionable content).
 
-## Screenshots
+## Screenshots (6–8, phone)
 
-### iPhone 6.7" (Required - 6-10 screenshots)
+Screenshots must be real captures from the submitted build — no mockups, no
+staged data.
 
-1. **Home Screen** - Current weather with AI summary card
-   - Show temperature, condition, location
-   - AI summary: "Perfect day for outdoor activities"
-   - Weather icons, gradient background
-
-2. **Hourly Forecast** - 24-hour detailed view
-   - Scrollable hour cards
-   - Temperature graph
-   - Precipitation probabilities
-   - Wind and humidity
-
-3. **Daily Forecast** - 7-day or 16-day view
-   - Week at a glance
-   - High/low temperatures
-   - Weather icons
-   - Rain chances
-
-4. **AI Insights** - Premium feature showcase (PREMIUM badge)
-   - "What to wear" section with outfit
-   - Activity recommendations with timing
-   - Health warnings
-
-5. **Air Quality** - Environmental data
-   - AQI gauge with color coding
-   - Pollutant breakdown
-   - Health recommendations
-
-6. **Activity Recommendations** - Smart suggestions (PREMIUM badge)
-   - Running: 90% suitable, best time 7-9am
-   - Cycling: 85% suitable
-   - With reasoning and precautions
-
-7. **Subscription Paywall** - Premium features
-   - Feature comparison (Free vs Premium)
-   - Pricing cards (Monthly/Annual)
-   - "Start 7-Day Free Trial" CTA
-   - Benefits list
-
-8. **Health Insights** - Wellness focused (PREMIUM badge)
-   - UV risk gauge
-   - Air quality impact
-   - Heat stress warning
-   - Tips list
-
-### Design Guidelines
-
-**Colors:**
-- Primary: Blue gradient (#4A90E2 → #357ABD)
-- Success: Green (#4CAF50)
-- Warning: Orange (#FF9800)
-- Error: Red (#F44336)
-- Premium badge: Gold (#FFD700)
-
-**Typography:**
-- Headlines: SF Pro Display, Bold
-- Body: SF Pro Text, Regular
-- Numbers: SF Pro Display, Semibold
-
-**Status Bar:**
-- Light content on dark backgrounds
-- Dark content on light backgrounds
-
-## App Preview Video (Optional but Recommended)
-
-Length: 15-30 seconds
-
-Script:
-1. Open app → Location auto-detected
-2. Current weather loads beautifully
-3. Scroll through hourly forecast
-4. Tap AI Insights (premium feature)
-5. Show "What to wear" recommendation
-6. Show activity suggestions
-7. End with premium signup screen
-8. Text overlay: "Weather, Reimagined" + App Icon
+1. **Home** — current conditions with the consensus confidence card visible
+2. **Consensus detail** — a location where sources genuinely disagree, showing
+   the range and a "low confidence" rating (this is the differentiator; lead
+   with it)
+3. **Hourly / daily forecast**
+4. **Radar** — animated precipitation frames
+5. **Air quality** — AQI gauge and pollutant breakdown
+6. **Pollen** — a European location with real counts; optionally a second
+   capture showing the honest no-data state elsewhere
+7. **Widgets** — on a home screen, after a sync, showing real data
+8. **Wear OS** — tile or complication mirroring the phone reading
 
 ## Review Information
 
-**Contact Information:**
-- Name: [Your Name]
-- Phone: +1-XXX-XXX-XXXX
-- Email: review@climaai.com
+**Contact**: singhaditya21@gmail.com
 
-**Demo Account:**
-- Email: demo@climaai.com
-- Password: Review2024!
-- Notes: Premium subscription active, all features accessible
+**Notes for reviewers:**
 
-**Notes for Reviewers:**
+- The app works fully without an account. There is nothing to purchase.
+- Location permission is requested to fetch forecasts for the device's
+  position; a location can also be searched manually, in which case the
+  permission can be denied.
+- Pollen data is Europe-only (CAMS coverage); outside Europe the screen shows
+  a no-data state by design.
+- Account creation is optional (syncs saved locations). Account deletion is
+  in-app: Settings → Account → Delete account.
 
-This app requires location permission to provide weather forecasts. On first launch:
-1. Grant location permission when prompted
-2. Weather data will load automatically
-3. Create account or login to access premium features
-4. Demo account provided has active premium subscription
+## Data Sources & Attribution
 
-Free features work without account. Premium features require account and subscription.
+- Weather data: Open-Meteo (CC BY 4.0 — attribution shown in-app under
+  Settings), MET Norway, US National Weather Service, and other sources listed
+  in [WEATHER_APIS.md](WEATHER_APIS.md)
+- Radar tiles: RainViewer
+- Location search: Nominatim / © OpenStreetMap contributors (ODbL)
 
-In-App Purchases:
-- 7-day free trial available
-- Testing in sandbox mode
-- Both monthly and annual plans available
+## Copyright
 
-## App Store SEO Strategy
-
-**Target Keywords:**
-1. weather app
-2. AI weather
-3. weather forecast
-4. hourly weather
-5. weather alerts
-6. air quality
-7. UV index
-8. outfit weather
-9. smart weather
-10. weather premium
-
-**Localization:**
-- English (Primary)
-- Spanish
-- French
-- German
-- Japanese
-- Chinese (Simplified)
-- (Add more as needed)
-
-## Social Media Assets
-
-**Twitter/X Post:**
-
-🌤️ Introducing ClimaAI - Weather forecasting reimagined with AI
-
-✨ Know what to wear
-⏰ Know when to go out
-🏃 Know best times for activities
-💪 Know how weather affects your health
-
-📱 Download free: [link]
-🎁 7-day premium trial included!
-
-#WeatherApp #AI #iOS
-
-**Instagram Caption:**
-
-Ready for a weather app that actually helps you plan your day? ☀️
-
-ClimaAI doesn't just tell you it's 72°F. It tells you:
-👕 What to wear
-🏃‍♀️ Best time to exercise
-🌅 When to catch that perfect sunset
-⚠️ Health alerts you need to know
-
-Download now and get 7 days of Premium FREE! Link in bio 🔗
-
-#ClimaAI #WeatherApp #SmartWeather #AIWeather #TechLife
-
-## Launch Strategy
-
-**Phase 1: Soft Launch (Week 1)**
-- Release to US & Canada only
-- Monitor performance and reviews
-- Fix critical bugs quickly
-- Gather user feedback
-
-**Phase 2: Expansion (Week 2-4)**
-- Roll out to English-speaking countries
-- Monitor server load
-- Scale infrastructure as needed
-- Implement user-requested features
-
-**Phase 3: Global Launch (Month 2)**
-- Add localization
-- Release worldwide
-- PR campaign
-- Influencer partnerships
-
-**Press Kit:**
-- App icon (various sizes)
-- Screenshots (all devices)
-- Feature highlights
-- Company background
-- Contact information
-
-## Metrics to Track
-
-**Day 1:**
-- Downloads
-- Crashes
-- Ratings/Reviews
-
-**Week 1:**
-- DAU/MAU
-- Retention (D1, D7)
-- Trial conversion rate
-- Premium subscribers
-
-**Month 1:**
-- Revenue
-- Churn rate
-- Feature usage
-- User feedback themes
-
-## Support Preparation
-
-**FAQ Document Ready**
-**Support Email Setup**
-**Knowledge Base Created**
-**Response Templates Prepared**
-
----
-
-**Ready for App Store submission!** 🚀
+© 2026 ClimaAI. All rights reserved.

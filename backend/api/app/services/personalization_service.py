@@ -230,6 +230,22 @@ class PersonalizationService:
         
         return recommendations
     
+    async def forget_user(self, user_id: str) -> None:
+        """Erase everything learned about a user.
+
+        Account deletion relies on this: the profile and event history live in
+        this process (and optionally Redis), so the database cascade that
+        removes the user's rows never touches them.
+        """
+        self._profiles.pop(user_id, None)
+        self._events.pop(user_id, None)
+
+        if self.redis:
+            await self.redis.delete(
+                f"personalization:profile:{user_id}",
+                f"personalization:events:{user_id}",
+            )
+
     async def get_optimal_notification_time(self, user_id: str) -> str:
         """Get the optimal time to send notifications to this user"""
         profile = await self.get_profile(user_id)

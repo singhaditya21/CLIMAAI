@@ -19,9 +19,6 @@ import com.climaai.wear.data.WearLocationProvider
 import com.climaai.wear.data.WearWeather
 import com.climaai.wear.data.WearWeatherData
 import com.climaai.wear.data.WearWeatherRepository
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun WeatherScreen(
@@ -121,6 +118,18 @@ private fun WeatherContent(
             )
         }
 
+        // Feels-like, when the source supplied one. Null renders nothing —
+        // there is no honest number to put in its place.
+        weather.feelsLike?.let { feels ->
+            item {
+                Text(
+                    text = "Feels like $feels°",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+        }
+
         // High/Low
         item {
             Row(
@@ -149,13 +158,13 @@ private fun WeatherContent(
             )
         }
 
-        // A reading served from cache after a failed refresh is shown with the
-        // time it was taken, so nothing on this screen passes for "now" unless
-        // it is.
+        // A reading past its fresh window — its own cache or the phone's — is
+        // shown with its age, so nothing on this screen passes for "now"
+        // unless it is.
         if (weather.isStale) {
             item {
                 Text(
-                    text = "Updated ${timeFormat.format(Date(weather.observedAtMillis))}",
+                    text = "Updated ${weather.updatedAgo()}",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.5f)
                 )
@@ -242,5 +251,3 @@ private fun NoWeatherContent(
 internal const val NO_VALUE = "--"
 
 private fun degrees(value: Int?): String = value?.let { "$it°" } ?: NO_VALUE
-
-private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())

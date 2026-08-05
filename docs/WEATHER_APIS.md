@@ -1,17 +1,20 @@
 # Weather data sources
 
 Survey of free and freemium weather APIs, and what ClimaAI actually uses.
-Last reviewed 2026-08-01.
+Last reviewed 2026-08-05.
 
-## ⚠️ Licensing: the free tier does not cover this app
+## Licensing: resolved while the app ships free — a hard flag-flip condition
 
-**Open-Meteo — currently the primary source — prohibits commercial use on its
-free tier.** Its terms state plainly: *"You may only use the free API services
-for non-commercial purposes."* ClimaAI charges $4.99/month, which is commercial
-by any reading.
+**Open-Meteo — the primary source — prohibits commercial use on its free
+tier.** Its terms state plainly: *"You may only use the free API services for
+non-commercial purposes."*
 
-This is a licensing problem, not a technical one, and no amount of caching fixes
-it. Options, in rough order of cost:
+As shipped, ClimaAI is now non-commercial: `MONETIZATION_ENABLED=false` is
+compiled into both Android build types, there are no ads, and nothing can be
+purchased. That is the same footing on which Breezy Weather uses Open-Meteo
+compliantly. The conflict returns the moment the flag flips, so **any of the
+following must happen *before* `MONETIZATION_ENABLED` is set to `true`**, in
+rough order of cost:
 
 1. **Buy an Open-Meteo commercial plan.** Standard is 1M calls/month, with
    Professional at 5M and Enterprise above 50M. Pricing is only shown at Stripe
@@ -24,12 +27,30 @@ it. Options, in rough order of cost:
 4. **Apple WeatherKit on iOS.** 500,000 calls/month are included with the Apple
    Developer Program membership the iOS release needs anyway.
 
-Attribution is required either way: Open-Meteo data is CC-BY 4.0, and MET Norway
-requires identifying your application in the `User-Agent`, which the client
-already does.
+## Attribution obligations, and where each is met
 
-**Nothing in this repo currently surfaces that attribution to users.** Adding it
-to the settings screen is a small task with real legal weight.
+Free does not mean attribution-free. What each licence requires and where the
+app satisfies it:
+
+- **Open-Meteo (CC BY 4.0)** — credit required wherever the data is used.
+  **Met:** the Android Settings screen shows a tappable "Open-Meteo
+  (CC BY 4.0)" data-source row linking to open-meteo.com
+  (`SettingsScreen.kt`).
+- **MET Norway** — requires identifying the application in the `User-Agent`,
+  which the client already does.
+- **Nominatim / OpenStreetMap (ODbL)** — the [Nominatim usage
+  policy](https://operations.osmfoundation.org/policies/nominatim/) and OSM's
+  [attribution guidelines](https://osmfoundation.org/wiki/Licence/Attribution_Guidelines)
+  require "© OpenStreetMap contributors" wherever OSM-derived data surfaces.
+  In this app that surface is location search: **the LocationSwitcher search
+  results screen shows "© OpenStreetMap contributors"**
+  (`LocationSwitcherScreen.kt` — the screen code is owned by the Android
+  side; this file records the obligation so it is not silently dropped in a
+  redesign).
+- **RainViewer + basemap** — the radar screen credits "Radar from RainViewer"
+  in its UI and carries the basemap's own "© OpenStreetMap, © CARTO"
+  attribution string (`RadarMapScreen.kt`), which covers the ODbL obligation
+  for the map tiles as well.
 
 ## What is integrated
 

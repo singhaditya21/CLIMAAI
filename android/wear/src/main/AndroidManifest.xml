@@ -92,6 +92,21 @@
                 android:value="1800" />
         </service>
 
+        <!-- Receives the weather the phone publishes. Exported because Play
+             services is what binds it; the path filter keeps every other app's
+             DataItems from waking us. -->
+        <service
+            android:name=".data.PhoneWeatherListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:path="/climaai/weather" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

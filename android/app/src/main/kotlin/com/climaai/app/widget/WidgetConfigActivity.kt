@@ -86,10 +86,21 @@ class WidgetConfigActivity : ComponentActivity() {
         )
         setResult(RESULT_OK, resultValue)
 
-        // The host draws the new widget itself. What it cannot know is that the
-        // stored reading may be hours old, so ask for a fetch. This used to
-        // broadcast ACTION_APPWIDGET_UPDATE with no component or package set,
-        // which an implicit broadcast to a manifest receiver never delivers.
+        // Below S the host withholds the initial ACTION_APPWIDGET_UPDATE while a
+        // configure activity runs — painting the new widget is this activity's
+        // job. The broadcast must name the widget's receiver: an implicit
+        // ACTION_APPWIDGET_UPDATE is dropped since API 26, which left freshly
+        // configured widgets stuck on their initial layout.
+        AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId)?.provider?.let { receiver ->
+            sendBroadcast(
+                Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+                    .setComponent(receiver)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
+            )
+        }
+
+        // That paint uses whatever reading is stored, which may be hours old —
+        // ask for a fetch as well.
         WidgetDataManager.requestRefreshIfStale(this)
 
         finish()

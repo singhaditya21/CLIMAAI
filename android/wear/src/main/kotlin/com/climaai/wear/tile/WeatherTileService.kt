@@ -68,29 +68,42 @@ class WeatherTileService : TileService() {
     }
 
     private fun weatherLayout(weather: WearWeatherData): LayoutElementBuilders.LayoutElement {
+        val column = LayoutElementBuilders.Column.Builder()
+            .addContent(
+                // Location
+                Text.Builder(this, weather.location)
+                    .setTypography(Typography.TYPOGRAPHY_CAPTION1)
+                    .setColor(argb(0xAAFFFFFF.toInt()))
+                    .build()
+            )
+            .addContent(
+                // Weather icon
+                Text.Builder(this, weather.conditionIcon)
+                    .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
+                    .build()
+            )
+            .addContent(
+                // Temperature
+                Text.Builder(this, "${weather.temperature}°")
+                    .setTypography(Typography.TYPOGRAPHY_DISPLAY2)
+                    .setColor(argb(0xFFFFFFFF.toInt()))
+                    .build()
+            )
+
+        // A reading past its fresh window is still shown, but with its age —
+        // nothing on the tile passes for "now" unless it is.
+        if (weather.isStale) {
+            column.addContent(
+                Text.Builder(this, "Updated ${weather.updatedAgo()}")
+                    .setTypography(Typography.TYPOGRAPHY_CAPTION2)
+                    .setColor(argb(0x88FFFFFF.toInt()))
+                    .build()
+            )
+        }
+
         return PrimaryLayout.Builder(deviceParameters())
             .setContent(
-                LayoutElementBuilders.Column.Builder()
-                    .addContent(
-                        // Location
-                        Text.Builder(this, weather.location)
-                            .setTypography(Typography.TYPOGRAPHY_CAPTION1)
-                            .setColor(argb(0xAAFFFFFF.toInt()))
-                            .build()
-                    )
-                    .addContent(
-                        // Weather icon
-                        Text.Builder(this, weather.conditionIcon)
-                            .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
-                            .build()
-                    )
-                    .addContent(
-                        // Temperature
-                        Text.Builder(this, "${weather.temperature}°")
-                            .setTypography(Typography.TYPOGRAPHY_DISPLAY2)
-                            .setColor(argb(0xFFFFFFFF.toInt()))
-                            .build()
-                    )
+                column
                     .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
                     .build()
             )

@@ -34,9 +34,16 @@ async def get_multi_source_weather(
 ):
     """
     Get aggregated weather data from multiple external APIs.
-    
+
     Available sources: open_meteo, 7timer, met_norway, nws, dwd, wttr,
     openweathermap, weatherapi, pirate_weather, weatherbit, stormglass, openuv
+
+    The response carries a top-level "consensus" object: per-variable
+    median/min/max/spread/source_count across the sources that reported that
+    variable (null per variable below two sources), an overall confidence of
+    "high" | "medium" | "low", the contributing source names, and a
+    plain-English summary. "consensus" itself is null when fewer than two
+    sources returned comparable data.
     """
     source_list = None
     if sources:

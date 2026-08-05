@@ -125,13 +125,8 @@ sealed class Feature(
     )
     
     // Extras
-    object AdFree : Feature(
-        id = "ad_free",
-        name = "Ad-Free Experience",
-        description = "Remove all advertisements",
-        requiresPremium = true
-    )
-    
+    // No AdFree feature: the app carries no ads on any tier, so an upsell list
+    // offering their removal would be advertising a fiction.
     object RadarAnimation : Feature(
         id = "radar_animation",
         name = "Radar Animation",
@@ -189,7 +184,7 @@ sealed class Feature(
             UnlimitedWidgets, WidgetCustomization, LargeWidgets,
             CustomThemes, IconPacks, FontCustomization, OledTheme,
             RainAlerts, PollenAlerts, UvAlerts, CustomSchedule,
-            UnlimitedAI, AdFree, RadarAnimation, HealthInsights,
+            UnlimitedAI, RadarAnimation, HealthInsights,
             // Free
             BasicForecast, BasicHourly, SmallWidget, DailySummary, SevereWeather
         )

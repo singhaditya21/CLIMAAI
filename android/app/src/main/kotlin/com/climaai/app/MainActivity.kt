@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +51,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // targetSdk 36 forces edge-to-edge on API 35+ regardless of this call;
+        // making it explicit means API <35 devices get the same layout, so the
+        // screens' safe-drawing insets behave identically everywhere.
+        enableEdgeToEdge()
 
         // Has to run before setContent. NavHost reads its start destination once,
         // on the first composition, and this is the only thing that loads the

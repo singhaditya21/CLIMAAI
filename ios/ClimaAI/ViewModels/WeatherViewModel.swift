@@ -23,7 +23,10 @@ class WeatherViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var currentLocation: CLLocation?
-    @Published var locationName: String = "Current Location"
+    // "Loading...", matching LocationManager's own placeholder (and what the
+    // tests assert): until reverse geocoding answers there is no real name to
+    // show, and "Current Location" would present a guess as a fact.
+    @Published var locationName: String = "Loading..."
     @Published var favoriteLocations: [FavoriteLocation] = []
     
     // MARK: - New API Published Properties
@@ -179,7 +182,7 @@ class WeatherViewModel: ObservableObject {
             
             airQuality = response.airQuality
         } catch {
-            print("Error fetching air quality: \\(error)")
+            print("Error fetching air quality: \(error)")
         }
     }
     
@@ -196,7 +199,7 @@ class WeatherViewModel: ObservableObject {
             
             precipitationNowcast = response
         } catch {
-            print("Error fetching precipitation nowcast: \\(error)")
+            print("Error fetching precipitation nowcast: \(error)")
         }
     }
     
@@ -365,23 +368,29 @@ class WeatherViewModel: ObservableObject {
             let response: FavoriteLocationsResponse = try await apiClient.get("/api/v1/locations/favorites")
             favoriteLocations = response.favorites
         } catch {
-            print("Error fetching favorites: \\(error)")
+            print("Error fetching favorites: \(error)")
         }
     }
     
     /// Add location to favorites
     func addFavorite(name: String, latitude: Double, longitude: Double, isDefault: Bool = false) async -> Bool {
         do {
+            // The backend takes these as query parameters even on POST, and
+            // post() has no queryItems parameter — build the query string here,
+            // with URLComponents doing the percent-encoding for names like
+            // "São Paulo".
+            var components = URLComponents()
+            components.queryItems = [
+                URLQueryItem(name: "name", value: name),
+                URLQueryItem(name: "latitude", value: String(latitude)),
+                URLQueryItem(name: "longitude", value: String(longitude)),
+                URLQueryItem(name: "is_default", value: String(isDefault))
+            ]
+            let query = components.percentEncodedQuery ?? ""
             let _: AddFavoriteResponse = try await apiClient.post(
-                "/api/v1/locations/favorites",
-                queryItems: [
-                    URLQueryItem(name: "name", value: name),
-                    URLQueryItem(name: "latitude", value: String(latitude)),
-                    URLQueryItem(name: "longitude", value: String(longitude)),
-                    URLQueryItem(name: "is_default", value: String(isDefault))
-                ]
+                "/api/v1/locations/favorites?\(query)"
             )
-            
+
             await fetchFavoriteLocations()
             return true
         } catch {
@@ -393,7 +402,7 @@ class WeatherViewModel: ObservableObject {
     /// Remove location from favorites
     func removeFavorite(locationId: Int) async -> Bool {
         do {
-            let _: MessageResponse = try await apiClient.delete("/api/v1/locations/favorites/\\(locationId)")
+            let _: MessageResponse = try await apiClient.delete("/api/v1/locations/favorites/\(locationId)")
             await fetchFavoriteLocations()
             return true
         } catch {
@@ -413,7 +422,7 @@ class WeatherViewModel: ObservableObject {
             )
             return response.results
         } catch {
-            print("Error searching locations: \\(error)")
+            print("Error searching locations: \(error)")
             return []
         }
     }
@@ -470,7 +479,7 @@ struct LocationSearchResponse: Codable {
 }
 
 struct LocationSearchResult: Codable, Identifiable {
-    var id: String { "\\(latitude)-\\(longitude)" }
+    var id: String { "\(latitude)-\(longitude)" }
     let name: String
     let latitude: Double
     let longitude: Double

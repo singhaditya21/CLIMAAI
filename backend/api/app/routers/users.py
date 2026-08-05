@@ -8,6 +8,7 @@ from ..database import get_db
 from ..models import User
 from ..schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse, TokenResponse, ForgotPasswordRequest
 from ..services.auth import hash_password, verify_password, create_access_token, get_current_user
+from ..services.personalization_service import personalization_service
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -153,7 +154,20 @@ async def delete_user(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Delete current user account."""
+    """Delete current user account and everything attached to it.
+
+    The relational data goes with the row — subscriptions cascade through the
+    ORM relationship, and favorite_locations / device_tokens / weather_alerts
+    all declare ON DELETE CASCADE in the schema. The personalization store
+    lives outside Postgres entirely, so it is purged explicitly, and *before*
+    the delete: if the purge fails the account still exists and the user can
+    retry, whereas purging after the commit would leave behaviour history
+    with no account left to retry from.
+
+    Tokens are not stored server-side; every request re-resolves the JWT's
+    subject against the users table, so removing the row is what revokes them.
+    """
+    await personalization_service.forget_user(str(current_user.id))
     await db.delete(current_user)
     await db.commit()
     return None

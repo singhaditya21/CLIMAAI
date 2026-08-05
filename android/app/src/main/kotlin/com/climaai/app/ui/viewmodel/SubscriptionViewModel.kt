@@ -3,9 +3,9 @@ package com.climaai.app.ui.viewmodel
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.climaai.app.ads.AdManager
 import com.climaai.app.billing.BillingConnectionState
 import com.climaai.app.billing.BillingManager
 import com.climaai.app.data.*
@@ -49,7 +49,8 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
 
     private val billingManager = BillingManager.getInstance(application)
     private val proFeaturesManager = ProFeaturesManager(application)
-    
+    private val repository = WeatherRepository(application)
+
     private val _state = MutableStateFlow(SubscriptionState())
     val state: StateFlow<SubscriptionState> = _state.asStateFlow()
 
@@ -57,6 +58,8 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     val isPremium: Boolean get() = _state.value.isPremium
 
     companion object {
+        private const val TAG = "SubscriptionViewModel"
+
         const val PRODUCT_MONTHLY = BillingManager.PRODUCT_MONTHLY
         const val PRODUCT_ANNUAL = BillingManager.PRODUCT_YEARLY
         const val PRODUCT_LIFETIME = BillingManager.PRODUCT_LIFETIME
@@ -67,6 +70,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         observeBillingState()
+        observeCompletedPurchases()
     }
 
     /**
@@ -108,9 +112,36 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                 )
             }.collect { newState ->
                 _state.value = newState
-                
-                // Update ad visibility based on premium status
-                AdManager.setAdsEnabled(!newState.isPremium)
+            }
+        }
+    }
+
+    /**
+     * A completed Play purchase is only half a subscription: without the
+     * backend hearing about it, the entitlement lives on this one device and
+     * evaporates on reinstall. Reporting it here, off the purchase event
+     * itself, is what makes a manual Restore tap unnecessary.
+     */
+    private fun observeCompletedPurchases() {
+        viewModelScope.launch {
+            billingManager.purchaseCompleted.collect { purchase ->
+                // Local entitlement first — the user has paid, so features
+                // unlock now, whether or not the server call below succeeds.
+                proFeaturesManager.updateFromBilling(billingManager)
+
+                repository.activateSubscription(purchase.purchaseToken, purchase.productId)
+                    .onSuccess { subscription ->
+                        _state.value = _state.value.copy(
+                            expiresAt = subscription.subscriptionEndDate?.toString()
+                        )
+                    }
+                    .onFailure { e ->
+                        // Deliberately not surfaced on the paywall: the Play
+                        // purchase itself succeeded, so this is a sync gap, not
+                        // a failed purchase. The entitlement stays local until
+                        // a later Restore or status check reconciles it.
+                        Log.w(TAG, "Backend activation failed for ${purchase.productId}", e)
+                    }
             }
         }
     }
@@ -143,12 +174,13 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                             trialDays = TRIAL_DAYS,
                             savings = null,
                             displayPrice = billingManager.getFormattedPrice(PRODUCT_MONTHLY),
+                            // No "No ads" bullet: the app has no ads to remove,
+                            // so promising their removal would be selling air.
                             features = listOf(
                                 "16-day extended forecast",
                                 "Unlimited AI insights",
                                 "All activity forecasts",
-                                "Advanced radar maps",
-                                "No ads"
+                                "Advanced radar maps"
                             )
                         ),
                         SubscriptionPlan(

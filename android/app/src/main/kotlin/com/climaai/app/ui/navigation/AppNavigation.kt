@@ -32,6 +32,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.climaai.app.BuildConfig
 import com.climaai.app.ui.screens.*
 import com.climaai.app.ui.viewmodel.AuthViewModel
 import com.climaai.app.ui.viewmodel.SubscriptionViewModel
@@ -203,18 +204,35 @@ fun AppNavigation(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     viewModel = weatherViewModel,
+                    authViewModel = authViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToAppearance = {
                         navController.navigate(Screen.AppearanceSettings.route)
                     },
-                    onNavigateToPaywall = { navController.navigate(Screen.Paywall.route) }
+                    onNavigateToPaywall = {
+                        // A licensing gate, not an experiment flag: the app's
+                        // weather data is Open-Meteo's free tier, which is
+                        // licensed for non-commercial use only, so the app ships
+                        // free — paywall dark — until a commercial data licence
+                        // exists. The route stays registered and this edge stays
+                        // in code so flipping MONETIZATION_ENABLED is the whole
+                        // relaunch.
+                        if (BuildConfig.MONETIZATION_ENABLED) {
+                            navController.navigate(Screen.Paywall.route)
+                        }
+                    }
                 )
             }
 
             composable(Screen.AppearanceSettings.route) {
                 AppearanceSettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToPaywall = { navController.navigate(Screen.Paywall.route) }
+                    onNavigateToPaywall = {
+                        // Same licensing gate as the Settings edge above.
+                        if (BuildConfig.MONETIZATION_ENABLED) {
+                            navController.navigate(Screen.Paywall.route)
+                        }
+                    }
                 )
             }
 

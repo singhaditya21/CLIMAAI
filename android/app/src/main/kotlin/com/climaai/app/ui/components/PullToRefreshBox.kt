@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 /**
@@ -46,7 +47,12 @@ fun PullToRefreshBox(
         }
     }
 
-    Box(modifier = modifier.nestedScroll(state.nestedScrollConnection)) {
+    // clipToBounds: at rest the 1.2 container parks its spinner translated
+    // just above this box. When the box sits below a header (Home), that
+    // overhang is visible without the clip — a white disc floating over the
+    // header. Clipping hides the parked spinner; the pull gesture still
+    // animates it down into view exactly as before.
+    Box(modifier = modifier.clipToBounds().nestedScroll(state.nestedScrollConnection)) {
         content()
         PullToRefreshContainer(
             state = state,

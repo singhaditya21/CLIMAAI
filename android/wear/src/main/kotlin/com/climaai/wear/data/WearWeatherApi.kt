@@ -32,7 +32,7 @@ interface WearWeatherApi {
         private const val BASE_URL = "https://api.open-meteo.com/"
 
         private const val CURRENT_PARAMS =
-            "temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m"
+            "temperature_2m,apparent_temperature,relative_humidity_2m,is_day,weather_code,wind_speed_10m"
 
         private const val DAILY_PARAMS =
             "weather_code,temperature_2m_max,temperature_2m_min"
@@ -59,6 +59,7 @@ data class WearForecastResponse(
 
 data class WearCurrentDto(
     @SerializedName("temperature_2m") val temperature: Double?,
+    @SerializedName("apparent_temperature") val feelsLike: Double?,
     @SerializedName("relative_humidity_2m") val humidity: Int?,
     @SerializedName("is_day") val isDay: Int?,
     @SerializedName("weather_code") val weatherCode: Int?,

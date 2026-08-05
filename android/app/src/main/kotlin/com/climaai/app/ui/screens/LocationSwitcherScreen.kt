@@ -118,6 +118,10 @@ fun LocationSwitcherScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // Position-aware: pads only the insets the sheet overlaps — the
+                // gesture nav bar at the bottom, the status bar only when fully
+                // expanded — while the sheet surface stays full-bleed.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 20.dp)
         ) {
             // Header
@@ -189,10 +193,20 @@ fun LocationSwitcherScreen(
                     )
                     
                     Spacer(Modifier.height(8.dp))
-                    Divider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     Spacer(Modifier.height(8.dp))
                 }
 
+                // Search results are Nominatim, whose ODbL licence requires
+                // this credit wherever its data is displayed.
+                item {
+                    Text(
+                        "Search \u00a9 OpenStreetMap contributors",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.45f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
                 // Search results
                 if (searchQuery.isNotEmpty()) {
                     if (isSearching) {

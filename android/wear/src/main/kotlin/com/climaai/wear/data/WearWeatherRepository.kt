@@ -16,13 +16,15 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /**
- * A reading the watch actually took. Fields the API did not supply stay null —
- * every surface renders those as "--" rather than as a number.
+ * A reading something actually took — the watch's own fetch or the phone's
+ * published one. Fields the source did not supply stay null — every surface
+ * renders those as "--" rather than as a number.
  *
  * Temperatures are Celsius and wind is km/h, matching the phone app.
  */
 data class WearWeatherData(
     val temperature: Int,
+    val feelsLike: Int?,
     val condition: String,
     val conditionIcon: String,
     val high: Int?,
@@ -39,6 +41,16 @@ data class WearWeatherData(
      */
     val isStale: Boolean
         get() = System.currentTimeMillis() - observedAtMillis >= FRESH_MS
+
+    /** The reading's age in words, for the surfaces that show one past its fresh window. */
+    fun updatedAgo(nowMillis: Long = System.currentTimeMillis()): String {
+        val minutes = ((nowMillis - observedAtMillis) / 60_000L).coerceAtLeast(0)
+        return when {
+            minutes < 1 -> "just now"
+            minutes < 60 -> "${minutes}m ago"
+            else -> "${minutes / 60}h ago"
+        }
+    }
 }
 
 /** One day of the forecast. [date] is the API's ISO date, labelled at render time. */
@@ -66,10 +78,10 @@ enum class NoDataReason(val label: String, val description: String) {
 }
 
 /**
- * Weather for the watch, fetched on the watch.
- *
- * The phone app publishes nothing to the Wearable Data Layer, so there is
- * nothing to listen for; this module stands alone the way its manifest already
+ * Weather for the watch, from whichever source has the youngest reading: the
+ * one the phone published to the Data Layer ([PhoneWeatherListenerService]
+ * keeps [PhoneWeatherStore] current) or the watch's own fetch. The fetch is
+ * kept — not replaced — so the module still stands alone the way its manifest
  * claims to (`com.google.android.wearable.standalone`).
  */
 object WearWeatherRepository {
@@ -85,24 +97,35 @@ object WearWeatherRepository {
 
     /** Cache-first. Refreshes only when what we hold is too old to call current. */
     suspend fun getWeather(context: Context): WearWeather = withContext(Dispatchers.IO) {
-        cached(context, FRESH_MS)?.let { return@withContext WearWeather.Available(it) }
+        freshest(context, FRESH_MS)?.let { return@withContext WearWeather.Available(it) }
 
         // The tile and both complications wake on the same alarm; serialising
         // here means that burst costs one network call, not three.
         refreshLock.withLock {
-            cached(context, FRESH_MS)?.let { return@withLock WearWeather.Available(it) }
+            freshest(context, FRESH_MS)?.let { return@withLock WearWeather.Available(it) }
 
             when (val refreshed = fetch(context)) {
                 is WearWeather.Available -> refreshed
                 is WearWeather.Unavailable ->
                     // Falling back to a stale-but-still-honest reading beats a
-                    // blank watch face when the watch is briefly off-network.
-                    cached(context, MAX_AGE_MS)
+                    // blank watch face when the watch is briefly off-network —
+                    // and a phone reading is what carries a watch that has no
+                    // location permission or network of its own at all.
+                    freshest(context, MAX_AGE_MS)
                         ?.let { WearWeather.Available(it) }
                         ?: refreshed
             }
         }
     }
+
+    /**
+     * The youngest reading on hand within [maxAgeMs], from either source. Age,
+     * not origin, is what ranks them: a watch fetch from this hour beats a
+     * phone reading from last night, and the other way round.
+     */
+    private fun freshest(context: Context, maxAgeMs: Long): WearWeatherData? =
+        listOfNotNull(cached(context, maxAgeMs), PhoneWeatherStore.reading(context, maxAgeMs))
+            .maxByOrNull { it.observedAtMillis }
 
     private suspend fun fetch(context: Context): WearWeather {
         if (!WearLocationProvider.hasPermission(context)) {
@@ -155,6 +178,7 @@ object WearWeatherRepository {
 
         return WearWeatherData(
             temperature = temperature.roundToInt(),
+            feelsLike = now.feelsLike?.roundToInt(),
             condition = WearWeatherCodes.description(code),
             conditionIcon = WearWeatherCodes.icon(code, isDay = (now.isDay ?: 1) == 1),
             high = days.firstOrNull()?.high,
@@ -189,8 +213,11 @@ object WearWeatherRepository {
      * their previous state — including the "--" they show before the user has
      * granted location — until their own refresh alarm fires up to 30 minutes
      * later.
+     *
+     * Internal so [PhoneWeatherListenerService] can do the same when a phone
+     * reading lands.
      */
-    private fun notifySurfaces(context: Context) {
+    internal fun notifySurfaces(context: Context) {
         try {
             TileService.getUpdater(context).requestUpdate(WeatherTileService::class.java)
         } catch (e: Exception) {

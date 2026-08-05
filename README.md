@@ -1,45 +1,40 @@
-# ClimaAI - AI-Powered Weather Application
+# ClimaAI - Multi-Source Weather Application
 
 ![ClimaAI Logo](docs/images/logo.png)
 
-A complete, production-ready, subscription-based AI weather application for iOS and Android with intelligent weather insights powered by OpenAI.
+A weather application for iOS and Android that queries multiple independent
+forecast providers and tells the user how much they agree — a per-variable
+consensus with an honest confidence readout. Free as shipped: no ads, no
+subscription, no account required. See [ROADMAP.md](ROADMAP.md) for what still
+blocks a store release.
 
-## 🌟 Features
+## 🌟 Features (as shipped — everything is free)
 
-### Free Tier
-- ✅ Current temperature & conditions
-- ✅ Today's hourly forecast (24 hours)
-- ✅ 7-day daily forecast
-- ✅ Sunrise / sunset times
-- ✅ Basic wind & precipitation
-- ✅ Location auto-detect
-- ✅ Light/Dark mode
+- ✅ Current conditions, hourly and daily forecasts
+- ✅ **Multi-source consensus**: median, min–max range and a
+  high/medium/low confidence rating computed from cross-provider disagreement;
+  hidden when fewer than two sources respond
+- ✅ Precipitation radar with real timestamped frames (RainViewer)
+- ✅ Air Quality Index with pollutant breakdown (PM2.5, PM10, NO₂, O₃, …) and UV
+- ✅ Pollen counts — **Europe only** (CAMS domain); an explicit no-data state
+  elsewhere
+- ✅ Home-screen widgets and a Wear OS app (tile + complications) that mirror
+  the phone's last real synced reading — no-data state before first sync
+- ✅ Optional notifications: daily summary, rain alerts
+- ✅ Multi-location support with Nominatim search
+- ✅ Location auto-detect, light/dark mode
+- ✅ Optional account (syncs saved locations); deletable in-app
 
-### Premium Features (💎 $4.99/month or $39.99/year)
-- 🌩 **Advanced Forecasting**
-  - 16-day weather forecast
-  - Minute-level rain prediction
-  - Severe weather alerts
-  - Storm tracking
+### Behind flags — OFF in the shipped configuration
 
-- 🧠 **AI Weather Intelligence**
-  - "What should I wear today?" outfit recommendations
-  - Travel weather risk analysis
-  - Outdoor activity recommendations with best times
-  - Health insights (heat stress, pollen risk, air quality impact)
-  - AI daily weather summary in natural language
-
-- 🌬 **Environment & Health**
-  - Air Quality Index (AQI) with detailed breakdown
-  - UV exposure risk analysis
-  - Pollution component breakdown (PM2.5, PM10, NO₂, O₃, etc.)
-  - Weather impact on asthma/allergies
-
-- 🧳 **Lifestyle & Planning**
-  - Best time to go outside
-  - Best time to exercise
-  - Farming/weather advisory (rainfall, humidity)
-  - Marine & beach weather (coastal locations)
+- 💤 **AI insights** (outfit/activity/health text via OpenAI):
+  `ENABLE_AI_INSIGHTS=false` and no API key in the shipped backend config. The
+  code exists; the store listing must not claim it while it is off.
+- 💤 **Monetization** (subscriptions, paywall):
+  `MONETIZATION_ENABLED=false` is compiled into both Android build types.
+  Flip conditions are listed in [ROADMAP.md](ROADMAP.md) — the Open-Meteo
+  licensing constraint in [docs/WEATHER_APIS.md](docs/WEATHER_APIS.md) is the
+  hard one.
 
 ## 🏗️ Architecture
 
@@ -85,9 +80,10 @@ clima-ai/
   - Android: Android Studio, Kotlin 1.9+
 
 - **API Keys:**
-  - OpenAI API key (for AI insights)
   - Apple Developer Account (for iOS)
   - Google Play Developer Account (for Android)
+  - Optional: OpenAI API key — only if enabling the flag-gated AI insights
+  - Optional: extra weather-source keys (each source is skipped when blank)
 
 ### Backend Setup
 
@@ -255,29 +251,30 @@ Update product IDs in billing configuration to match Google Play Console.
 ## 📡 API Endpoints
 
 ### Weather (Public)
-- `GET /weather/current` - Current weather
-- `GET /weather/hourly` - Hourly forecast
-- `GET /weather/daily` - Daily forecast
-- `GET /weather/air-quality` - Air quality data
+- `GET /api/weather/current` - Current weather
+- `GET /api/weather/hourly` - Hourly forecast
+- `GET /api/weather/daily` - Daily forecast
+- `GET /api/weather/air-quality` - Air quality data
+- `GET /api/weather/multi-source` - Multi-source forecast with the consensus block
 
-### AI Insights (Premium)
-- `GET /ai/insights` - Complete AI insights
-- `GET /ai/summary` - Daily summary
-- `GET /ai/outfit` - Outfit recommendation
-- `GET /ai/activities` - Activity suggestions
-- `GET /ai/health` - Health insights
+### AI Insights (flag-gated, off in shipped config; prefix is `/api`, not `/api/ai`)
+- `GET /api/insights` - Complete AI insights
+- `GET /api/summary` - Daily summary
 
-### User Management
-- `POST /users/register` - Register new user
-- `POST /users/login` - Login
-- `GET /users/me` - Get current user
-- `PUT /users/me` - Update user
+### User Management (`/api/auth`)
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
+- `PUT /api/auth/me` - Update user
+- `DELETE /api/auth/me` - Delete account and, by cascade, all attached data
+  (see [docs/delete-account.html](docs/delete-account.html))
 
-### Subscriptions
-- `GET /subscriptions/status` - Check subscription
-- `POST /subscriptions/trial` - Start 7-day trial
-- `POST /subscriptions/activate` - Activate subscription
-- `GET /subscriptions/plans` - Get available plans
+### Subscriptions (inert while monetization is compiled out)
+- `GET /api/subscriptions/status` - Check subscription
+- `POST /api/subscriptions/activate` - Activate subscription
+- `GET /api/subscriptions/plans` - Get available plans
+
+The authoritative list is the OpenAPI schema at `/docs` on a running API.
 
 ## 📱 Mobile Features
 
@@ -488,14 +485,12 @@ subscriptions
 
 ## 💰 Monetization
 
-### Subscription Tiers
-- **Monthly Premium**: $4.99/month
-- **Annual Premium**: $39.99/year (33% savings)
-- **Free Trial**: 7 days
-
-### Revenue Sharing
-- Apple: 30% for first year, 15% after
-- Google: 15% for subscriptions
+**Compiled out.** `MONETIZATION_ENABLED=false` in both Android build types: the
+shipped app is free, with no ads, no paywall, and nothing purchasable. The
+subscription stack (backend plans, payment-service webhooks, billing client)
+exists but is inert. Do not flip the flag before the conditions in
+[ROADMAP.md](ROADMAP.md) are met — the Open-Meteo licensing constraint in
+[docs/WEATHER_APIS.md](docs/WEATHER_APIS.md) is the hard one.
 
 ## 📜 License
 
@@ -507,20 +502,20 @@ This is a production application. For contributions, please contact the developm
 
 ## 📞 Support
 
-- Email: support@climaai.com
-- Website: https://climaai.com
-- Documentation: https://docs.climaai.com
+- Email: singhaditya21@gmail.com
+- Legal & policy pages (GitHub Pages, served from `docs/`):
+  [privacy](https://singhaditya21.github.io/CLIMAAI/privacy.html) ·
+  [terms](https://singhaditya21.github.io/CLIMAAI/terms.html) ·
+  [account deletion](https://singhaditya21.github.io/CLIMAAI/delete-account.html)
 
 ## 🔄 Version History
 
-### v1.0.0 (Initial Release)
-- ✅ Complete weather data integration (Open-Meteo)
-- ✅ AI-powered insights (OpenAI GPT-4)
-- ✅ Subscription management (Apple & Google)
-- ✅ iOS & Android apps
-- ✅ 7-day free trial
-- ✅ Offline caching
-- ✅ Background updates
+### v1.0.0 (unreleased — see [ROADMAP.md](ROADMAP.md) for blockers)
+- ✅ Multi-source weather with consensus confidence readout
+- ✅ Radar, air quality, Europe-only pollen
+- ✅ Widgets, Apple Watch and Wear OS apps with synced real data
+- ✅ Offline caching and background updates
+- 💤 AI insights and subscriptions present in code, off by configuration
 
 ## 🗺️ Roadmap
 
@@ -533,8 +528,11 @@ implemented** — earlier versions of this file listed them as planned.
 
 ## 🙏 Credits
 
-- **Weather Data**: Open-Meteo API
-- **AI**: OpenAI GPT-4
+- **Weather Data**: Open-Meteo (CC BY 4.0), MET Norway, US NWS and others —
+  see [docs/WEATHER_APIS.md](docs/WEATHER_APIS.md) for the full list and the
+  attribution obligations
+- **Radar**: RainViewer
+- **Geocoding**: Nominatim / © OpenStreetMap contributors (ODbL)
 - **Icons**: SF Symbols (iOS), Material Icons (Android)
 - **Backend**: FastAPI, Express.js
 - **Mobile**: SwiftUI, Jetpack Compose

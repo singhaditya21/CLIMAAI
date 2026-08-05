@@ -15,6 +15,7 @@ from ..schemas.ai import (
     OutfitRecommendation,
     ActivityRecommendation,
     HealthInsight,
+    InsightSource,
     TravelRiskAnalysis,
     RiskLevel,
 )
@@ -143,11 +144,14 @@ Be conversational, helpful, and concise. Focus on what people need to know to pl
             )
             
             result = json.loads(response.choices[0].message.content)
+            # Stamped here, not left to the model: the label goes into the
+            # cache too, so a cache hit stays honestly attributed.
+            result["generated_by"] = InsightSource.LLM
             summary = DailySummary(**result)
-            
+
             # Cache the result
             await self._set_cached_insight(cache_key, summary.model_dump(mode="json"))
-            
+
             return summary
             
         except Exception as e:
@@ -199,10 +203,11 @@ Be practical and specific."""
             )
             
             result = json.loads(response.choices[0].message.content)
+            result["generated_by"] = InsightSource.LLM
             outfit = OutfitRecommendation(**result)
-            
+
             await self._set_cached_insight(cache_key, outfit.model_dump(mode="json"))
-            
+
             return outfit
             
         except Exception as e:
@@ -265,10 +270,13 @@ Include diverse activities: running, cycling, hiking, beach, picnic, etc."""
             )
             
             result = json.loads(response.choices[0].message.content)
-            activities = [ActivityRecommendation(**item) for item in result["activities"]]
-            
+            activities = [
+                ActivityRecommendation(**{**item, "generated_by": InsightSource.LLM})
+                for item in result["activities"]
+            ]
+
             await self._set_cached_insight(cache_key, [a.model_dump(mode="json") for a in activities])
-            
+
             return activities
             
         except Exception as e:
@@ -382,6 +390,10 @@ Next 12 Hours:
 - Peak rain: {max(precips):.1f}mm/hour
 """
         
+        # The requested JSON mirrors TravelRiskAnalysis field-for-field. The
+        # previous prompt asked for a different shape (risk_score, risk_factors,
+        # …) that the response model rejected, so this endpoint could never
+        # return an LLM answer.
         prompt = f"""Analyze travel safety and conditions for {destination}:
 
 {weather_context}
@@ -389,22 +401,15 @@ Next 12 Hours:
 
 Generate a JSON response with this structure:
 {{
-  "overall_risk_level": "LOW|MODERATE|HIGH|VERY_HIGH",
-  "risk_score": 0-100 (0=safest, 100=most dangerous),
+  "overall_risk": "low|moderate|high|very_high",
   "summary": "brief travel safety summary (1-2 sentences)",
-  "risk_factors": [
-    {{
-      "factor": "weather/visibility/road conditions/etc",
-      "severity": "LOW|MODERATE|HIGH|VERY_HIGH",
-      "description": "explanation of this specific risk"
-    }}
-  ],
-  "recommendations": [
+  "severe_weather_alerts": ["only conditions dangerous enough to warn about"],
+  "travel_tips": [
     "specific actionable recommendation 1",
     "specific actionable recommendation 2"
   ],
-  "best_departure_time": "recommended time range for travel",
-  "worst_conditions_expected": "when conditions will be worst"
+  "best_travel_times": ["recommended time range(s) for travel"],
+  "worst_travel_times": ["when conditions will be worst"]
 }}
 
 Consider:
@@ -426,24 +431,19 @@ Be specific and actionable."""
                 temperature=0.7,
                 max_tokens=700,
             )
-            
+
             result = json.loads(response.choices[0].message.content)
-            
-            # Convert string risk level to RiskLevel enum
-            risk_level_str = result.get("overall_risk_level", "MODERATE")
-            result["overall_risk_level"] = RiskLevel[risk_level_str]
-            
-            # Convert risk factors severity to RiskLevel enum
-            for factor in result.get("risk_factors", []):
-                severity_str = factor.get("severity", "LOW")
-                factor["severity"] = RiskLevel[severity_str]
-            
+
+            # Models echo enum values in either case; normalise before validation.
+            result["overall_risk"] = RiskLevel(str(result.get("overall_risk", "moderate")).lower())
+            result["generated_by"] = InsightSource.LLM
+
             travel_risk = TravelRiskAnalysis(**result)
-            
+
             await self._set_cached_insight(cache_key, travel_risk.model_dump(mode="json"))
-            
+
             return travel_risk
-            
+
         except Exception as e:
             print(f"AI generation error for travel risk: {e}")
             return self._fallback_travel_risk_analysis(weather)
@@ -464,7 +464,17 @@ Be specific and actionable."""
         travel = None
         if include_travel:
             travel = await self.generate_travel_risk_analysis(weather, location_name)
-        
+
+        # The aggregate label is conservative: LLM only when every section a
+        # model can write actually was — a partial fallback must not let a
+        # client badge template text as AI. Health is rule-computed by design
+        # and deliberately not counted.
+        llm_sections = [daily_summary.generated_by, outfit.generated_by]
+        llm_sections += [activity.generated_by for activity in activities]
+        if travel is not None:
+            llm_sections.append(travel.generated_by)
+        all_llm = all(source == InsightSource.LLM for source in llm_sections)
+
         return AIInsightsResponse(
             daily_summary=daily_summary,
             outfit=outfit,
@@ -472,6 +482,7 @@ Be specific and actionable."""
             health=health,
             travel=travel,
             cached=False,
+            generated_by=InsightSource.LLM if all_llm else InsightSource.RULES,
         )
     
     # Fallback methods for when AI is not available
@@ -571,80 +582,59 @@ Be specific and actionable."""
         return activities[:3]
     
     def _fallback_travel_risk_analysis(self, weather: WeatherResponse) -> TravelRiskAnalysis:
-        """Generate basic travel risk analysis without AI."""
+        """Generate basic travel risk analysis without AI.
+
+        Built field-for-field against TravelRiskAnalysis — the shape both mobile
+        clients decode. The previous version produced a different shape
+        (risk_score, risk_factors, …) that failed response validation, so
+        /api/travel-risk answered 500 whenever the LLM was unavailable.
+        """
         current = weather.current
         air_quality = weather.air_quality
-        
-        # Calculate risk score based on conditions
+
+        # Score the conditions; severe ones double as explicit alerts.
         risk_score = 0
-        risk_factors = []
-        
-        # Weather conditions
+        severe_weather_alerts = []
+
         if current.precipitation > 5:
             risk_score += 30
-            risk_factors.append({
-                "factor": "Heavy rainfall",
-                "severity": RiskLevel.HIGH if current.precipitation > 10 else RiskLevel.MODERATE,
-                "description": f"Heavy rain ({current.precipitation}mm) may reduce visibility and create hazardous road conditions."
-            })
+            severe_weather_alerts.append(
+                f"Heavy rain ({current.precipitation}mm) may reduce visibility and create hazardous road conditions."
+            )
         elif current.precipitation > 0:
             risk_score += 15
-            risk_factors.append({
-                "factor": "Light rain",
-                "severity": RiskLevel.LOW,
-                "description": "Light rain may cause slippery roads. Drive carefully."
-            })
-        
-        # Wind conditions
+
         if current.wind_speed > 50:
             risk_score += 25
-            risk_factors.append({
-                "factor": "Strong winds",
-                "severity": RiskLevel.HIGH,
-                "description": f"Very strong winds ({current.wind_speed} km/h) may affect vehicle control, especially for high-sided vehicles."
-            })
+            severe_weather_alerts.append(
+                f"Very strong winds ({current.wind_speed} km/h) may affect vehicle control, especially for high-sided vehicles."
+            )
         elif current.wind_speed > 30:
             risk_score += 10
-            risk_factors.append({
-                "factor": "Moderate winds",
-                "severity": RiskLevel.MODERATE,
-                "description": f"Moderate winds ({current.wind_speed} km/h) may affect driving comfort."
-            })
-        
-        # Visibility (based on cloud cover and precipitation)
+
         if current.cloud_cover > 90 and current.precipitation > 2:
             risk_score += 20
-            risk_factors.append({
-                "factor": "Poor visibility",
-                "severity": RiskLevel.HIGH,
-                "description": "Heavy clouds and precipitation may significantly reduce visibility."
-            })
-        
-        # Air quality
+            severe_weather_alerts.append(
+                "Heavy clouds and precipitation may significantly reduce visibility."
+            )
+
         if air_quality and air_quality.aqi > 150:
             risk_score += 15
-            risk_factors.append({
-                "factor": "Poor air quality",
-                "severity": RiskLevel.HIGH,
-                "description": f"Poor air quality (AQI: {air_quality.aqi}) may affect health during travel."
-            })
-        
-        # Temperature extremes
+            severe_weather_alerts.append(
+                f"Poor air quality (AQI: {air_quality.aqi}) may affect health during travel."
+            )
+
         if current.temperature < -5:
             risk_score += 20
-            risk_factors.append({
-                "factor": "Freezing conditions",
-                "severity": RiskLevel.HIGH,
-                "description": "Very cold temperatures may cause icy roads. Drive with extreme caution."
-            })
+            severe_weather_alerts.append(
+                "Very cold temperatures may cause icy roads. Drive with extreme caution."
+            )
         elif current.temperature > 40:
             risk_score += 15
-            risk_factors.append({
-                "factor": "Extreme heat",
-                "severity": RiskLevel.MODERATE,
-                "description": "Extreme heat may affect vehicle performance and driver comfort."
-            })
-        
+            severe_weather_alerts.append(
+                "Extreme heat may affect vehicle performance and driver comfort."
+            )
+
         # Determine overall risk level
         if risk_score >= 60:
             overall_risk = RiskLevel.VERY_HIGH
@@ -658,36 +648,35 @@ Be specific and actionable."""
         else:
             overall_risk = RiskLevel.LOW
             summary = "Generally safe travel conditions. Normal precautions apply."
-        
-        # Generate recommendations
-        recommendations = []
+
+        travel_tips = []
         if current.precipitation > 0:
-            recommendations.append("Drive at reduced speed and maintain safe following distance")
+            travel_tips.append("Drive at reduced speed and maintain safe following distance")
         if current.wind_speed > 30:
-            recommendations.append("Be alert for sudden gusts, especially on exposed routes")
+            travel_tips.append("Be alert for sudden gusts, especially on exposed routes")
         if air_quality and air_quality.aqi > 100:
-            recommendations.append("Keep windows closed and use vehicle air recirculation")
-        if len(recommendations) == 0:
-            recommendations.append("Follow standard safe driving practices")
-        
-        # Determine best departure time
+            travel_tips.append("Keep windows closed and use vehicle air recirculation")
+        if len(travel_tips) == 0:
+            travel_tips.append("Follow standard safe driving practices")
+
+        # Best and worst windows come from the hourly precipitation forecast.
         if len(weather.hourly) >= 12:
-            # Find hour with least precipitation
             min_precip_hour = min(range(12), key=lambda i: weather.hourly[i].precipitation)
-            best_time = f"Around {min_precip_hour} hours from now"
-            worst_time = f"Around {max(range(12), key=lambda i: weather.hourly[i].precipitation)} hours from now"
+            max_precip_hour = max(range(12), key=lambda i: weather.hourly[i].precipitation)
+            best_travel_times = [f"Around {min_precip_hour} hours from now"]
+            worst_travel_times = [f"Around {max_precip_hour} hours from now"]
         else:
-            best_time = "Current conditions are relatively stable"
-            worst_time = "No significant changes expected"
-        
+            best_travel_times = ["Current conditions are relatively stable"]
+            worst_travel_times = ["No significant changes expected"]
+
         return TravelRiskAnalysis(
-            overall_risk_level=overall_risk,
-            risk_score=min(risk_score, 100),
+            overall_risk=overall_risk,
             summary=summary,
-            risk_factors=risk_factors,
-            recommendations=recommendations,
-            best_departure_time=best_time,
-            worst_conditions_expected=worst_time,
+            severe_weather_alerts=severe_weather_alerts,
+            travel_tips=travel_tips,
+            best_travel_times=best_travel_times,
+            worst_travel_times=worst_travel_times,
+            generated_by=InsightSource.RULES,
         )
     
     async def close(self):

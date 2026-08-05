@@ -1,8 +1,15 @@
 # ClimaAI API Documentation
 
+> ⚠️ **Accuracy note:** the authoritative endpoint reference is the OpenAPI
+> schema at `/docs` on a running API. Paths in this file predate the current
+> routers — e.g. auth actually lives at `/api/auth/*` (register, login, `me`,
+> and `DELETE /api/auth/me` for account deletion), weather at `/api/weather/*`.
+> Trust the running schema over this file where they differ.
+
 ## Base URL
 
-- **Production**: `https://api.climaai.com`
+- **Production**: `https://api.climaai.com` (not yet deployed — see
+  [ROADMAP.md](../ROADMAP.md); the host does not resolve today)
 - **Development**: `http://localhost:8000`
 
 ## Authentication
@@ -13,7 +20,7 @@ Most endpoints require JWT authentication via Bearer token.
 Authorization: Bearer <access_token>
 ```
 
-Obtain access token via `/users/register` or `/users/login` endpoints.
+Obtain access token via `POST /api/auth/register` or `POST /api/auth/login`.
 
 ## Response Format
 

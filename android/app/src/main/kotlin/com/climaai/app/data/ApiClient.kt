@@ -136,7 +136,13 @@ interface ClimaAIApi {
     // auth router's user update, which expects them nested under "preferences".
     @PUT("/api/auth/me")
     suspend fun updatePreferences(@Body update: UserUpdateRequest): Response<User>
-    
+
+    // Account deletion (Play requires an in-app path now that registration is
+    // in-app). Same /me as the profile — the users router mounts at /api/auth.
+    // Replies 204 No Content.
+    @DELETE("/api/auth/me")
+    suspend fun deleteAccount(): Response<Unit>
+
     // Subscription endpoints
     @GET("/api/subscriptions/status")
     suspend fun getSubscriptionStatus(): Response<SubscriptionStatus>
@@ -148,7 +154,15 @@ interface ClimaAIApi {
     
     @POST("/api/subscriptions/trial")
     suspend fun startTrial(@Body data: TrialRequest): Response<Subscription>
-    
+
+    // Server-side entitlement for a completed Play purchase: the backend
+    // validates the token with Google and opens the subscription row that
+    // /status reads. Without this call a purchase exists only on the device.
+    @POST("/api/subscriptions/activate")
+    suspend fun activateSubscription(
+        @Body data: SubscriptionActivateRequest
+    ): Response<Subscription>
+
     @GET("/api/subscriptions/plans")
     suspend fun getPlans(): Response<PlansResponse>
     
@@ -361,6 +375,16 @@ suspend fun ClimaAIApi.login(email: String, password: String): Response<TokenRes
 // so this only carries the part the app actually changes.
 data class UserUpdateRequest(
     val preferences: UserPreferences
+)
+
+// Body of POST /api/subscriptions/activate — the router's SubscriptionCreate.
+// platform and plan must be values of the backend's SubscriptionPlatform
+// ("google"/"apple") and SubscriptionPlan ("monthly"/"annual") enums;
+// receipt_data carries the Play purchase token.
+data class SubscriptionActivateRequest(
+    val platform: String,
+    val plan: String,
+    val receipt_data: String
 )
 
 // Request/Response classes for subscriptions

@@ -13,13 +13,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.climaai.app.BuildConfig
 import com.climaai.app.data.DailyWeather
+import com.climaai.app.data.TemperatureUnit
+import com.climaai.app.data.UnitsPrefs
 import com.climaai.app.ui.viewmodel.WeatherState
 import com.climaai.app.ui.viewmodel.WeatherViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +34,16 @@ fun ForecastScreen(
 ) {
     val weatherState by viewModel.weatherState.collectAsState()
     val isPremium by viewModel.isPremium.collectAsState()
-    
+
+    // Readings arrive from the API in Celsius; this is the unit they are shown
+    // in — the same preference HomeScreen follows, so navigating between the
+    // two screens can never change what a temperature means.
+    val context = LocalContext.current
+    val unitsPrefs = remember { UnitsPrefs(context) }
+    val temperatureUnit by unitsPrefs.temperatureUnit.collectAsState(
+        initial = TemperatureUnit.CELSIUS
+    )
+
     val daily = (weatherState as? WeatherState.Success)?.data?.daily ?: emptyList()
     val displayDays = if (isPremium) daily else daily.take(7)
     
@@ -63,11 +77,12 @@ fun ForecastScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(displayDays.withIndex().toList()) { (index, day) ->
-                    DailyForecastCard(day, index)
+                    DailyForecastCard(day, index, temperatureUnit)
                 }
                 
-                // Premium upsell
-                if (!isPremium && daily.size > 7) {
+                // Premium upsell — only when monetization is live; with the flag
+                // off the paywall route is dark, so an upsell would dead-end.
+                if (BuildConfig.MONETIZATION_ENABLED && !isPremium && daily.size > 7) {
                     item {
                         PremiumUpsellCard()
                     }
@@ -80,7 +95,11 @@ fun ForecastScreen(
 }
 
 @Composable
-private fun DailyForecastCard(day: DailyWeather, dayIndex: Int) {
+private fun DailyForecastCard(
+    day: DailyWeather,
+    dayIndex: Int,
+    temperatureUnit: TemperatureUnit
+) {
     val dayName = when (dayIndex) {
         0 -> "Today"
         1 -> "Tomorrow"
@@ -127,7 +146,7 @@ private fun DailyForecastCard(day: DailyWeather, dayIndex: Int) {
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${day.temperatureMin.toInt()}°",
+                        text = "${temperatureUnit.fromCelsius(day.temperatureMin).roundToInt()}°",
                         style = MaterialTheme.typography.titleLarge,
                         color = Color.White.copy(alpha = 0.6f)
                     )
@@ -136,7 +155,7 @@ private fun DailyForecastCard(day: DailyWeather, dayIndex: Int) {
                         color = Color.White.copy(alpha = 0.4f)
                     )
                     Text(
-                        text = "${day.temperatureMax.toInt()}°",
+                        text = "${temperatureUnit.fromCelsius(day.temperatureMax).roundToInt()}°",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

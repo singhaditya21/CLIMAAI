@@ -49,7 +49,7 @@ class SubscriptionViewModel: ObservableObject {
             let products = try await Product.products(for: [monthlyProductId, annualProductId])
             availableProducts = products.sorted { $0.price < $1.price }
         } catch {
-            print("Error loading products: \\(error)")
+            print("Error loading products: \(error)")
             errorMessage = "Failed to load subscription plans"
         }
     }
@@ -59,15 +59,20 @@ class SubscriptionViewModel: ObservableObject {
     /// Fetch subscription status from backend
     func fetchSubscriptionStatus() async {
         isLoading = true
-        
+
         do {
-            let status: SubscriptionStatusResponse = try await apiClient.get("/api/v1/subscriptions/status")
+            // GET /api/subscriptions/status returns SubscriptionStatusResponse
+            // (has_active_subscription / is_premium / subscription / features),
+            // which is what Models.swift's SubscriptionStatus models.
+            let status: SubscriptionStatus = try await apiClient.get("/api/subscriptions/status")
             subscriptionStatus = status
             isPremium = status.isPremium
-            isOnTrial = status.isOnTrial
+            // The wire has no top-level trial flag; trial-ness lives on the
+            // subscription row's status.
+            isOnTrial = status.subscription?.status == "trial"
             isLoading = false
         } catch {
-            print("Error fetching subscription status: \\(error)")
+            print("Error fetching subscription status: \(error)")
             isLoading = false
         }
     }
@@ -90,11 +95,12 @@ class SubscriptionViewModel: ObservableObject {
                 case .verified(let transaction):
                     // Get transaction receipt
                     if let receipt = await getReceiptData() {
-                        // Validate with backend
+                        // Validate with backend. "apple", not "ios": the wire
+                        // enum is SubscriptionPlatform (apple/google/web).
                         let success = await validatePurchase(
                             receipt: receipt,
                             productId: product.id,
-                            platform: "ios"
+                            platform: "apple"
                         )
                         
                         if success {
@@ -133,16 +139,23 @@ class SubscriptionViewModel: ObservableObject {
     func startTrial() async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            let response: SubscriptionStatusResponse = try await apiClient.post(
-                "/api/v1/subscriptions/trial/start",
-                body: [String: String]()
+            // POST /api/subscriptions/trial returns the created subscription
+            // row (SubscriptionResponse), not a status payload; the premium
+            // flags and feature set come from a follow-up /status fetch.
+            let _: Subscription = try await apiClient.post(
+                "/api/subscriptions/trial",
+                body: [
+                    "platform": "apple",
+                    "plan": "monthly",
+                    // Required by the SubscriptionCreate schema; a trial has
+                    // no store receipt yet.
+                    "receipt_data": ""
+                ]
             )
-            
-            subscriptionStatus = response
-            isPremium = response.isPremium
-            isOnTrial = response.isOnTrial
+
+            await fetchSubscriptionStatus()
             isLoading = false
             return true
         } catch {
@@ -178,13 +191,13 @@ class SubscriptionViewModel: ObservableObject {
     func cancelSubscription() async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            let _: MessageResponse = try await apiClient.post(
-                "/api/v1/subscriptions/cancel",
-                body: [String: String]()
-            )
-            
+            // DELETE, not POST: that is the verb the backend registers for
+            // /api/subscriptions/cancel, and it answers with the updated
+            // subscription row.
+            let _: Subscription = try await apiClient.delete("/api/subscriptions/cancel")
+
             await fetchSubscriptionStatus()
             isLoading = false
             return true
@@ -208,7 +221,7 @@ class SubscriptionViewModel: ObservableObject {
             let receiptData = try Data(contentsOf: appStoreReceiptURL)
             return receiptData.base64EncodedString()
         } catch {
-            print("Error reading receipt: \\(error)")
+            print("Error reading receipt: \(error)")
             return nil
         }
     }
@@ -216,20 +229,26 @@ class SubscriptionViewModel: ObservableObject {
     /// Validate purchase with backend
     private func validatePurchase(receipt: String, productId: String, platform: String) async -> Bool {
         do {
-            let response: SubscriptionStatusResponse = try await apiClient.post(
-                "/api/v1/subscriptions/validate",
+            // POST /api/subscriptions/validate returns a receipt verdict
+            // ({valid, is_active, ...}), not the status object — the caller
+            // refreshes premium state from /status afterwards.
+            struct ReceiptValidation: Codable {
+                let valid: Bool
+                let isActive: Bool?
+            }
+
+            let response: ReceiptValidation = try await apiClient.post(
+                "/api/subscriptions/validate",
                 body: [
                     "receipt_data": receipt,
                     "product_id": productId,
                     "platform": platform
                 ]
             )
-            
-            subscriptionStatus = response
-            isPremium = response.isPremium
-            return true
+
+            return response.valid && (response.isActive ?? false)
         } catch {
-            print("Validation error: \\(error)")
+            print("Validation error: \(error)")
             return false
         }
     }
@@ -261,32 +280,14 @@ class SubscriptionViewModel: ObservableObject {
         
         let monthlyAnnual = monthly.price * 12
         let savings = ((monthlyAnnual - annual.price) / monthlyAnnual) * 100
-        return String(format: "%.0f%%", savings)
+        // StoreKit prices are Decimal, which is not CVarArg; bridge through
+        // NSDecimalNumber for the %.0f formatting.
+        return String(format: "%.0f%%", NSDecimalNumber(decimal: savings).doubleValue)
     }
 }
 
-// MARK: - Supporting Types
-
-struct SubscriptionStatusResponse: Codable {
-    let userId: Int
-    let isPremium: Bool
-    let isOnTrial: Bool
-    let plan: String?
-    let status: String?
-    let expiresAt: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case userId = "user_id"
-        case isPremium = "is_premium"
-        case isOnTrial = "is_on_trial"
-        case plan, status
-        case expiresAt = "expires_at"
-    }
-}
-
-// No `typealias SubscriptionStatus = SubscriptionStatusResponse` here: it
-// collided with the SubscriptionStatus struct in Models.swift, which is the
-// one matching what the backend actually returns
+// The Swift SubscriptionStatusResponse that used to live here is gone: it
+// described a wire shape (user_id / is_on_trial / expires_at) the backend
+// never sends. Models.swift's SubscriptionStatus is the one matching what
+// /api/subscriptions/status actually returns
 // (has_active_subscription / is_premium / subscription / features).
-// SubscriptionStatusResponse is a different shape and is still referenced
-// by name in this file — see the note in ROADMAP.md about reconciling them.

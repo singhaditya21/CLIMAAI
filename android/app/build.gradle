@@ -62,12 +62,17 @@ android {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", "API_BASE_URL", '"https://api.climaai.com"'
+            // Paywall stays dark until the weather-data licensing allows charging:
+            // Open-Meteo's free tier is non-commercial. Flip only with a commercial
+            // data licence in place.
+            buildConfigField "boolean", "MONETIZATION_ENABLED", "false"
             signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
         }
         debug {
             applicationIdSuffix ".debug"
             debuggable true
             buildConfigField "String", "API_BASE_URL", '"http://10.0.2.2:8000"' // Android emulator localhost
+            buildConfigField "boolean", "MONETIZATION_ENABLED", "false"
         }
     }
     
@@ -164,6 +169,7 @@ dependencies {
     // are ever wanted.
     // AndroidManifest.xml declares this same version to Play; keep them in step.
     implementation 'com.android.billingclient:billing:8.0.0'
+    implementation 'com.google.android.gms:play-services-wearable:18.1.0'
     
     // Coil for image loading
     implementation 'io.coil-kt:coil-compose:2.5.0'

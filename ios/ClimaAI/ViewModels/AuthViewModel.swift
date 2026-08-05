@@ -109,7 +109,7 @@ class AuthViewModel: ObservableObject {
             let user: User = try await apiClient.get("/api/v1/users/me")
             currentUser = user
         } catch {
-            print("Error fetching user: \\(error)")
+            print("Error fetching user: \(error)")
             // If token is invalid, logout
             if (error as NSError).code == 401 {
                 logout()

@@ -5,11 +5,15 @@ import android.text.format.DateFormat
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.updateAll
 import com.climaai.app.data.HourlyWeather
+import com.climaai.app.data.TemperatureUnit
+import com.climaai.app.data.UnitsPrefs
 import com.climaai.app.data.WeatherResponse
 import com.climaai.app.work.WorkScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -200,14 +204,21 @@ object WidgetDataManager {
         val lastUpdatedMs = prefs.getLong("last_updated", 0L)
         val hasData = lastUpdatedMs != 0L
 
+        // Stored readings are Celsius, the app's wire format; the user's display
+        // unit is applied here, at the one point every widget reads through, so
+        // a Fahrenheit user is never shown a Celsius number on the home screen.
+        // runBlocking is the same trade WidgetPrefs.getWidgetConfig makes: a
+        // widget render is not a composition and has no way to collect a Flow.
+        val unit = runBlocking { UnitsPrefs(context).temperatureUnit.first() }
+
         val dailyCount = prefs.getInt("daily_count", 0)
         val forecast = (0 until dailyCount).map { index ->
             val code = prefs.getInt("daily_${index}_code", 0)
             DayForecast(
                 dayName = dayLabel(prefs.getString("daily_${index}_date", null), index),
                 icon = weatherEmoji(code),
-                high = prefs.getFloat("daily_${index}_high", 0f).roundToInt(),
-                low = prefs.getFloat("daily_${index}_low", 0f).roundToInt()
+                high = unit.displayed(prefs.getFloat("daily_${index}_high", 0f)),
+                low = unit.displayed(prefs.getFloat("daily_${index}_low", 0f))
             )
         }
 
@@ -221,7 +232,7 @@ object WidgetDataManager {
                     // temperature, which said nothing about any actual hour.
                     label = hourFormat.format(Date(prefs.getLong("hourly_${index}_time", 0L))),
                     icon = weatherEmoji(prefs.getInt("hourly_${index}_code", 0)),
-                    temp = prefs.getFloat("hourly_${index}_temp", 0f).roundToInt()
+                    temp = unit.displayed(prefs.getFloat("hourly_${index}_temp", 0f))
                 )
             }
         }
@@ -234,8 +245,8 @@ object WidgetDataManager {
         return WidgetData(
             hasData = hasData,
             locationName = prefs.getString("location_name", NO_DATA) ?: NO_DATA,
-            currentTemp = prefs.getFloat("temperature", 0f).roundToInt(),
-            feelsLike = prefs.getFloat("feels_like", 0f).roundToInt(),
+            currentTemp = unit.displayed(prefs.getFloat("temperature", 0f)),
+            feelsLike = unit.displayed(prefs.getFloat("feels_like", 0f)),
             weatherIcon = if (hasData) weatherEmoji(weatherCode) else NO_DATA,
             condition = prefs.getString("weather_description", NO_DATA) ?: NO_DATA,
             high = forecast.firstOrNull()?.high,
@@ -250,6 +261,10 @@ object WidgetDataManager {
             longitude = prefs.getFloat("longitude", Float.NaN).takeIf { !it.isNaN() }?.toDouble()
         )
     }
+
+    /** A stored Celsius reading as the whole number the widgets print. */
+    private fun TemperatureUnit.displayed(celsius: Float): Int =
+        fromCelsius(celsius.toDouble()).roundToInt()
 
     // SimpleDateFormat is not thread safe and widgets render concurrently, so
     // these are built per call rather than shared.
@@ -324,7 +339,12 @@ object WidgetDataManager {
     }
 }
 
-/** Everything the widgets render, read from the shared prefs by [WidgetDataManager.getData]. */
+/**
+ * Everything the widgets render, read from the shared prefs by
+ * [WidgetDataManager.getData]. Temperatures are already in the user's chosen
+ * display unit — widgets print them with a bare degree sign and must not
+ * convert again.
+ */
 data class WidgetData(
     /**
      * False until a real reading has been stored. Every reading below is a

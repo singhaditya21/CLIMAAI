@@ -31,24 +31,29 @@ import com.climaai.app.BuildConfig
 import com.climaai.app.data.AppearancePrefs
 import com.climaai.app.data.NotificationPrefsManager
 import com.climaai.app.data.TemperatureUnit
+import com.climaai.app.widget.WidgetDataManager
 import com.climaai.app.data.ThemeMode
 import com.climaai.app.data.UnitsPrefs
 import com.climaai.app.data.cache.UsageSummary
 import com.climaai.app.ui.components.AnimatedCounter
+import com.climaai.app.ui.viewmodel.AuthViewModel
+import com.climaai.app.ui.viewmodel.DeleteAccountState
 import com.climaai.app.ui.viewmodel.WeatherViewModel
 import com.climaai.app.work.WorkScheduler
 import kotlinx.coroutines.launch
 
-// ClimaAI's published legal pages — the same URLs the store listing declares
-// (docs/APP_STORE.md). Kept here so the rows below link somewhere real rather
-// than showing a chevron that goes nowhere.
-private const val PRIVACY_POLICY_URL = "https://climaai.com/privacy"
-private const val TERMS_OF_SERVICE_URL = "https://climaai.com/terms"
+// ClimaAI's published legal pages, hosted on the project's GitHub Pages — the
+// climaai.com domain was never registered, so these are the only URLs that
+// resolve. The docs group publishes the pages; these exact URLs are the
+// contract with them and with the store listing.
+private const val PRIVACY_POLICY_URL = "https://singhaditya21.github.io/CLIMAAI/privacy.html"
+private const val TERMS_OF_SERVICE_URL = "https://singhaditya21.github.io/CLIMAAI/terms.html"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: WeatherViewModel,
+    authViewModel: AuthViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToPaywall: () -> Unit = {}
@@ -59,6 +64,11 @@ fun SettingsScreen(
 
     val isPremium by viewModel.isPremium.collectAsState()
     val subscriptionStatus by viewModel.subscriptionStatus.collectAsState()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val deleteAccountState by authViewModel.deleteAccountState.collectAsState()
+
+    // 0 = closed, 1 = first "are you sure", 2 = final destructive confirm.
+    var deleteConfirmStep by remember { mutableStateOf(0) }
     
     // Notification preferences
     val notificationPrefs = remember { NotificationPrefsManager(context) }
@@ -125,12 +135,18 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Subscription Card
-                SubscriptionCard(
-                    isPremium = isPremium,
-                    currentPlan = subscriptionStatus?.subscription?.plan,
-                    onUpgrade = onNavigateToPaywall
-                )
+                // Open-Meteo's free tier is non-commercial, so until a
+                // commercial data licence exists the app ships free and every
+                // upsell stays hidden — a visible Upgrade button would lead to a
+                // paywall the navigation gate keeps dark. An already-premium
+                // user (grandfathered trial) still sees their status.
+                if (BuildConfig.MONETIZATION_ENABLED || isPremium) {
+                    SubscriptionCard(
+                        isPremium = isPremium,
+                        currentPlan = subscriptionStatus?.subscription?.plan,
+                        onUpgrade = onNavigateToPaywall
+                    )
+                }
 
                 // Units Section
                 SettingsSection(title = "Units") {
@@ -146,6 +162,11 @@ fun SettingsScreen(
                                         TemperatureUnit.FAHRENHEIT -> TemperatureUnit.CELSIUS
                                     }
                                 )
+                                // Home-screen widgets read this preference only
+                                // when they repaint; without a nudge they keep
+                                // the old unit until the periodic worker fires,
+                                // up to half an hour of C on an F device.
+                                WidgetDataManager.refreshWidgets(context)
                             }
                         }
                     )
@@ -174,20 +195,25 @@ fun SettingsScreen(
                             scope.launch { appearancePrefs.setThemeMode(next) }
                         }
                     )
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                    SettingsNavigationRow(
-                        icon = Icons.Default.Palette,
-                        title = "Customize Look",
-                        subtitle = if (isPremium) "Theme, colors, fonts & more" else "Unlock with Premium",
-                        isPremium = !isPremium,
-                        onClick = {
-                            if (isPremium) {
-                                onNavigateToAppearance()
-                            } else {
-                                onNavigateToPaywall()
+                    // For a non-premium user this row is purely an upsell, so
+                    // while monetization is off (see the SubscriptionCard gate
+                    // above) it would dead-end on a dark paywall — hide it.
+                    if (BuildConfig.MONETIZATION_ENABLED || isPremium) {
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                        SettingsNavigationRow(
+                            icon = Icons.Default.Palette,
+                            title = "Customize Look",
+                            subtitle = if (isPremium) "Theme, colors, fonts & more" else "Unlock with Premium",
+                            isPremium = !isPremium,
+                            onClick = {
+                                if (isPremium) {
+                                    onNavigateToAppearance()
+                                } else {
+                                    onNavigateToPaywall()
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
 
                 // Notifications Section - Enhanced
@@ -301,6 +327,15 @@ fun SettingsScreen(
                     ApiUsageSection(usage)
                 }
                 
+                // Account Section — only when logged in: a guest has no
+                // account to delete. Play's account-deletion policy requires
+                // in-app deletion now that registration is reachable in-app.
+                if (isLoggedIn) {
+                    SettingsSection(title = "Account") {
+                        DeleteAccountRow(onClick = { deleteConfirmStep = 1 })
+                    }
+                }
+
                 // About Section
                 SettingsSection(title = "About") {
                     SettingsInfoRow(
@@ -366,6 +401,123 @@ fun SettingsScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    // Account deletion is double-confirmed because it is the one action on this
+    // screen that cannot be walked back — the server hard-deletes the row.
+    val deleteInProgress = deleteAccountState is DeleteAccountState.Loading
+    val dismissDeleteFlow = {
+        deleteConfirmStep = 0
+        authViewModel.resetDeleteAccountState()
+    }
+
+    if (deleteConfirmStep == 1) {
+        AlertDialog(
+            onDismissRequest = dismissDeleteFlow,
+            title = { Text("Delete account?") },
+            text = {
+                Text(
+                    "This permanently deletes your ClimaAI account and the data " +
+                        "stored with it on our servers, including saved locations " +
+                        "and preferences."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { deleteConfirmStep = 2 }) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = dismissDeleteFlow) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (deleteConfirmStep == 2) {
+        AlertDialog(
+            // Not dismissable mid-request: closing the dialog while the DELETE
+            // is in flight would leave no surface for its error to land on.
+            onDismissRequest = { if (!deleteInProgress) dismissDeleteFlow() },
+            title = { Text("This cannot be undone") },
+            text = {
+                Column {
+                    Text("Really delete your account? There is no way to restore it afterwards.")
+                    (deleteAccountState as? DeleteAccountState.Error)?.let { error ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(error.message, color = Color(0xFFEF4444))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { authViewModel.deleteAccount(context) },
+                    enabled = !deleteInProgress
+                ) {
+                    if (deleteInProgress) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Delete my account", color = Color(0xFFEF4444))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = dismissDeleteFlow, enabled = !deleteInProgress) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Success closes the flow; the Account section disappears with isLoggedIn.
+    LaunchedEffect(deleteAccountState) {
+        if (deleteAccountState is DeleteAccountState.Deleted) {
+            deleteConfirmStep = 0
+            authViewModel.resetDeleteAccountState()
+        }
+    }
+}
+
+/** Destructive row: red instead of the section's blue, so it cannot be mistaken
+ *  for one more preference. */
+@Composable
+private fun DeleteAccountRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.DeleteForever,
+            contentDescription = null,
+            tint = Color(0xFFEF4444),
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Delete account",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFEF4444)
+            )
+            Text(
+                text = "Permanently remove your account and data",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.6f)
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.4f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }

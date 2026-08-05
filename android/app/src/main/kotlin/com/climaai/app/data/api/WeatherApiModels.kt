@@ -279,7 +279,33 @@ data class MultiSourceWeatherResponse(
     @SerializedName("uv_index") val uvIndex: UVIndexData?,
     val marine: MarineWeatherData?,
     val historical: HistoricalWeatherData?,
-    val metadata: Map<String, Any>?
+    val metadata: Map<String, Any>?,
+    // Nullable: older backends don't send this field, and current ones send
+    // null when fewer than 2 sources responded. Absent either way in Gson.
+    val consensus: WeatherConsensus?
+)
+
+/**
+ * Cross-source agreement stats computed by the backend from the raw source
+ * values (plain arithmetic — median/range/spread — not model output).
+ */
+data class WeatherConsensus(
+    val temperature: ConsensusVariable?,
+    @SerializedName("precipitation_probability") val precipitationProbability: ConsensusVariable?,
+    @SerializedName("wind_speed") val windSpeed: ConsensusVariable?,
+    /** "high" | "medium" | "low", derived from normalized spread. */
+    val confidence: String?,
+    val sources: List<String>?,
+    /** Plain-English one-liner generated from the numbers. */
+    val summary: String?
+)
+
+data class ConsensusVariable(
+    val median: Double,
+    val min: Double,
+    val max: Double,
+    val spread: Double,
+    @SerializedName("source_count") val sourceCount: Int
 )
 
 data class MultiSourceCurrent(

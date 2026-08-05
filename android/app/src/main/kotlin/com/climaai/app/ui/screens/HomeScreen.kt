@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.climaai.app.data.*
+import com.climaai.app.data.api.WeatherConsensus
 import com.climaai.app.ui.components.*
 import com.climaai.app.ui.viewmodel.WeatherState
 import com.climaai.app.ui.viewmodel.WeatherViewModel
@@ -59,6 +60,9 @@ fun HomeScreen(
     val canRefresh by viewModel.canRefresh.collectAsState()
     val rateLimitMessage by viewModel.rateLimitMessage.collectAsState()
     val dataSource by viewModel.dataSource.collectAsState()
+    // Null whenever the backend is absent or compared fewer than 2 sources —
+    // and then the confidence card renders nothing at all.
+    val multiSourceWeather by viewModel.multiSourceWeather.collectAsState()
     
     // Snackbar for rate limit messages
     val snackbarHostState = remember { SnackbarHostState() }
@@ -227,6 +231,7 @@ fun HomeScreen(
                     is WeatherState.Success -> {
                         WeatherContent(
                             weather = state.data,
+                            consensus = multiSourceWeather?.consensus,
                             temperatureUnit = temperatureUnit,
                             isRefreshing = isRefreshing,
                             canRefresh = canRefresh,
@@ -245,6 +250,7 @@ fun HomeScreen(
 @Composable
 private fun WeatherContent(
     weather: WeatherResponse,
+    consensus: WeatherConsensus?,
     temperatureUnit: TemperatureUnit,
     isRefreshing: Boolean,
     canRefresh: Boolean,
@@ -285,6 +291,17 @@ private fun WeatherContent(
             // Hourly Forecast
             item {
                 HourlyForecastSection(weather.hourly, temperatureUnit)
+            }
+
+            // Forecast confidence — only when the backend compared at least
+            // two providers. No placeholder otherwise: in a backend-less build
+            // this item never exists.
+            consensus?.let { c ->
+                if ((c.temperature?.sourceCount ?: 0) >= 2) {
+                    item {
+                        ForecastConfidenceCard(c, temperatureUnit)
+                    }
+                }
             }
 
             // AI Insights Preview
@@ -608,6 +625,124 @@ private fun HourlyItem(hour: HourlyWeather, temperatureUnit: TemperatureUnit) {
         )
     }
 }
+
+/**
+ * Compact multi-source agreement card. Shows how much the weather providers
+ * agree on today's numbers: a high/medium/low pill, the backend's plain-English
+ * summary, and the spread of each variable across sources.
+ *
+ * Callers gate on consensus being present with source_count >= 2 — a single
+ * source has nothing to agree or disagree with.
+ */
+@Composable
+private fun ForecastConfidenceCard(
+    consensus: WeatherConsensus,
+    temperatureUnit: TemperatureUnit
+) {
+    val confidenceColor = when (consensus.confidence?.lowercase(Locale.US)) {
+        "high" -> Color(0xFF34D399)
+        "medium" -> Color(0xFFFBBF24)
+        "low" -> Color(0xFFF97316)
+        else -> Color.White.copy(alpha = 0.6f)
+    }
+
+    GlassmorphicCard(
+        modifier = Modifier.cardEntrance(delay = 150),
+        cornerRadius = 16.dp,
+        animatedBorder = false
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Forecast Confidence",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+                consensus.confidence?.let { confidence ->
+                    Surface(
+                        color = confidenceColor.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = confidence.replaceFirstChar { it.uppercase(Locale.US) },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = confidenceColor
+                        )
+                    }
+                }
+            }
+
+            consensus.summary?.takeIf { it.isNotBlank() }?.let { summary ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            }
+
+            val ranges = listOfNotNull(
+                consensus.temperature?.let { temp ->
+                    "Temp" to formatConsensusRange(
+                        low = temperatureUnit.fromCelsius(temp.min).roundToInt(),
+                        high = temperatureUnit.fromCelsius(temp.max).roundToInt(),
+                        suffix = "°"
+                    )
+                },
+                consensus.precipitationProbability?.let { rain ->
+                    "Rain" to formatConsensusRange(
+                        low = rain.min.roundToInt(),
+                        high = rain.max.roundToInt(),
+                        suffix = "%"
+                    )
+                },
+                consensus.windSpeed?.let { wind ->
+                    "Wind" to formatConsensusRange(
+                        low = wind.min.roundToInt(),
+                        high = wind.max.roundToInt(),
+                        suffix = " km/h"
+                    )
+                }
+            )
+            if (ranges.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ranges.forEach { (label, value) ->
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** "31–33°" across sources, collapsing to "32°" when rounding erases the gap. */
+private fun formatConsensusRange(low: Int, high: Int, suffix: String): String =
+    if (low == high) "$low$suffix" else "$low–$high$suffix"
 
 @Composable
 private fun AIInsightsPreviewCard(onClick: () -> Unit) {

@@ -21,10 +21,21 @@ class APIClient {
     }()
     
     private init() {
+        // Mirrors Android's API_BASE_URL buildConfigField (debug 10.0.2.2 vs
+        // release host): debug talks to the developer's local backend, release
+        // reads the origin from Info.plist, so pointing at a new environment
+        // is a config edit rather than a code edit.
         #if DEBUG
         self.baseURL = "http://localhost:8000"
         #else
-        self.baseURL = "https://api.climaai.com" // Replace with production URL
+        guard let configured = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
+              !configured.isEmpty else {
+            // No invented fallback host: a release build without a configured
+            // backend cannot work, and failing here names the actual problem
+            // instead of timing out on every request.
+            fatalError("API_BASE_URL missing from Info.plist — a release build needs a backend origin")
+        }
+        self.baseURL = configured
         #endif
     }
     
@@ -292,9 +303,13 @@ class APIClient {
     }
     
     // MARK: - Subscription Endpoints
-    
+    //
+    // The subscriptions router is mounted at /api/subscriptions (see
+    // backend/api/app/routers/subscriptions.py); the bare /subscriptions/*
+    // paths used before 404ed on every call.
+
     func getSubscriptionStatus() async throws -> SubscriptionStatus {
-        let request = try createRequest(endpoint: "/subscriptions/status", requiresAuth: true)
+        let request = try createRequest(endpoint: "/api/subscriptions/status", requiresAuth: true)
         return try await performRequest(request)
     }
     
@@ -312,7 +327,7 @@ class APIClient {
         
         let trialData = TrialRequest(platform: "apple", plan: "monthly", receiptData: receiptData)
         let body = try encoder.encode(trialData)
-        let request = try createRequest(endpoint: "/subscriptions/trial", method: "POST", body: body, requiresAuth: true)
+        let request = try createRequest(endpoint: "/api/subscriptions/trial", method: "POST", body: body, requiresAuth: true)
         return try await performRequest(request)
     }
     
@@ -330,12 +345,12 @@ class APIClient {
         
         let activateData = ActivateRequest(platform: "apple", plan: plan, receiptData: receiptData)
         let body = try encoder.encode(activateData)
-        let request = try createRequest(endpoint: "/subscriptions/activate", method: "POST", body: body, requiresAuth: true)
+        let request = try createRequest(endpoint: "/api/subscriptions/activate", method: "POST", body: body, requiresAuth: true)
         return try await performRequest(request)
     }
     
     func getSubscriptionPlans() async throws -> [SubscriptionPlan] {
-        let request = try createRequest(endpoint: "/subscriptions/plans")
+        let request = try createRequest(endpoint: "/api/subscriptions/plans")
         
         struct PlansResponse: Codable {
             let plans: [SubscriptionPlan]

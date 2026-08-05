@@ -216,7 +216,9 @@ struct NotificationSettingsView: View {
             // Morning Briefing
             Section {
                 Toggle("Morning Weather Briefing", isOn: $morningBriefing)
-                    .onChange(of: morningBriefing) { _, newValue in
+                    // Single-parameter onChange: the two-parameter form is
+                    // iOS 17+ and the deployment target is iOS 16.
+                    .onChange(of: morningBriefing) { newValue in
                         if newValue {
                             notificationService.scheduleMorningBriefing(hour: briefingHour, minute: briefingMinute)
                         } else {
@@ -234,7 +236,7 @@ struct NotificationSettingsView: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        .onChange(of: briefingHour) { _, newValue in
+                        .onChange(of: briefingHour) { newValue in
                             notificationService.scheduleMorningBriefing(hour: newValue, minute: briefingMinute)
                         }
                     }
@@ -286,29 +288,38 @@ struct SubscriptionManagementView: View {
     var body: some View {
         Form {
             Section {
-                if let status = subscriptionViewModel.subscriptionStatus {
+                // Status/plan/dates live on the subscription row inside the
+                // status payload, not at its top level.
+                if let subscription = subscriptionViewModel.subscriptionStatus?.subscription {
                     HStack {
                         Text("Status")
                         Spacer()
-                        Text(status.status ?? "Active")
+                        Text(subscription.status.replacingOccurrences(of: "_", with: " ").capitalized)
                             .foregroundColor(.green)
                     }
-                    
-                    if let expiresAt = status.expiresAt {
+
+                    // A trial row carries trial_end_date; a paid row
+                    // subscription_end_date.
+                    if let endsAt = subscription.subscriptionEndDate ?? subscription.trialEndDate {
                         HStack {
-                            Text("Renews")
+                            Text(subscription.status == "trial" ? "Trial ends" : "Renews")
                             Spacer()
-                            Text(formatDate(expiresAt))
+                            Text(formatDate(endsAt))
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     HStack {
                         Text("Plan")
                         Spacer()
-                        Text(status.plan ?? "Premium")
+                        Text(subscription.plan.capitalized)
                             .foregroundColor(.secondary)
                     }
+                } else {
+                    // The status fetch failed or returned no subscription row —
+                    // say so rather than inventing an "Active" placeholder.
+                    Text("Subscription details unavailable")
+                        .foregroundColor(.secondary)
                 }
             } header: {
                 Text("Current Subscription")
@@ -339,9 +350,8 @@ struct SubscriptionManagementView: View {
         }
     }
     
-    private func formatDate(_ dateString: String) -> String {
-        // Simplified date formatting
-        return dateString.prefix(10).replacingOccurrences(of: "-", with: "/")
+    private func formatDate(_ date: Date) -> String {
+        date.formatted(date: .abbreviated, time: .omitted)
     }
 }
 

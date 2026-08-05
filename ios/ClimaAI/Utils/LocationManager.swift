@@ -344,7 +344,41 @@ final class LocationManager: NSObject, ObservableObject {
     }
     
     // MARK: - Reverse Geocoding with Caching
-    
+
+    /// Reverse-geocode a location into the display name used across the app
+    /// ("City, Country"). Returns nil when no name can be determined, so
+    /// callers keep whatever name they already show instead of a made-up one.
+    func getLocationName(for location: CLLocation) async -> String? {
+        // Offline, the cached name is the only truthful answer available.
+        guard networkState != .offline else {
+            return UserDefaults.standard.string(forKey: cachedNameKey)
+        }
+
+        // A dedicated geocoder: CLGeocoder rejects a second request while one
+        // is in flight, and `self.geocoder` may be busy with the delegate-driven
+        // reverseGeocode(_:) path.
+        guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first,
+              let name = Self.displayName(for: placemark) else {
+            return nil
+        }
+
+        cacheLocation(location, name: name)
+        return name
+    }
+
+    /// The naming precedence both geocoding paths share: city, else
+    /// state/province, else country — always with the country appended when
+    /// known.
+    private static func displayName(for placemark: CLPlacemark) -> String? {
+        if let city = placemark.locality {
+            return placemark.country.map { "\(city), \($0)" } ?? city
+        }
+        if let admin = placemark.administrativeArea, let country = placemark.country {
+            return "\(admin), \(country)"
+        }
+        return placemark.country
+    }
+
     private func reverseGeocode(_ location: CLLocation) {
         // Check network
         guard networkState != .offline else {
@@ -369,20 +403,7 @@ final class LocationManager: NSObject, ObservableObject {
             }
             
             if let placemark = placemarks?.first {
-                var name = ""
-                if let city = placemark.locality {
-                    name = city
-                    if let country = placemark.country {
-                        name += ", \(country)"
-                    }
-                } else if let admin = placemark.administrativeArea, let country = placemark.country {
-                    name = "\(admin), \(country)"
-                } else if let country = placemark.country {
-                    name = country
-                } else {
-                    name = "Unknown Location"
-                }
-                
+                let name = Self.displayName(for: placemark) ?? "Unknown Location"
                 self.locationName = name
                 self.cacheLocation(location, name: name)
             }

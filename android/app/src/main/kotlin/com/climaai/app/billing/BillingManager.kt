@@ -4,8 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
@@ -55,6 +58,14 @@ class BillingManager(private val context: Context) : PurchasesUpdatedListener {
     
     private val _purchaseInProgress = MutableStateFlow(false)
     val purchaseInProgress: StateFlow<Boolean> = _purchaseInProgress.asStateFlow()
+
+    // Fresh purchases only — onPurchasesUpdated, not the queryPurchases restore
+    // path, which replays every owned purchase on each connection and would
+    // re-announce them on every app start. An event, not state: each completed
+    // purchase must be reported to the backend exactly once per occurrence.
+    // Buffered so tryEmit succeeds from Play's callback thread with no scope.
+    private val _purchaseCompleted = MutableSharedFlow<CompletedPurchase>(extraBufferCapacity = 4)
+    val purchaseCompleted: SharedFlow<CompletedPurchase> = _purchaseCompleted.asSharedFlow()
     
     // =========================================================================
     // Connection
@@ -259,7 +270,18 @@ class BillingManager(private val context: Context) : PurchasesUpdatedListener {
         
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
-                purchases?.let { processPurchases(it) }
+                purchases?.let { updated ->
+                    processPurchases(updated)
+
+                    updated
+                        .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                        .forEach { purchase ->
+                            val productId = purchase.products.firstOrNull() ?: return@forEach
+                            _purchaseCompleted.tryEmit(
+                                CompletedPurchase(productId, purchase.purchaseToken)
+                            )
+                        }
+                }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.d(TAG, "Purchase cancelled by user")
@@ -331,4 +353,14 @@ data class SubscriptionState(
     val productId: String = "",
     val planName: String = "",
     val expiryTime: Long = 0
+)
+
+/**
+ * A purchase Play just confirmed, carrying exactly what the backend's
+ * /api/subscriptions/activate needs: which product, and the token it can
+ * re-validate with Google.
+ */
+data class CompletedPurchase(
+    val productId: String,
+    val purchaseToken: String
 )

@@ -22,6 +22,7 @@ minimize redundant calls for the same lat/lon.
 import httpx
 import asyncio
 import logging
+import statistics
 import time
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -49,6 +50,11 @@ def _as_percent(value) -> Optional[float]:
         return round(float(value) * 100, 1)
     except (TypeError, ValueError):
         return None
+
+
+def _is_number(value) -> bool:
+    """bool is an int subclass; a stray True must never enter the statistics."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 SOURCE_DAILY_LIMITS = {
@@ -96,6 +102,51 @@ SOURCE_MIN_INTERVAL = {
     "stormglass":       10.0,  # very limited quota
     "meteoblue":         1.0,
     "noaa":              1.0,
+}
+
+# ============================================================================
+# Consensus Configuration
+# ============================================================================
+
+# Every fetcher requests wind speed in whatever unit its API defaults to, so
+# the raw numbers are not comparable — 5 m/s and 18 km/h are the same wind.
+# Comparing them unconverted would manufacture disagreement out of unit
+# mismatches, so everything is normalized to km/h before computing spread.
+# A source missing from this map is excluded from wind consensus: 7timer
+# reports a categorical 1-8 scale, not a physical speed.
+_WIND_SPEED_TO_KMH = {
+    "open_meteo":     1.0,   # API default unit is km/h
+    "met_norway":     3.6,   # m/s
+    "openweathermap": 3.6,   # units=metric → m/s
+    "weatherbit":     3.6,   # units=M → m/s
+    "dwd":            1.0,   # Bright Sky default units → km/h
+    "pirate_weather": 3.6,   # units=si → m/s
+    "weatherapi":     1.0,   # wind_kph
+    "wttr":           1.0,   # windspeedKmph
+}
+
+# Per-variable spread thresholds mapping disagreement to confidence:
+# (high at or below, medium at or below); anything above the second number is
+# genuine disagreement. Reasoning:
+#   temperature (°C): short-range 2 m temperature models typically land within
+#     ~2 °C of each other, so ≤2 °C is as close as forecasts get; >5 °C is the
+#     difference between needing a coat and not.
+#   precipitation probability (points): 40% vs 55% reads the same to a person
+#     deciding whether to carry an umbrella; 30% vs 80% is a different day plan.
+#   wind speed (km/h): one Beaufort step is roughly 10 km/h at everyday speeds
+#     and is barely felt; >20 km/h apart is a light breeze on one forecast and
+#     a struggling umbrella on another.
+_CONSENSUS_SPREAD_THRESHOLDS = {
+    "temperature":               (2.0, 5.0),
+    "precipitation_probability": (20.0, 40.0),
+    "wind_speed":                (10.0, 20.0),
+}
+
+# Plain-language variable names for the generated summary.
+_CONSENSUS_LABELS = {
+    "temperature":               "temperature",
+    "precipitation_probability": "chance of rain",
+    "wind_speed":                "wind speed",
 }
 
 
@@ -277,6 +328,7 @@ class MultiSourceWeatherService:
             "sources": available_sources,
             "current": self._aggregate_current(results),
             "forecast": self._aggregate_forecast(results),
+            "consensus": self._compute_consensus(results),
             "uv_index": results.get("openuv"),
             "marine": results.get("stormglass"),
             "metadata": {
@@ -622,6 +674,10 @@ class MultiSourceWeatherService:
 
         currently = data.get("currently", {})
         minutely = data.get("minutely", {}).get("data", [])
+        # Dark Sky's daily block carries "chance of precipitation at some point
+        # today" — the same basis as Open-Meteo's daily maximum, which lets the
+        # consensus block compare like with like instead of mixing quantities.
+        daily_today = ((data.get("daily") or {}).get("data") or [{}])[0]
         return {
             "source": "pirate_weather",
             "current": {
@@ -633,6 +689,7 @@ class MultiSourceWeatherService:
                 "pressure": currently.get("pressure"),
                 "visibility": currently.get("visibility"),
                 "uv_index": currently.get("uvIndex"),
+                "precipitation_probability": _as_percent(daily_today.get("precipProbability")),
                 "weather_description": currently.get("summary"),
             },
             # The reason to use this source at all.
@@ -851,3 +908,117 @@ class MultiSourceWeatherService:
                 for i in range(len(dates))
             ]
         return None
+
+    # =========================================================================
+    # Consensus (cross-source agreement)
+    # =========================================================================
+
+    def _compute_consensus(self, results: Dict[str, Dict]) -> Optional[Dict]:
+        """Measure how much the sources agree — the point of querying many.
+
+        _aggregate_current keeps one answer and discards the disagreement;
+        this keeps the disagreement. Per variable: median/min/max/spread over
+        the sources that actually returned it. None overall when no variable
+        has two comparable sources, because with a single answer there is no
+        agreement to measure — only silence dressed up as certainty.
+        """
+        entries: Dict[str, Optional[Dict]] = {}
+        levels: Dict[str, str] = {}
+        contributing: set = set()
+        for variable in _CONSENSUS_SPREAD_THRESHOLDS:
+            samples = self._consensus_samples(results, variable)
+            entry = self._consensus_stats(samples)
+            entries[variable] = entry
+            if entry is not None:
+                contributing.update(samples)
+                levels[variable] = self._confidence_level(variable, entry["spread"])
+
+        if not levels:
+            return None
+
+        # Overall confidence is the weakest variable's: a user planning around
+        # rain is not served by "high" earned on temperature alone.
+        rank = {"high": 2, "medium": 1, "low": 0}
+        confidence = min(levels.values(), key=rank.__getitem__)
+
+        return {
+            **entries,
+            "confidence": confidence,
+            "sources": sorted(contributing),
+            "summary": self._consensus_summary(levels),
+        }
+
+    @staticmethod
+    def _consensus_samples(results: Dict[str, Dict], variable: str) -> Dict[str, float]:
+        """One numeric value per source for `variable`, unit-normalized.
+
+        Temperature needs no conversion — every fetcher requests Celsius.
+        """
+        samples: Dict[str, float] = {}
+        for source, data in results.items():
+            current = data.get("current") or {}
+            if variable == "temperature":
+                value = current.get("temperature")
+            elif variable == "wind_speed":
+                factor = _WIND_SPEED_TO_KMH.get(source)
+                raw = current.get("wind_speed")
+                value = raw * factor if factor is not None and _is_number(raw) else None
+            elif variable == "precipitation_probability":
+                if source == "open_meteo":
+                    # Open-Meteo reports it in the daily block, not current;
+                    # index 0 is today.
+                    probs = (data.get("daily") or {}).get("precipitation_probability_max") or []
+                    value = probs[0] if probs else None
+                else:
+                    value = current.get("precipitation_probability")
+            else:
+                value = None
+            if _is_number(value):
+                samples[source] = float(value)
+        return samples
+
+    @staticmethod
+    def _consensus_stats(samples: Dict[str, float]) -> Optional[Dict]:
+        """Spread statistics, or None below two sources — a lone value has
+        zero spread by construction and would fake agreement."""
+        if len(samples) < 2:
+            return None
+        values = sorted(samples.values())
+        return {
+            "median": round(statistics.median(values), 1),
+            "min": round(values[0], 1),
+            "max": round(values[-1], 1),
+            "spread": round(values[-1] - values[0], 1),
+            "source_count": len(values),
+        }
+
+    @staticmethod
+    def _confidence_level(variable: str, spread: float) -> str:
+        high_at_or_below, medium_at_or_below = _CONSENSUS_SPREAD_THRESHOLDS[variable]
+        if spread <= high_at_or_below:
+            return "high"
+        if spread <= medium_at_or_below:
+            return "medium"
+        return "low"
+
+    @staticmethod
+    def _consensus_summary(levels: Dict[str, str]) -> str:
+        """Plain-English sentence derived purely from the agreement levels."""
+        def listed(variables: List[str]) -> str:
+            names = [_CONSENSUS_LABELS[v] for v in variables]
+            if len(names) == 1:
+                return names[0]
+            return ", ".join(names[:-1]) + " and " + names[-1]
+
+        by_level: Dict[str, List[str]] = {"high": [], "medium": [], "low": []}
+        for variable, level in levels.items():
+            by_level[level].append(variable)
+
+        clauses = []
+        if by_level["high"]:
+            clauses.append(f"agree on {listed(by_level['high'])}")
+        if by_level["medium"]:
+            clauses.append(f"differ somewhat on {listed(by_level['medium'])}")
+        if by_level["low"]:
+            clauses.append(f"disagree on {listed(by_level['low'])}")
+        return "Sources " + "; they ".join(clauses) + "."

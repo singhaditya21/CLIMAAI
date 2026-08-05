@@ -57,7 +57,9 @@ class TemperatureComplicationService : SuspendingComplicationDataSourceService()
         return when (type) {
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
                 text = PlainComplicationText.Builder("${weather.temperature}°").build(),
-                contentDescription = PlainComplicationText.Builder("Current temperature: ${weather.temperature}°").build()
+                contentDescription = PlainComplicationText.Builder(
+                    "Current temperature: ${weather.temperature}°${ageSuffix(weather)}"
+                ).build()
             ).build()
 
             ComplicationType.RANGED_VALUE -> {
@@ -77,7 +79,9 @@ class TemperatureComplicationService : SuspendingComplicationDataSourceService()
                         value = weather.temperature.toFloat().coerceIn(min, max),
                         min = min,
                         max = max,
-                        contentDescription = PlainComplicationText.Builder("Temperature range").build()
+                        contentDescription = PlainComplicationText.Builder(
+                            "Temperature range${ageSuffix(weather)}"
+                        ).build()
                     )
                         .setText(PlainComplicationText.Builder("${weather.temperature}°").build())
                         .build()
@@ -123,12 +127,16 @@ class ConditionComplicationService : SuspendingComplicationDataSourceService() {
         return when (type) {
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
                 text = PlainComplicationText.Builder(weather.conditionIcon).build(),
-                contentDescription = PlainComplicationText.Builder(weather.condition).build()
+                contentDescription = PlainComplicationText.Builder(
+                    "${weather.condition}${ageSuffix(weather)}"
+                ).build()
             ).build()
 
             ComplicationType.LONG_TEXT -> LongTextComplicationData.Builder(
                 text = PlainComplicationText.Builder("${weather.condition}, ${weather.temperature}°").build(),
-                contentDescription = PlainComplicationText.Builder("Current weather").build()
+                contentDescription = PlainComplicationText.Builder(
+                    "Current weather${ageSuffix(weather)}"
+                ).build()
             )
                 .setTitle(PlainComplicationText.Builder(weather.location).build())
                 .build()
@@ -137,6 +145,14 @@ class ConditionComplicationService : SuspendingComplicationDataSourceService() {
         }
     }
 }
+
+/**
+ * ", updated 2h ago" once a reading is past its fresh window, nothing while it
+ * is current. A complication has no room to show the age, so the content
+ * description is where it goes.
+ */
+private fun ageSuffix(weather: WearWeatherData): String =
+    if (weather.isStale) ", updated ${weather.updatedAgo()}" else ""
 
 /**
  * What every complication shows when the watch has no reading: a visible "--"

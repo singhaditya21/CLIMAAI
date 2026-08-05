@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.climaai.app.billing.BillingManager
 import com.climaai.app.data.cache.*
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
@@ -238,7 +239,7 @@ class WeatherRepository(private val context: Context) {
     }
     
     // =========================================================================
-    // Authentication (unchanged)
+    // Authentication
     // =========================================================================
     
     suspend fun login(email: String, password: String): Result<User> {
@@ -302,9 +303,30 @@ class WeatherRepository(private val context: Context) {
             false
         }
     }
-    
+
+    /**
+     * Permanently delete the account (DELETE /api/auth/me, 204 on success).
+     *
+     * Local auth state is dropped only after the server confirms — clearing it
+     * on failure would sign the user out of an account that still exists.
+     */
+    suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            val response = api.deleteAccount()
+            if (response.isSuccessful) {
+                logout()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to delete account (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteAccount error", e)
+            Result.failure(e)
+        }
+    }
+
     // =========================================================================
-    // Subscription (unchanged)
+    // Subscription
     // =========================================================================
     
     suspend fun getSubscriptionStatus(): Result<SubscriptionStatus> {
@@ -321,6 +343,43 @@ class WeatherRepository(private val context: Context) {
         }
     }
     
+    /**
+     * Open the server-side entitlement for a completed Play purchase.
+     *
+     * The backend re-validates the token with Google before activating, so a
+     * forged call cannot mint a subscription — this only reports the purchase.
+     */
+    suspend fun activateSubscription(purchaseToken: String, productId: String): Result<Subscription> {
+        // Backend SubscriptionPlan knows exactly "monthly" and "annual".
+        // PRODUCT_LIFETIME has no server-side counterpart (and the paywall does
+        // not sell it); mapping it to a plan it is not would corrupt the row.
+        val plan = when (productId) {
+            BillingManager.PRODUCT_MONTHLY -> "monthly"
+            BillingManager.PRODUCT_YEARLY -> "annual"
+            else -> return Result.failure(
+                Exception("No backend plan corresponds to product '$productId'")
+            )
+        }
+
+        return try {
+            val response = api.activateSubscription(
+                SubscriptionActivateRequest(
+                    platform = "google",
+                    plan = plan,
+                    receipt_data = purchaseToken
+                )
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Subscription activation failed (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "activateSubscription error", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun validateReceipt(purchaseToken: String, productId: String): Result<ReceiptValidationResponse> {
         return try {
             val response = api.validateReceipt(

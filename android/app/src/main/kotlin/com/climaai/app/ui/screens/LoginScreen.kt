@@ -142,6 +142,9 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // Inset the content, not the Box: the gradient stays full-bleed
+                // behind the (transparent) system bars forced by edge-to-edge.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -353,7 +356,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Divider(
+                HorizontalDivider(
                     modifier = Modifier.weight(1f),
                     color = Color.White.copy(alpha = 0.2f)
                 )
@@ -362,7 +365,7 @@ fun LoginScreen(
                     color = Color.White.copy(alpha = 0.5f),
                     fontSize = 14.sp
                 )
-                Divider(
+                HorizontalDivider(
                     modifier = Modifier.weight(1f),
                     color = Color.White.copy(alpha = 0.2f)
                 )
