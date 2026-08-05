@@ -80,25 +80,47 @@ jobs:
   # ==========================================================================
   build:
     needs: test
+    # Deployment has never been configured: GCP_SA_KEY is unset, so this job
+    # failed at 'Authenticate to Google Cloud' on every backend push — a
+    # permanent red that says nothing. Skip cleanly until the secret exists;
+    # the moment it is added, deploys resume with no other change.
+    # (`secrets` cannot appear in an `if:`, hence the env indirection.)
+    env:
+      HAS_GCP: ${{ secrets.GCP_SA_KEY != '' }}
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.build.outputs.image }}
+      configured: ${{ steps.creds.outputs.configured }}
       
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Check deploy credentials
+        id: creds
+        run: |
+          if [ "$HAS_GCP" = "true" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GCP_SA_KEY is not set — build/deploy steps are skipped, not failed. Add the secret to enable deploys."
+          fi
+
       - name: Set up Docker Buildx
+        if: ${{ env.HAS_GCP == 'true' }}
         uses: docker/setup-buildx-action@v3
-        
+
       - name: Authenticate to Google Cloud
+        if: ${{ env.HAS_GCP == 'true' }}
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          
+
       - name: Configure Docker for GCR
+        if: ${{ env.HAS_GCP == 'true' }}
         run: gcloud auth configure-docker
-        
+
       - name: Build and Push
+        if: ${{ env.HAS_GCP == 'true' }}
         id: build
         run: |
           IMAGE="${REGISTRY}/${PROJECT_ID}/${SERVICE_NAME}:${{ github.sha }}"
@@ -111,6 +133,8 @@ jobs:
   # ==========================================================================
   deploy:
     needs: build
+    # Skipped (not failed) while no GCP credential is configured.
+    if: ${{ needs.build.outputs.configured == 'true' }}
     runs-on: ubuntu-latest
     
     steps:

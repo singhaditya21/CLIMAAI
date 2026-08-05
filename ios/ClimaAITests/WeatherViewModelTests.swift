@@ -8,6 +8,12 @@
 import XCTest
 @testable import ClimaAI
 
+// WeatherViewModel is @MainActor (it drives SwiftUI state). XCTest runs test
+// methods off the main actor unless told otherwise, so every construction and
+// property read below would be a cross-actor reference — which is exactly the
+// compile error this annotation prevents. Hopping the whole class onto the
+// main actor mirrors how the app itself uses the view model.
+@MainActor
 final class WeatherViewModelTests: XCTestCase {
     
     var viewModel: WeatherViewModel!
