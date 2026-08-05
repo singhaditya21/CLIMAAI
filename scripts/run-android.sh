@@ -15,6 +15,9 @@
 # Without it the app still runs but shows no weather.
 
 set -u
+# zsh aborts on a glob that matches nothing, and the JDK search below globs
+# directories that legitimately may not exist on a given machine.
+setopt NULL_GLOB
 cd "$(dirname "$0")/.." || exit 1
 
 : ${ANDROID_HOME:="$HOME/Library/Android/sdk"}
@@ -94,20 +97,29 @@ done
 
 "$ADB" shell am start -n "$PKG/com.climaai.app.MainActivity" >/dev/null 2>&1
 
-# A fresh emulator has no location at all, so the app would sit on its error
-# screen. Feed it one.
+# The emulator has no GPS radio. It reports only coordinates injected into it,
+# so it can never discover where you actually are — set them here.
+: ${GEO_LAT:=28.6720}   # Chander Nagar, Ghaziabad
+: ${GEO_LON:=77.3560}
+
+# Injection is fiddly, and the reasons are worth writing down:
 #
-# This has to happen *after* the app launches: `geo fix` injects into the GPS
-# provider, and the provider only runs while something is subscribed to it.
-# Sent before launch, the fix is silently dropped. Send it twice — once as the
-# app starts requesting, once after it is definitely listening.
-# Edit these coordinates (longitude first) to move the app elsewhere.
-: ${GEO_LON:=-0.1278}
-: ${GEO_LAT:=51.5074}
-for _ in 1 2; do
-  sleep 3
-  "$ADB" emu geo fix "$GEO_LON" "$GEO_LAT" >/dev/null 2>&1
-done
+#   1. `geo fix` reaches the GPS provider only while that provider is running,
+#      and it runs only while an app is subscribed. The app subscribes for a few
+#      seconds at launch and then stops. Injecting outside that window is
+#      accepted — the console still answers OK — and silently discarded.
+#   2. That window cannot be predicted precisely, so rather than guess, inject
+#      once a second across it and let one land.
+#   3. A fix already held by the provider survives app restarts and is handed
+#      straight back, so a stale one from an earlier session wins over anything
+#      injected later. Only rebooting the emulator clears it.
+#
+# Hence: launch first, then inject repeatedly, in the background so the script
+# stays responsive.
+( for _ in $(seq 1 25); do
+    "$ADB" emu geo fix "$GEO_LON" "$GEO_LAT" >/dev/null 2>&1
+    sleep 1
+  done ) &
 
 if curl -sf http://127.0.0.1:8000/health >/dev/null 2>&1; then
   print "\nBackend is up — the app will load live weather."
