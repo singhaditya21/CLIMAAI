@@ -14,10 +14,15 @@ on:
       - 'android/**'
       - 'ios/**'
       - '.github/workflows/mobile.yml'
+      # This workflow runs scripts/collect-artifacts.sh, so a change to it is a
+      # change to CI. Leaving scripts/ out meant a broken script could land and
+      # keep landing without a single run being triggered to catch it.
+      - 'scripts/**'
   pull_request:
     paths:
       - 'android/**'
       - 'ios/**'
+      - 'scripts/**'
   workflow_dispatch:
 
 jobs:
