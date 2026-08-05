@@ -126,11 +126,11 @@ struct PrecipitationNowcast: Codable {
     let summary: String
     
     enum CodingKeys: String, CodingKey {
-        case hasPrecipitation = "has_precipitation"
-        case precipitationInMinutes = "precipitation_in_minutes"
-        case precipitationEndsInMinutes = "precipitation_ends_in_minutes"
+        case hasPrecipitation
+        case precipitationInMinutes
+        case precipitationEndsInMinutes
         case intensity
-        case precipitationType = "precipitation_type"
+        case precipitationType
         case probability
         case summary
     }

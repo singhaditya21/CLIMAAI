@@ -20,6 +20,7 @@ final class ModelsTests: XCTestCase {
             "humidity": 65,
             "wind_speed": 12.5,
             "wind_direction": 180,
+            "precipitation": 0.0,
             "weather_code": 1,
             "weather_description": "Partly Cloudy",
             "cloud_cover": 40,
@@ -31,8 +32,11 @@ final class ModelsTests: XCTestCase {
         }
         """.data(using: .utf8)!
         
+        // Must match APIClient's decoder exactly — the point of these tests
+        // is the app's own decode path, not a bespoke one.
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
         
         do {
             let weather = try decoder.decode(CurrentWeather.self, from: json)
@@ -63,8 +67,11 @@ final class ModelsTests: XCTestCase {
         }
         """.data(using: .utf8)!
         
+        // Must match APIClient's decoder exactly — the point of these tests
+        // is the app's own decode path, not a bespoke one.
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
         
         // Note: This test validates structure; actual decoding may need model adjustments

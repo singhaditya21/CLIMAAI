@@ -256,7 +256,7 @@ class APIClient {
             let airQuality: AirQuality
             
             enum CodingKeys: String, CodingKey {
-                case airQuality = "air_quality"
+                case airQuality
             }
         }
         
@@ -321,7 +321,7 @@ class APIClient {
             
             enum CodingKeys: String, CodingKey {
                 case platform, plan
-                case receiptData = "receipt_data"
+                case receiptData
             }
         }
         
@@ -339,7 +339,7 @@ class APIClient {
             
             enum CodingKeys: String, CodingKey {
                 case platform, plan
-                case receiptData = "receipt_data"
+                case receiptData
             }
         }
         

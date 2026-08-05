@@ -462,8 +462,8 @@ struct FavoriteLocation: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case id, name, latitude, longitude
-        case isDefault = "is_default"
-        case createdAt = "created_at"
+        case isDefault
+        case createdAt
     }
 }
 
@@ -490,7 +490,7 @@ struct LocationSearchResult: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case name, latitude, longitude, country, admin1, timezone
-        case displayName = "display_name"
+        case displayName
     }
 }
 
@@ -498,7 +498,7 @@ struct AirQualityResponse: Codable {
     let airQuality: AirQuality
     
     enum CodingKeys: String, CodingKey {
-        case airQuality = "air_quality"
+        case airQuality
     }
 }
 

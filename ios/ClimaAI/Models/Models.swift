@@ -13,7 +13,7 @@ struct WeatherResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case current, hourly, daily, location, timezone, cached
-        case airQuality = "air_quality"
+        case airQuality
     }
 }
 
@@ -37,18 +37,18 @@ struct CurrentWeather: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case temperature
-        case feelsLike = "feels_like"
-        case feelsLikeShade = "feels_like_shade"
+        case feelsLike
+        case feelsLikeShade
         case humidity
-        case windSpeed = "wind_speed"
-        case windDirection = "wind_direction"
+        case windSpeed
+        case windDirection
         case precipitation
-        case weatherCode = "weather_code"
-        case weatherDescription = "weather_description"
-        case cloudCover = "cloud_cover"
+        case weatherCode
+        case weatherDescription
+        case cloudCover
         case pressure, visibility
-        case uvIndex = "uv_index"
-        case isDay = "is_day"
+        case uvIndex
+        case isDay
         case timestamp
     }
 }
@@ -71,17 +71,17 @@ struct HourlyWeather: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case time, temperature
-        case feelsLike = "feels_like"
-        case feelsLikeShade = "feels_like_shade"
-        case precipitationProbability = "precipitation_probability"
+        case feelsLike
+        case feelsLikeShade
+        case precipitationProbability
         case precipitation
-        case weatherCode = "weather_code"
-        case weatherDescription = "weather_description"
-        case windSpeed = "wind_speed"
-        case windDirection = "wind_direction"
+        case weatherCode
+        case weatherDescription
+        case windSpeed
+        case windDirection
         case humidity
-        case cloudCover = "cloud_cover"
-        case uvIndex = "uv_index"
+        case cloudCover
+        case uvIndex
     }
 }
 
@@ -103,17 +103,17 @@ struct DailyWeather: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case date
-        case temperatureMax = "temperature_max"
-        case temperatureMin = "temperature_min"
+        case temperatureMax
+        case temperatureMin
         case sunrise, sunset
-        case precipitationSum = "precipitation_sum"
-        case snowAccumulation = "snow_accumulation"
-        case precipitationProbability = "precipitation_probability"
-        case weatherCode = "weather_code"
-        case weatherDescription = "weather_description"
-        case windSpeedMax = "wind_speed_max"
-        case windDirection = "wind_direction"
-        case uvIndexMax = "uv_index_max"
+        case precipitationSum
+        case snowAccumulation
+        case precipitationProbability
+        case weatherCode
+        case weatherDescription
+        case windSpeedMax
+        case windDirection
+        case uvIndexMax
     }
 }
 
@@ -132,12 +132,12 @@ struct AirQuality: Codable {
         case aqi
         case pm25 = "pm2_5"
         case pm10
-        case carbonMonoxide = "carbon_monoxide"
-        case nitrogenDioxide = "nitrogen_dioxide"
+        case carbonMonoxide
+        case nitrogenDioxide
         case ozone
-        case sulphurDioxide = "sulphur_dioxide"
+        case sulphurDioxide
         case category
-        case healthRecommendation = "health_recommendation"
+        case healthRecommendation
     }
 }
 
@@ -160,7 +160,7 @@ struct PollenResponse: Codable {
 
     enum CodingKeys: String, CodingKey {
         case date, location, tree, grass, weed, overall
-        case healthRecommendations = "health_recommendations"
+        case healthRecommendations
     }
 }
 
@@ -187,9 +187,9 @@ struct NowcastMinute: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case time, precipitation
-        case precipitationProbability = "precipitation_probability"
+        case precipitationProbability
         case intensity
-        case isPrecipitation = "is_precipitation"
+        case isPrecipitation
     }
 }
 
@@ -205,10 +205,10 @@ struct NowcastResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case location, timezone, summary, minutes
-        case precipitationStart = "precipitation_start"
-        case precipitationEnd = "precipitation_end"
-        case totalPrecipitation = "total_precipitation"
-        case lastUpdated = "last_updated"
+        case precipitationStart
+        case precipitationEnd
+        case totalPrecipitation
+        case lastUpdated
     }
 }
 
@@ -223,7 +223,7 @@ struct AIInsightsResponse: Codable {
     let cached: Bool
     
     enum CodingKeys: String, CodingKey {
-        case dailySummary = "daily_summary"
+        case dailySummary
         case outfit, activities, health, travel, cached
     }
 }
@@ -237,7 +237,7 @@ struct DailySummary: Codable {
     
     enum CodingKeys: String, CodingKey {
         case title, summary, highlights, warnings
-        case bestTimes = "best_times"
+        case bestTimes
     }
 }
 
@@ -249,7 +249,7 @@ struct OutfitRecommendation: Codable {
     
     enum CodingKeys: String, CodingKey {
         case summary, details, accessories
-        case layerRecommendation = "layer_recommendation"
+        case layerRecommendation
     }
 }
 
@@ -263,8 +263,8 @@ struct ActivityRecommendation: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case activity
-        case suitabilityScore = "suitability_score"
-        case bestTime = "best_time"
+        case suitabilityScore
+        case bestTime
         case reasoning, precautions
     }
 }
@@ -281,15 +281,15 @@ struct HealthInsight: Codable {
     let generalHealthTips: [String]
     
     enum CodingKeys: String, CodingKey {
-        case uvRisk = "uv_risk"
-        case uvAdvice = "uv_advice"
-        case airQualityRisk = "air_quality_risk"
-        case airQualityAdvice = "air_quality_advice"
-        case heatStressRisk = "heat_stress_risk"
-        case heatStressAdvice = "heat_stress_advice"
-        case allergyRisk = "allergy_risk"
-        case allergyAdvice = "allergy_advice"
-        case generalHealthTips = "general_health_tips"
+        case uvRisk
+        case uvAdvice
+        case airQualityRisk
+        case airQualityAdvice
+        case heatStressRisk
+        case heatStressAdvice
+        case allergyRisk
+        case allergyAdvice
+        case generalHealthTips
     }
 }
 
@@ -302,18 +302,18 @@ struct TravelRiskAnalysis: Codable {
     let worstTravelTimes: [String]
     
     enum CodingKeys: String, CodingKey {
-        case overallRisk = "overall_risk"
+        case overallRisk
         case summary
-        case severeWeatherAlerts = "severe_weather_alerts"
-        case travelTips = "travel_tips"
-        case bestTravelTimes = "best_travel_times"
-        case worstTravelTimes = "worst_travel_times"
+        case severeWeatherAlerts
+        case travelTips
+        case bestTravelTimes
+        case worstTravelTimes
     }
 }
 
 enum RiskLevel: String, Codable {
     case low, moderate, high
-    case veryHigh = "very_high"
+    case veryHigh
     
     var color: String {
         switch self {
@@ -340,12 +340,12 @@ struct User: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case id, email
-        case fullName = "full_name"
-        case isActive = "is_active"
-        case isVerified = "is_verified"
+        case fullName
+        case isActive
+        case isVerified
         case platform, preferences
-        case defaultLocationName = "default_location_name"
-        case createdAt = "created_at"
+        case defaultLocationName
+        case createdAt
     }
 }
 
@@ -358,11 +358,11 @@ struct UserPreferences: Codable {
     var theme: String = "auto"
     
     enum CodingKeys: String, CodingKey {
-        case temperatureUnit = "temperature_unit"
-        case windSpeedUnit = "wind_speed_unit"
-        case precipitationUnit = "precipitation_unit"
-        case timeFormat = "time_format"
-        case notificationsEnabled = "notifications_enabled"
+        case temperatureUnit
+        case windSpeedUnit
+        case precipitationUnit
+        case timeFormat
+        case notificationsEnabled
         case theme
     }
 }
@@ -381,9 +381,9 @@ struct UserRegister: Codable {
     
     enum CodingKeys: String, CodingKey {
         case email, password
-        case fullName = "full_name"
+        case fullName
         case platform
-        case deviceToken = "device_token"
+        case deviceToken
     }
 }
 
@@ -393,8 +393,8 @@ struct TokenResponse: Codable {
     let user: User
     
     enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case tokenType = "token_type"
+        case accessToken
+        case tokenType
         case user
     }
 }
@@ -408,8 +408,8 @@ struct SubscriptionStatus: Codable {
     let features: SubscriptionFeatures
     
     enum CodingKeys: String, CodingKey {
-        case hasActiveSubscription = "has_active_subscription"
-        case isPremium = "is_premium"
+        case hasActiveSubscription
+        case isPremium
         case subscription, features
     }
 }
@@ -430,15 +430,15 @@ struct Subscription: Codable {
     
     enum CodingKeys: String, CodingKey {
         case id
-        case userId = "user_id"
+        case userId
         case platform, plan, status
-        case isTrialUsed = "is_trial_used"
-        case trialStartDate = "trial_start_date"
-        case trialEndDate = "trial_end_date"
-        case subscriptionStartDate = "subscription_start_date"
-        case subscriptionEndDate = "subscription_end_date"
-        case autoRenew = "auto_renew"
-        case isActive = "is_active"
+        case isTrialUsed
+        case trialStartDate
+        case trialEndDate
+        case subscriptionStartDate
+        case subscriptionEndDate
+        case autoRenew
+        case isActive
     }
 }
 
@@ -452,13 +452,13 @@ struct SubscriptionFeatures: Codable {
     let travelAnalysis: Bool
     
     enum CodingKeys: String, CodingKey {
-        case extendedForecast = "extended_forecast"
-        case aiInsights = "ai_insights"
-        case minuteRain = "minute_rain"
-        case severeAlerts = "severe_alerts"
-        case airQualityDetailed = "air_quality_detailed"
-        case healthInsights = "health_insights"
-        case travelAnalysis = "travel_analysis"
+        case extendedForecast
+        case aiInsights
+        case minuteRain
+        case severeAlerts
+        case airQualityDetailed
+        case healthInsights
+        case travelAnalysis
     }
 }
 
@@ -474,8 +474,8 @@ struct SubscriptionPlan: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case id, name, price, currency
-        case billingPeriod = "billing_period"
-        case trialDays = "trial_days"
+        case billingPeriod
+        case trialDays
         case savings, features
     }
 }
@@ -507,7 +507,7 @@ struct AlertsResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case location, latitude, longitude
-        case alertCount = "alert_count"
+        case alertCount
         case alerts
     }
 }
@@ -522,9 +522,9 @@ struct AlertData: Codable, Identifiable {
     let expiresAt: String?
     
     enum CodingKeys: String, CodingKey {
-        case alertType = "alert_type"
+        case alertType
         case severity, title, message, metadata
-        case expiresAt = "expires_at"
+        case expiresAt
     }
 }
 
@@ -534,8 +534,8 @@ struct AlertHistoryResponse: Codable {
     let alerts: [AlertData]
     
     enum CodingKeys: String, CodingKey {
-        case userId = "user_id"
-        case alertCount = "alert_count"
+        case userId
+        case alertCount
         case alerts
     }
 }
@@ -550,7 +550,7 @@ struct PollenForecastResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case location
-        case forecastDays = "forecast_days"
+        case forecastDays
         case forecast, recommendations
     }
 }
@@ -585,8 +585,8 @@ struct FluRiskResponse: Codable {
     let humidity: Int?
     
     enum CodingKeys: String, CodingKey {
-        case riskLevel = "risk_level"
-        case riskScore = "risk_score"
+        case riskLevel
+        case riskScore
         case factors, recommendations, temperature, humidity
     }
 }
@@ -602,11 +602,11 @@ struct MigraineRiskResponse: Codable {
     let humidityLevel: Int?
     
     enum CodingKeys: String, CodingKey {
-        case riskLevel = "risk_level"
-        case riskScore = "risk_score"
+        case riskLevel
+        case riskScore
         case triggers, recommendations
-        case pressureChange = "pressure_change"
-        case humidityLevel = "humidity_level"
+        case pressureChange
+        case humidityLevel
     }
 }
 
@@ -627,9 +627,9 @@ struct ActivityForecastItem: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case activity
-        case todayScore = "today_score"
+        case todayScore
         case icon
-        case bestTime = "best_time"
+        case bestTime
         case summary
     }
 }
@@ -650,7 +650,7 @@ struct ActivityDayForecast: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case date, score
-        case bestTime = "best_time"
+        case bestTime
         case conditions, tips
     }
 }
@@ -672,9 +672,9 @@ struct NotificationPreferences: Codable {
     let severeWeather: Bool
     
     enum CodingKeys: String, CodingKey {
-        case weatherAlerts = "weather_alerts"
-        case dailySummary = "daily_summary"
-        case severeWeather = "severe_weather"
+        case weatherAlerts
+        case dailySummary
+        case severeWeather
     }
 }
 
@@ -689,7 +689,7 @@ struct TestNotificationResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case message
-        case devicesNotified = "devices_notified"
+        case devicesNotified
     }
 }
 
@@ -704,12 +704,12 @@ struct UserPreferenceProfileResponse: Codable {
     let lastUpdated: String?
     
     enum CodingKeys: String, CodingKey {
-        case userId = "user_id"
-        case favoriteFeatures = "favorite_features"
-        case notificationPreferences = "notification_preferences"
-        case preferredActivities = "preferred_activities"
-        case temperatureSensitivity = "temperature_sensitivity"
-        case lastUpdated = "last_updated"
+        case userId
+        case favoriteFeatures
+        case notificationPreferences
+        case preferredActivities
+        case temperatureSensitivity
+        case lastUpdated
     }
 }
 
@@ -721,11 +721,11 @@ struct PersonalizedContentResponse: Codable {
     let optimalNotificationTime: String
     
     enum CodingKeys: String, CodingKey {
-        case priorityFeatures = "priority_features"
+        case priorityFeatures
         case notifications
-        case activitySuggestions = "activity_suggestions"
-        case outfitAdjustments = "outfit_adjustments"
-        case optimalNotificationTime = "optimal_notification_time"
+        case activitySuggestions
+        case outfitAdjustments
+        case optimalNotificationTime
     }
 }
 
@@ -733,7 +733,7 @@ struct ShouldNotifyResponse: Codable {
     let shouldSend: Bool
     
     enum CodingKeys: String, CodingKey {
-        case shouldSend = "should_send"
+        case shouldSend
     }
 }
 
@@ -749,11 +749,11 @@ struct PrecipitationNowcastResponse: Codable {
     let summary: String
     
     enum CodingKeys: String, CodingKey {
-        case hasPrecipitation = "has_precipitation"
-        case precipitationInMinutes = "precipitation_in_minutes"
-        case precipitationEndsInMinutes = "precipitation_ends_in_minutes"
+        case hasPrecipitation
+        case precipitationInMinutes
+        case precipitationEndsInMinutes
         case intensity
-        case precipitationType = "precipitation_type"
+        case precipitationType
         case probability, summary
     }
 }
@@ -769,7 +769,7 @@ struct NWSAlertsResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case latitude, longitude
-        case alertCount = "alert_count"
+        case alertCount
         case alerts, source
     }
 }
@@ -801,7 +801,7 @@ struct NWSStateAlertsResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case state
-        case alertCount = "alert_count"
+        case alertCount
         case alerts
     }
 }
@@ -821,7 +821,7 @@ struct MultiSourceWeatherResponse: Codable {
     
     enum CodingKeys: String, CodingKey {
         case latitude, longitude, sources, current, forecast
-        case uvIndex = "uv_index"
+        case uvIndex
         case marine, historical, metadata
     }
 }
@@ -839,12 +839,12 @@ struct MultiSourceCurrent: Codable {
     
     enum CodingKeys: String, CodingKey {
         case temperature
-        case feelsLike = "feels_like"
+        case feelsLike
         case humidity
-        case windSpeed = "wind_speed"
-        case windDirection = "wind_direction"
+        case windSpeed
+        case windDirection
         case pressure, visibility
-        case weatherDescription = "weather_description"
+        case weatherDescription
         case source
     }
 }
@@ -860,10 +860,10 @@ struct MultiSourceForecast: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case date
-        case tempMax = "temp_max"
-        case tempMin = "temp_min"
-        case precipitationProbability = "precipitation_probability"
-        case weatherDescription = "weather_description"
+        case tempMax
+        case tempMin
+        case precipitationProbability
+        case weatherDescription
         case source
     }
 }
@@ -876,10 +876,10 @@ struct UVIndexData: Codable {
     let source: String?
     
     enum CodingKeys: String, CodingKey {
-        case uvIndex = "uv_index"
-        case uvIndexMax = "uv_index_max"
-        case safeExposureTime = "safe_exposure_time"
-        case sunInfo = "sun_info"
+        case uvIndex
+        case uvIndexMax
+        case safeExposureTime
+        case sunInfo
         case source
     }
 }
@@ -895,13 +895,13 @@ struct MarineWeatherData: Codable {
     let source: String?
     
     enum CodingKeys: String, CodingKey {
-        case waveHeight = "wave_height"
-        case waveDirection = "wave_direction"
-        case wavePeriod = "wave_period"
-        case waterTemperature = "water_temperature"
-        case seaLevelPressure = "sea_level_pressure"
-        case windWaveHeight = "wind_wave_height"
-        case swellHeight = "swell_height"
+        case waveHeight
+        case waveDirection
+        case wavePeriod
+        case waterTemperature
+        case seaLevelPressure
+        case windWaveHeight
+        case swellHeight
         case source
     }
 }
@@ -915,9 +915,9 @@ struct HistoricalWeatherData: Codable {
     
     enum CodingKeys: String, CodingKey {
         case dates
-        case temperaturesMax = "temperatures_max"
-        case temperaturesMin = "temperatures_min"
-        case precipitationSum = "precipitation_sum"
+        case temperaturesMax
+        case temperaturesMin
+        case precipitationSum
         case source
     }
 }

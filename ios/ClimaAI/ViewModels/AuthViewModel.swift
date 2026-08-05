@@ -159,7 +159,9 @@ class AuthViewModel: ObservableObject {
     // MARK: - Validation Helpers
     
     func validateEmail(_ email: String) -> Bool {
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        // Dots are only legal between atoms: "a..b@x.com" and "a@x..com" must fail,
+        // which the character-class form silently accepted.
+        let emailRegex = "^[A-Za-z0-9_%+-]+(\\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,64}$"
         let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailRegex)
         return emailPredicate.evaluate(with: email)
     }
@@ -188,7 +190,7 @@ struct UserUpdateRequest: Encodable {
     let preferences: UserPreferences?
 
     enum CodingKeys: String, CodingKey {
-        case fullName = "full_name"
+        case fullName
         case preferences
     }
 

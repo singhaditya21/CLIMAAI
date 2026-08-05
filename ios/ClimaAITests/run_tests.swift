@@ -41,7 +41,7 @@ func runTest(_ name: String, _ test: () -> Void) {
 // MARK: - Helper Functions
 
 func isValidEmail(_ email: String) -> Bool {
-    let pattern = "^[A-Z0-9a-z._%+-]+@[A-Z0-9a-z.-]+\\.[A-Za-z]{2,64}$"
+    let pattern = "^[A-Za-z0-9_%+-]+(\\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,64}$"
     return email.range(of: pattern, options: .regularExpression) != nil
 }
 

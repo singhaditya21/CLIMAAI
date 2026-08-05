@@ -121,7 +121,7 @@ final class AuthenticationTests: XCTestCase {
     // MARK: - Helper Functions
     
     private func isValidEmail(_ email: String) -> Bool {
-        let emailRegex = #"^[A-Z0-9a-z._%+-]+@[A-Z0-9a-z.-]+\.[A-Za-z]{2,64}$"#
+        let emailRegex = #"^[A-Za-z0-9_%+-]+(\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,64}$"#
         let predicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
         return predicate.evaluate(with: email)
     }
