@@ -134,15 +134,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Here, and only here, an unreachable release host is a hard failure.
-      # This is the job that produces an artifact someone could upload, so it is
-      # the last point at which "the backend does not exist yet" is still a
-      # warning rather than a bug about to reach users.
-      - name: Release config (strict)
-        env:
-          ENFORCE_RELEASE_HOST: '1'
-        run: ./scripts/ci/check-release-config.sh
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -259,6 +250,15 @@ jobs:
       KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
+
+      # Here, and only here, an unreachable release host is a hard failure.
+      # This is the job that produces an artifact someone could upload, so it is
+      # the last point at which "the backend does not exist yet" is still a
+      # warning rather than a bug about to reach users.
+      - name: Release config (strict)
+        env:
+          ENFORCE_RELEASE_HOST: '1'
+        run: ./scripts/ci/check-release-config.sh
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
