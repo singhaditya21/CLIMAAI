@@ -65,7 +65,7 @@ class ClimaAI {
 
     setupEventListeners() {
         // Auth
-        document.getElementById('googleSignInBtn').addEventListener('click', () => this.handleGoogleSignIn());
+        document.getElementById('googleSignInBtn').addEventListener('click', (e) => this.handleGoogleSignIn(e));
         document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('registerForm').addEventListener('submit', (e) => this.handleRegister(e));
         document.getElementById('showRegister').addEventListener('click', (e) => {
@@ -145,6 +145,17 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        let submitBtn = null;
+        let originalText = '';
+        if (e && e.submitter) {
+            submitBtn = e.submitter;
+            originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.innerHTML = '⏳ Loading...';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +166,13 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor = '';
+                submitBtn.innerHTML = originalText;
+            }
         }
     }
 
@@ -163,6 +181,17 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        let submitBtn = null;
+        let originalText = '';
+        if (e && e.submitter) {
+            submitBtn = e.submitter;
+            originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.innerHTML = '⏳ Loading...';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +203,13 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor = '';
+                submitBtn.innerHTML = originalText;
+            }
         }
     }
 
@@ -185,7 +221,18 @@ class ClimaAI {
         this.showToast('Logged out successfully', 'info');
     }
 
-    async handleGoogleSignIn() {
+    async handleGoogleSignIn(e) {
+        let submitBtn = null;
+        let originalText = '';
+        if (e && e.currentTarget) {
+            submitBtn = e.currentTarget;
+            originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.innerHTML = '⏳ Loading...';
+        }
+
         try {
             this.showToast('🔐 Signing in with Google...', 'info');
 
@@ -222,6 +269,15 @@ class ClimaAI {
 
         } catch (error) {
             this.showToast(error.message || 'Google Sign-In failed', 'error');
+        } finally {
+            if (submitBtn) {
+                setTimeout(() => { // delay for demo
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '';
+                    submitBtn.style.cursor = '';
+                    submitBtn.innerHTML = originalText;
+                }, 1500);
+            }
         }
     }
 
