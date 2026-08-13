@@ -1,0 +1,3 @@
+## 2024-08-13 - Async Form Loading States with `e.submitter`
+**Learning:** Adding loading states to form submit buttons via vanilla JS `submit` events requires safely capturing the target button via `e.submitter` instead of generic `e.target` (which points to the form itself), and wrapping property references in a null-check since `e.submitter` can occasionally be null.
+**Action:** When adding UX loading states on vanilla form submissions in the future, always use a `try/finally` block to restore original states (`disabled = false`, original `innerHTML`), and apply modifications conditionally on `e.submitter`.
