@@ -1,0 +1,3 @@
+## 2024-08-14 - Add loading states to async form submissions
+**Learning:** When adding visual loading states (like innerHTML and disabled attributes) to form submit buttons, developers frequently overlook edge cases where operations fail. Furthermore, the submit button itself can be dynamically extracted securely using `e.submitter` for forms or `e.currentTarget` for standard buttons, rather than hardcoding IDs, although it must be accessed cautiously with null-checks to avoid TypeErrors.
+**Action:** Always extract the button using the event object (e.submitter / e.currentTarget), wrap state modifications in null-checks (`if (submitBtn)`), and mandate a `try/finally` block to guarantee state restoration regardless of async outcomes.
