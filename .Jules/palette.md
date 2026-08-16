@@ -1,0 +1,3 @@
+## 2024-05-24 - Async Loading States in Forms
+**Learning:** Found that async operations in login/register forms don't provide visual feedback to users before completing or erroring out, which can lead to multiple submissions or user confusion. Adding visual loading states with standard JavaScript (changing innerHTML and disabling the button) directly addresses this without relying on custom CSS classes, while keeping the UI accessible (disabled state prevents keyboard re-triggering).
+**Action:** Always wrap state restoration in a `try/finally` block when implementing visual loading states so the UI doesn't get stuck if the async operation fails. Use `e.submitter` for standard `submit` events.
