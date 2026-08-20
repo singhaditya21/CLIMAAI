@@ -65,7 +65,7 @@ class ClimaAI {
 
     setupEventListeners() {
         // Auth
-        document.getElementById('googleSignInBtn').addEventListener('click', () => this.handleGoogleSignIn());
+        document.getElementById('googleSignInBtn').addEventListener('click', (e) => this.handleGoogleSignIn(e));
         document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
         document.getElementById('registerForm').addEventListener('submit', (e) => this.handleRegister(e));
         document.getElementById('showRegister').addEventListener('click', (e) => {
@@ -145,6 +145,15 @@ class ClimaAI {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
+        const submitBtn = e.submitter;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '⏳ Loading...';
+            submitBtn.style.opacity = '0.7';
+        }
+
         try {
             this.showToast('Logging in...', 'info');
             const response = await api.login(email, password);
@@ -155,6 +164,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Login failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+                submitBtn.style.opacity = '';
+            }
         }
     }
 
@@ -163,6 +178,15 @@ class ClimaAI {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+
+        const submitBtn = e.submitter;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '⏳ Loading...';
+            submitBtn.style.opacity = '0.7';
+        }
 
         try {
             this.showToast('Creating account...', 'info');
@@ -174,6 +198,12 @@ class ClimaAI {
             this.checkSubscription();
         } catch (error) {
             this.showToast(error.message || 'Registration failed', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+                submitBtn.style.opacity = '';
+            }
         }
     }
 
@@ -185,7 +215,16 @@ class ClimaAI {
         this.showToast('Logged out successfully', 'info');
     }
 
-    async handleGoogleSignIn() {
+    async handleGoogleSignIn(e) {
+        const submitBtn = e ? e.currentTarget : null;
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '⏳ Loading...';
+            submitBtn.style.opacity = '0.7';
+        }
+
         try {
             this.showToast('🔐 Signing in with Google...', 'info');
 
@@ -217,11 +256,22 @@ class ClimaAI {
                     this.isPremium = true;
                     this.showScreen('homeScreen');
                     this.loadWeatherData();
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalContent;
+                        submitBtn.style.opacity = '';
+                    }
                 }
             }, 1500); // Simulate OAuth redirect delay
 
         } catch (error) {
             this.showToast(error.message || 'Google Sign-In failed', 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+                submitBtn.style.opacity = '';
+            }
         }
     }
 
