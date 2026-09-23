@@ -1,0 +1,299 @@
+path,system,category,free_launch_role
+.github/workflows/deploy.yml,Automation,GitHub Actions,verification
+.github/workflows/mobile.yml,Automation,GitHub Actions,verification
+.github/workflows/website.yml,Automation,GitHub Actions,verification
+.gitignore,Repository,Overview or configuration,documentation
+README.md,Repository,Overview or configuration,documentation
+ROADMAP.md,Repository,Overview or configuration,documentation
+android/.gitignore,Android,Build and resources,build
+android/SIGNING.md,Android,Build and resources,build
+android/app/build.gradle,Android,Build and resources,build
+android/app/proguard-rules.pro,Android,Build and resources,build
+android/app/src/androidTest/kotlin/com/climaai/app/SmokeTest.kt,Android phone,Tests,verification
+android/app/src/debug/res/xml/network_security_config.xml,Android,Build and resources,build
+android/app/src/main/AndroidManifest.xml,Android,Build and resources,build
+android/app/src/main/kotlin/com/climaai/app/ClimaAIApplication.kt,Android phone,entry,core
+android/app/src/main/kotlin/com/climaai/app/MainActivity.kt,Android phone,entry,core
+android/app/src/main/kotlin/com/climaai/app/billing/BillingManager.kt,Android phone,Monetization,deferred
+android/app/src/main/kotlin/com/climaai/app/billing/FeatureGate.kt,Android phone,Monetization,deferred
+android/app/src/main/kotlin/com/climaai/app/data/ApiClient.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/AppearancePrefs.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/Models.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/NotificationPrefsManager.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/ProFeaturesManager.kt,Android phone,Monetization,deferred
+android/app/src/main/kotlin/com/climaai/app/data/UnitsPrefs.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/WeatherRepository.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/api/FreeApiModels.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/api/FreeApis.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/api/WeatherApiModels.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/cache/CachePolicy.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/cache/RefreshTracker.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/cache/WeatherCache.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/repository/OpenMeteoRepository.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/data/wear/WearSync.kt,Android phone,data,core
+android/app/src/main/kotlin/com/climaai/app/location/UltraLocationManager.kt,Android phone,location,core
+android/app/src/main/kotlin/com/climaai/app/service/NotificationService.kt,Android phone,service,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/AnimatedBackground.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/AnimatedText.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/GlassmorphicCard.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/HourlyScrollView.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/Interactions.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/PrecipitationBanner.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/PullToRefreshBox.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/WeatherAnimation.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/components/WeatherBackground.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/navigation/AppNavigation.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/AIInsightsScreen.kt,Android phone,AI insights,deferred
+android/app/src/main/kotlin/com/climaai/app/ui/screens/AirQualityDetailScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/AppearanceSettingsScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/ForecastScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/HomeScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/LocationSwitcherScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/LoginScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/OnboardingScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/PaywallScreen.kt,Android phone,Monetization,deferred
+android/app/src/main/kotlin/com/climaai/app/ui/screens/PollenScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/RadarMapScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/RegisterScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/screens/SettingsScreen.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/theme/Theme.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/theme/Typography.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/viewmodel/AuthViewModel.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/ui/viewmodel/SubscriptionViewModel.kt,Android phone,Monetization,deferred
+android/app/src/main/kotlin/com/climaai/app/ui/viewmodel/WeatherViewModel.kt,Android phone,ui,core
+android/app/src/main/kotlin/com/climaai/app/widget/ExtraLargeWeatherWidget.kt,Android phone,widget,core
+android/app/src/main/kotlin/com/climaai/app/widget/WeatherWidgets.kt,Android phone,widget,core
+android/app/src/main/kotlin/com/climaai/app/widget/WidgetConfigActivity.kt,Android phone,widget,core
+android/app/src/main/kotlin/com/climaai/app/widget/WidgetDataManager.kt,Android phone,widget,core
+android/app/src/main/kotlin/com/climaai/app/widget/WidgetPrefs.kt,Android phone,widget,core
+android/app/src/main/kotlin/com/climaai/app/work/BootReceiver.kt,Android phone,work,core
+android/app/src/main/kotlin/com/climaai/app/work/WeatherWorker.kt,Android phone,work,core
+android/app/src/main/kotlin/com/climaai/app/work/WorkScheduler.kt,Android phone,work,core
+android/app/src/main/res/drawable/ic_launcher_background.xml,Android,Build and resources,build
+android/app/src/main/res/drawable/ic_launcher_foreground.xml,Android,Build and resources,build
+android/app/src/main/res/drawable/widget_preview_large.xml,Android,Build and resources,build
+android/app/src/main/res/drawable/widget_preview_medium.xml,Android,Build and resources,build
+android/app/src/main/res/drawable/widget_preview_small.xml,Android,Build and resources,build
+android/app/src/main/res/layout/widget_loading.xml,Android,Build and resources,build
+android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml,Android,Build and resources,build
+android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml,Android,Build and resources,build
+android/app/src/main/res/values/colors.xml,Android,Build and resources,build
+android/app/src/main/res/values/font_certs.xml,Android,Build and resources,build
+android/app/src/main/res/values/strings.xml,Android,Build and resources,build
+android/app/src/main/res/values/themes.xml,Android,Build and resources,build
+android/app/src/main/res/xml/large_weather_widget_info.xml,Android,Build and resources,build
+android/app/src/main/res/xml/medium_weather_widget_info.xml,Android,Build and resources,build
+android/app/src/main/res/xml/network_security_config.xml,Android,Build and resources,build
+android/app/src/main/res/xml/small_weather_widget_info.xml,Android,Build and resources,build
+android/app/src/main/res/xml/xlarge_weather_widget_info.xml,Android,Build and resources,build
+android/app/src/test/kotlin/com/climaai/app/widget/WidgetDataManagerTest.kt,Android phone,Tests,verification
+android/build.gradle,Android,Build and resources,build
+android/gradle.properties,Android,Build and resources,build
+android/gradle/wrapper/gradle-wrapper.jar,Android,Build and resources,build
+android/gradle/wrapper/gradle-wrapper.properties,Android,Build and resources,build
+android/gradlew,Android,Build and resources,build
+android/gradlew.bat,Android,Build and resources,build
+android/keystore.properties.example,Android,Build and resources,build
+android/settings.gradle,Android,Build and resources,build
+android/wear/build.gradle,Android,Build and resources,build
+android/wear/proguard-rules.pro,Android,Build and resources,build
+android/wear/src/main/AndroidManifest.xml,Wear OS,app resources,optional
+android/wear/src/main/kotlin/com/climaai/wear/WearApplication.kt,Wear OS,app resources,optional
+android/wear/src/main/kotlin/com/climaai/wear/complication/ComplicationServices.kt,Wear OS,complication,optional
+android/wear/src/main/kotlin/com/climaai/wear/data/PhoneWeatherListenerService.kt,Wear OS,data,optional
+android/wear/src/main/kotlin/com/climaai/wear/data/PhoneWeatherStore.kt,Wear OS,data,optional
+android/wear/src/main/kotlin/com/climaai/wear/data/WearLocationProvider.kt,Wear OS,data,optional
+android/wear/src/main/kotlin/com/climaai/wear/data/WearWeatherApi.kt,Wear OS,data,optional
+android/wear/src/main/kotlin/com/climaai/wear/data/WearWeatherRepository.kt,Wear OS,data,optional
+android/wear/src/main/kotlin/com/climaai/wear/presentation/WearMainActivity.kt,Wear OS,presentation,optional
+android/wear/src/main/kotlin/com/climaai/wear/presentation/screens/ForecastScreen.kt,Wear OS,presentation,optional
+android/wear/src/main/kotlin/com/climaai/wear/presentation/screens/WeatherScreen.kt,Wear OS,presentation,optional
+android/wear/src/main/kotlin/com/climaai/wear/presentation/theme/Theme.kt,Wear OS,presentation,optional
+android/wear/src/main/kotlin/com/climaai/wear/tile/WeatherTileService.kt,Wear OS,tile,optional
+android/wear/src/main/res/drawable/tile_preview.xml,Wear OS,app resources,optional
+android/wear/src/main/res/values/strings.xml,Wear OS,app resources,optional
+backend/002_add_features.sql,Backend,Deployment and schema,backend-dependent
+backend/api/.env.example,Backend,Deployment and schema,backend-dependent
+backend/api/.env.production.example,Backend,Deployment and schema,backend-dependent
+backend/api/Dockerfile,Backend,Deployment and schema,backend-dependent
+backend/api/app/config.py,Backend API,config.py,backend-dependent
+backend/api/app/database.py,Backend API,database.py,backend-dependent
+backend/api/app/main.py,Backend API,main.py,backend-dependent
+backend/api/app/models/__init__.py,Backend API,models,backend-dependent
+backend/api/app/models/subscription.py,Backend API,Subscription model,deferred
+backend/api/app/models/user.py,Backend API,models,backend-dependent
+backend/api/app/models/weather_history.py,Backend API,models,backend-dependent
+backend/api/app/routers/__init__.py,Backend API,routers,backend-dependent
+backend/api/app/routers/ai.py,Backend API,Paid/AI routes,deferred
+backend/api/app/routers/alerts.py,Backend API,routers,backend-dependent
+backend/api/app/routers/demo.py,Backend API,Generated demo data,prototype
+backend/api/app/routers/health.py,Backend API,routers,backend-dependent
+backend/api/app/routers/locations.py,Backend API,routers,backend-dependent
+backend/api/app/routers/multi_weather.py,Backend API,routers,backend-dependent
+backend/api/app/routers/notifications.py,Backend API,routers,backend-dependent
+backend/api/app/routers/personalization.py,Backend API,routers,backend-dependent
+backend/api/app/routers/precipitation.py,Backend API,routers,backend-dependent
+backend/api/app/routers/subscriptions.py,Backend API,Paid/AI routes,deferred
+backend/api/app/routers/users.py,Backend API,routers,backend-dependent
+backend/api/app/routers/weather.py,Backend API,routers,backend-dependent
+backend/api/app/schemas/__init__.py,Backend API,schemas,backend-dependent
+backend/api/app/schemas/ai.py,Backend API,Paid/AI schemas,deferred
+backend/api/app/schemas/nowcast.py,Backend API,schemas,backend-dependent
+backend/api/app/schemas/pollen.py,Backend API,schemas,backend-dependent
+backend/api/app/schemas/radar_alerts.py,Backend API,schemas,backend-dependent
+backend/api/app/schemas/subscription.py,Backend API,Paid/AI schemas,deferred
+backend/api/app/schemas/user.py,Backend API,schemas,backend-dependent
+backend/api/app/schemas/weather.py,Backend API,schemas,backend-dependent
+backend/api/app/services/__init__.py,Backend API,services,backend-dependent
+backend/api/app/services/activity_service.py,Backend API,services,backend-dependent
+backend/api/app/services/ai_service.py,Backend API,Paid/AI services,deferred
+backend/api/app/services/alerts_service.py,Backend API,services,backend-dependent
+backend/api/app/services/auth.py,Backend API,services,backend-dependent
+backend/api/app/services/health_index_service.py,Backend API,services,backend-dependent
+backend/api/app/services/mock_data_service.py,Backend API,Generated demo data,prototype
+backend/api/app/services/mock_services.py,Backend API,Generated demo data,prototype
+backend/api/app/services/mock_weather_generator.py,Backend API,Generated demo data,prototype
+backend/api/app/services/multi_weather_service.py,Backend API,services,backend-dependent
+backend/api/app/services/notification_service.py,Backend API,services,backend-dependent
+backend/api/app/services/nowcast_service.py,Backend API,services,backend-dependent
+backend/api/app/services/personalization_service.py,Backend API,services,backend-dependent
+backend/api/app/services/pollen_service.py,Backend API,services,backend-dependent
+backend/api/app/services/radar_service.py,Backend API,services,backend-dependent
+backend/api/app/services/receipt_validator.py,Backend API,Paid/AI services,deferred
+backend/api/app/services/subscription_service.py,Backend API,Paid/AI services,deferred
+backend/api/app/services/weather_service.py,Backend API,services,backend-dependent
+backend/api/pytest.ini,Backend,Deployment and schema,backend-dependent
+backend/api/requirements-dev.txt,Backend,Deployment and schema,backend-dependent
+backend/api/requirements.txt,Backend,Deployment and schema,backend-dependent
+backend/api/ruff.toml,Backend,Deployment and schema,backend-dependent
+backend/api/tests/__init__.py,Backend API,Tests,verification
+backend/api/tests/conftest.py,Backend API,Tests,verification
+backend/api/tests/test_account_deletion.py,Backend API,Tests,verification
+backend/api/tests/test_ai_insights.py,Backend API,Tests,verification
+backend/api/tests/test_alerts_service.py,Backend API,Tests,verification
+backend/api/tests/test_auth.py,Backend API,Tests,verification
+backend/api/tests/test_commercial_key.py,Backend API,Tests,verification
+backend/api/tests/test_consensus.py,Backend API,Tests,verification
+backend/api/tests/test_degraded_boot.py,Backend API,Tests,verification
+backend/api/tests/test_google_validation.py,Backend API,Tests,verification
+backend/api/tests/test_health_index_service.py,Backend API,Tests,verification
+backend/api/tests/test_locations.py,Backend API,Tests,verification
+backend/api/tests/test_multi_weather_service.py,Backend API,Tests,verification
+backend/api/tests/test_notifications.py,Backend API,Tests,verification
+backend/api/tests/test_nowcast_service.py,Backend API,Tests,verification
+backend/api/tests/test_personalization.py,Backend API,Tests,verification
+backend/api/tests/test_pollen_service.py,Backend API,Tests,verification
+backend/api/tests/test_production_config.py,Backend API,Tests,verification
+backend/api/tests/test_smoke.py,Backend API,Tests,verification
+backend/api/tests/test_subscription_activation.py,Backend API,Tests,verification
+backend/api/tests/test_subscription_service.py,Backend API,Tests,verification
+backend/api/tests/test_weather_service.py,Backend API,Tests,verification
+backend/docker-compose.prod.yml,Backend,Deployment and schema,backend-dependent
+backend/docker-compose.yml,Backend,Deployment and schema,backend-dependent
+backend/init.sql,Backend,Deployment and schema,backend-dependent
+backend/nginx/nginx.conf,Backend,Deployment and schema,backend-dependent
+backend/payment-service/.env.example,Payment service,Webhooks,deferred
+backend/payment-service/Dockerfile,Payment service,Webhooks,deferred
+backend/payment-service/package-lock.json,Payment service,Webhooks,deferred
+backend/payment-service/package.json,Payment service,Webhooks,deferred
+backend/payment-service/src/index.js,Payment service,Webhooks,deferred
+backend/payment-service/src/routes/apple-webhook.js,Payment service,Webhooks,deferred
+backend/payment-service/src/routes/google-webhook.js,Payment service,Webhooks,deferred
+backend/payment-service/src/security/apple-jws.js,Payment service,Webhooks,deferred
+backend/payment-service/test/apple-jws.test.js,Payment service,Webhooks,deferred
+backend/payment-service/test/google-webhook.test.js,Payment service,Webhooks,deferred
+dist/README.md,Repository,Overview or configuration,documentation
+docs/.nojekyll,Documentation,Project guidance,documentation
+docs/API.md,Documentation,Project guidance,documentation
+docs/APP_STORE.md,Documentation,Project guidance,documentation
+docs/ARCHITECTURE.md,Documentation,Project guidance,documentation
+docs/CODEBASE_AUDIT.md,Documentation,Project guidance,documentation
+docs/DEPLOYMENT.md,Documentation,Project guidance,documentation
+docs/LICENSING.md,Documentation,Project guidance,documentation
+docs/PRE_LAUNCH_AUDIT.md,Documentation,Historical audit,documentation
+docs/PRIVACY.md,Documentation,Project guidance,documentation
+docs/WEATHER_APIS.md,Documentation,Project guidance,documentation
+docs/WEBSITE.md,Documentation,Project guidance,documentation
+docs/assets/legal.css,GitHub Pages,Weather website,release-candidate
+docs/assets/weather.css,GitHub Pages,Weather website,release-candidate
+docs/assets/weather.mjs,GitHub Pages,Weather website,release-candidate
+docs/delete-account.html,GitHub Pages,Legal/support site,release-candidate
+docs/index.html,GitHub Pages,Weather website,release-candidate
+docs/privacy.html,GitHub Pages,Legal/support site,release-candidate
+docs/terms.html,GitHub Pages,Legal/support site,release-candidate
+ios/ClimaAI.xcodeproj/project.pbxproj,iOS,Build and setup,build
+ios/ClimaAI.xcodeproj/project.xcworkspace/contents.xcworkspacedata,iOS,Build and setup,build
+ios/ClimaAI.xcodeproj/xcshareddata/xcschemes/ClimaAI.xcscheme,iOS,Build and setup,build
+ios/ClimaAI/Assets.xcassets/AccentColor.colorset/Contents.json,iOS phone,Assets.xcassets,backend-dependent
+ios/ClimaAI/Assets.xcassets/AppIcon.appiconset/Contents.json,iOS phone,Assets.xcassets,backend-dependent
+ios/ClimaAI/Assets.xcassets/Contents.json,iOS phone,Assets.xcassets,backend-dependent
+ios/ClimaAI/ClimaAIApp.swift,iOS phone,ClimaAIApp.swift,backend-dependent
+ios/ClimaAI/Info.plist,iOS phone,Info.plist,backend-dependent
+ios/ClimaAI/Models/Models.swift,iOS phone,Models,backend-dependent
+ios/ClimaAI/Models/WidgetModels.swift,iOS phone,Models,backend-dependent
+ios/ClimaAI/Services/APIClient.swift,iOS phone,Services,backend-dependent
+ios/ClimaAI/Services/NotificationService.swift,iOS phone,Services,backend-dependent
+ios/ClimaAI/Services/SubscriptionManager.swift,iOS phone,Monetization,deferred
+ios/ClimaAI/Utils/LocationManager.swift,iOS phone,Utils,backend-dependent
+ios/ClimaAI/Utils/ThemeManager.swift,iOS phone,Utils,backend-dependent
+ios/ClimaAI/ViewModels/AIInsightsViewModel.swift,iOS phone,AI insights,deferred
+ios/ClimaAI/ViewModels/AuthViewModel.swift,iOS phone,ViewModels,backend-dependent
+ios/ClimaAI/ViewModels/SubscriptionViewModel.swift,iOS phone,Monetization,deferred
+ios/ClimaAI/ViewModels/WeatherViewModel.swift,iOS phone,ViewModels,backend-dependent
+ios/ClimaAI/Views/AI/AIInsightsView.swift,iOS phone,AI insights,deferred
+ios/ClimaAI/Views/Auth/LoginView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Auth/OnboardingView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Auth/RegisterView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Components/HourlyScrollView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Components/PrecipitationBanner.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Components/WeatherBackground.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/ContentView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Health/PollenView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Home/HomeView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Location/LocationSwitcherView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Settings/SettingsView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Subscription/PaywallView.swift,iOS phone,Monetization,deferred
+ios/ClimaAI/Views/Weather/AirQualityView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Weather/DailyForecastView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Weather/HourlyForecastView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAI/Views/Weather/RadarMapView.swift,iOS phone,Views,backend-dependent
+ios/ClimaAITests/APIClientTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/AccessibilityTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/AuthenticationTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/ModelsTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/README.md,iOS phone,Tests,verification
+ios/ClimaAITests/SecurityTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/SubscriptionTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/WeatherViewModelTests.swift,iOS phone,Tests,verification
+ios/ClimaAITests/run_tests.swift,iOS phone,Tests,verification
+ios/ClimaAIWatch/Assets.xcassets/AppIcon.appiconset/Contents.json,Apple Watch,Watch app,optional
+ios/ClimaAIWatch/Assets.xcassets/Contents.json,Apple Watch,Watch app,optional
+ios/ClimaAIWatch/ClimaAIWatchApp.swift,Apple Watch,Watch app,optional
+ios/ClimaAIWatch/ComplicationViews.swift,Apple Watch,Watch app,optional
+ios/ClimaAIWatch/ContentView.swift,Apple Watch,Watch app,optional
+ios/ClimaAIWatch/Info.plist,Apple Watch,Watch app,optional
+ios/ClimaAIWidget/ClimaAIWidgetBundle.swift,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/Info.plist,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/LargeWeatherWidget.swift,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/LockScreenWeatherWidget.swift,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/MediumWeatherWidget.swift,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/SmallWeatherWidget.swift,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/WidgetBackground.swift,iOS widgets,Widgets,optional
+ios/ClimaAIWidget/WidgetModels.swift,iOS widgets,Widgets,optional
+ios/SETUP.md,iOS,Build and setup,build
+ios/TESTING.md,iOS,Build and setup,build
+ios/WATCH_SETUP.md,iOS,Build and setup,build
+ios/WIDGETS_SETUP.md,iOS,Build and setup,build
+ios/XCODE_SETUP.md,iOS,Build and setup,build
+ios/project.yml,iOS,Build and setup,build
+scripts/check-toolchain.sh,Automation,Developer tooling,verification
+scripts/ci/check-api-contract.py,Automation,Developer tooling,verification
+scripts/ci/check-ios-routes.py,Automation,Developer tooling,verification
+scripts/ci/check-reachability.sh,Automation,Developer tooling,verification
+scripts/ci/check-release-config.sh,Automation,Developer tooling,verification
+scripts/collect-artifacts.sh,Automation,Developer tooling,verification
+scripts/deploy/bootstrap-gcp.sh,Automation,Developer tooling,verification
+scripts/generate-codebase-catalog.py,Automation,Developer tooling,verification
+scripts/run-android.sh,Automation,Developer tooling,verification
+scripts/tests/weather-site.test.mjs,Automation,Website tests,verification
+start.sh,Repository,Overview or configuration,documentation

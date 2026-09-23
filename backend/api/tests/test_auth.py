@@ -108,3 +108,17 @@ async def test_me_rejects_a_garbage_token(client):
     )
 
     assert response.status_code == 401
+
+
+async def test_password_recovery_does_not_create_an_undeliverable_token(client, db_session):
+    from sqlalchemy import text
+
+    await client.post("/api/auth/register", json=VALID)
+    response = await client.post("/api/auth/forgot-password", json={"email": VALID["email"]})
+
+    assert response.status_code == 503
+    token = await db_session.scalar(
+        text("SELECT reset_token FROM users WHERE email = :email"),
+        {"email": VALID["email"]},
+    )
+    assert token is None

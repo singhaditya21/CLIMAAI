@@ -58,6 +58,9 @@ jobs:
       - name: Reachability
         run: ./scripts/ci/check-reachability.sh
 
+      - name: iOS API paths
+        run: python3 scripts/ci/check-ios-routes.py
+
       # Runs even when the gate above failed: a PR should see every finding in
       # one pass rather than one per push.
       - name: Release config
@@ -212,7 +215,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install backend dependencies
-        run: pip install -r backend/api/requirements.txt
+        run: pip install -r backend/api/requirements-dev.txt
 
       # No Redis service: every cache client in the backend is created on first
       # use, so serving the schema never reaches one.

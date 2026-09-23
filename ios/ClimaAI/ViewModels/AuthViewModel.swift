@@ -46,20 +46,19 @@ class AuthViewModel: ObservableObject {
         
         do {
             let response: TokenResponse = try await apiClient.post(
-                "/api/v1/users/register",
+                "/api/auth/register",
                 body: [
                     "full_name": fullName,
                     "email": email,
-                    "password": password
+                    "password": password,
+                    "platform": "ios"
                 ]
             )
             
             // Save token and update state
             apiClient.saveToken(response.accessToken)
             
-            // Fetch user profile
-            await fetchCurrentUser()
-            
+            currentUser = response.user
             isAuthenticated = true
             isLoading = false
         } catch {
@@ -75,7 +74,7 @@ class AuthViewModel: ObservableObject {
         
         do {
             let response: TokenResponse = try await apiClient.post(
-                "/api/v1/users/login",
+                "/api/auth/login",
                 body: [
                     "email": email,
                     "password": password
@@ -85,9 +84,7 @@ class AuthViewModel: ObservableObject {
             // Save token and update state
             apiClient.saveToken(response.accessToken)
             
-            // Fetch user profile
-            await fetchCurrentUser()
-            
+            currentUser = response.user
             isAuthenticated = true
             isLoading = false
         } catch {
@@ -106,7 +103,7 @@ class AuthViewModel: ObservableObject {
     /// Fetch current user profile
     func fetchCurrentUser() async {
         do {
-            let user: User = try await apiClient.get("/api/v1/users/me")
+            let user: User = try await apiClient.get("/api/auth/me")
             currentUser = user
         } catch {
             print("Error fetching user: \(error)")
@@ -130,7 +127,7 @@ class AuthViewModel: ObservableObject {
             // because the backend's UserUpdate treats every field as optional.
             let body = UserUpdateRequest(fullName: fullName, preferences: preferences)
 
-            let updatedUser: User = try await apiClient.put("/api/v1/users/me", body: body)
+            let updatedUser: User = try await apiClient.put("/api/auth/me", body: body)
             currentUser = updatedUser
             isLoading = false
         } catch {
@@ -145,7 +142,7 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            let _: [String: String] = try await apiClient.delete("/api/v1/users/me")
+            try await apiClient.deleteWithoutResponse("/api/auth/me")
             logout()
             isLoading = false
             return true
@@ -183,7 +180,7 @@ class AuthViewModel: ObservableObject {
     }
 }
 
-/// Payload for `PUT /users/me`, mirroring the backend's UserUpdate schema.
+/// Payload for `PUT /api/auth/me`, mirroring the backend's UserUpdate schema.
 /// Every field is optional; nil fields are omitted from the request body.
 struct UserUpdateRequest: Encodable {
     let fullName: String?

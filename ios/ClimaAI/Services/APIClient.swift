@@ -21,6 +21,7 @@ class APIClient {
     }()
     
     private init() {
+        self.accessToken = UserDefaults.standard.string(forKey: "access_token")
         // Mirrors Android's API_BASE_URL buildConfigField (debug 10.0.2.2 vs
         // release host): debug talks to the developer's local backend, release
         // reads the origin from Info.plist, so pointing at a new environment
@@ -50,10 +51,6 @@ class APIClient {
         } else {
             UserDefaults.standard.removeObject(forKey: "access_token")
         }
-    }
-    
-    func loadAccessToken() {
-        self.accessToken = UserDefaults.standard.string(forKey: "access_token")
     }
     
     private func createRequest(
@@ -166,7 +163,7 @@ class APIClient {
         body: Encodable? = nil,
         requiresAuth: Bool = true
     ) async throws -> T {
-        let data = try body.map { try JSONEncoder().encode(AnyEncodable($0)) }
+        let data = try body.map { try encoder.encode(AnyEncodable($0)) }
         let request = try createRequest(
             endpoint: endpoint, method: "POST", body: data, requiresAuth: requiresAuth
         )
@@ -178,7 +175,7 @@ class APIClient {
         body: Encodable? = nil,
         requiresAuth: Bool = true
     ) async throws -> T {
-        let data = try body.map { try JSONEncoder().encode(AnyEncodable($0)) }
+        let data = try body.map { try encoder.encode(AnyEncodable($0)) }
         let request = try createRequest(
             endpoint: endpoint, method: "PUT", body: data, requiresAuth: requiresAuth
         )
@@ -198,114 +195,24 @@ class APIClient {
         return try await performRequest(request)
     }
 
-    // MARK: - Auth Endpoints
-    
-    func register(email: String, password: String, fullName: String?, deviceToken: String?) async throws -> TokenResponse {
-        let registerData = UserRegister(
-            email: email,
-            password: password,
-            fullName: fullName,
-            platform: "ios",
-            deviceToken: deviceToken
-        )
-        
-        let body = try encoder.encode(registerData)
-        let request = try createRequest(endpoint: "/users/register", method: "POST", body: body)
-        
-        let response: TokenResponse = try await performRequest(request)
-        setAccessToken(response.accessToken)
-        return response
-    }
-    
-    func login(email: String, password: String) async throws -> TokenResponse {
-        let loginData = UserLogin(email: email, password: password)
-        let body = try encoder.encode(loginData)
-        let request = try createRequest(endpoint: "/users/login", method: "POST", body: body)
-        
-        let response: TokenResponse = try await performRequest(request)
-        setAccessToken(response.accessToken)
-        return response
-    }
-    
-    func getCurrentUser() async throws -> User {
-        let request = try createRequest(endpoint: "/users/me", requiresAuth: true)
-        return try await performRequest(request)
-    }
-    
-    // MARK: - Weather Endpoints
-    
-    func getWeather(latitude: Double, longitude: Double) async throws -> WeatherResponse {
-        let endpoint = "/weather/current?latitude=\(latitude)&longitude=\(longitude)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: false)
-        return try await performRequest(request)
-    }
-    
-    func getHourlyForecast(latitude: Double, longitude: Double, hours: Int = 24) async throws -> WeatherResponse {
-        let endpoint = "/weather/hourly?latitude=\(latitude)&longitude=\(longitude)&hours=\(hours)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: false)
-        return try await performRequest(request)
-    }
-    
-    func getDailyForecast(latitude: Double, longitude: Double, days: Int = 7) async throws -> WeatherResponse {
-        let endpoint = "/weather/daily?latitude=\(latitude)&longitude=\(longitude)&days=\(days)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: false)
-        return try await performRequest(request)
-    }
-    
-    func getAirQuality(latitude: Double, longitude: Double) async throws -> AirQuality {
-        let endpoint = "/weather/air-quality?latitude=\(latitude)&longitude=\(longitude)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: false)
-        
-        struct AQResponse: Codable {
-            let airQuality: AirQuality
-            
-            enum CodingKeys: String, CodingKey {
-                case airQuality
-            }
+    /// The account deletion endpoint returns HTTP 204 with no JSON body.
+    func deleteWithoutResponse(_ endpoint: String) async throws {
+        let request = try createRequest(endpoint: endpoint, method: "DELETE", requiresAuth: true)
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
         }
-        
-        let response: AQResponse = try await performRequest(request)
-        return response.airQuality
-    }
-    
-    // MARK: - AI Endpoints (Premium)
-    
-    func getAIInsights(latitude: Double, longitude: Double, locationName: String = "your location") async throws -> AIInsightsResponse {
-        let endpoint = "/ai/insights?latitude=\(latitude)&longitude=\(longitude)&location_name=\(locationName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? locationName)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
-        return try await performRequest(request)
-    }
-    
-    func getDailySummary(latitude: Double, longitude: Double, locationName: String = "your location") async throws -> DailySummary {
-        let endpoint = "/ai/summary?latitude=\(latitude)&longitude=\(longitude)&location_name=\(locationName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? locationName)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
-        
-        struct Response: Codable {
-            let summary: DailySummary
+        if httpResponse.statusCode == 401 {
+            setAccessToken(nil)
+            throw NSError(domain: "APIClient", code: 401,
+                          userInfo: [NSLocalizedDescriptionKey: "Authentication required"])
         }
-        
-        let response: Response = try await performRequest(request)
-        return response.summary
+        guard httpResponse.statusCode == 204 else {
+            throw NSError(domain: "APIClient", code: httpResponse.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "Server error: \(httpResponse.statusCode)"])
+        }
     }
-    
-    func getOutfitRecommendation(latitude: Double, longitude: Double) async throws -> OutfitRecommendation {
-        let endpoint = "/ai/outfit?latitude=\(latitude)&longitude=\(longitude)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
-        return try await performRequest(request)
-    }
-    
-    func getActivityRecommendations(latitude: Double, longitude: Double) async throws -> [ActivityRecommendation] {
-        let endpoint = "/ai/activities?latitude=\(latitude)&longitude=\(longitude)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
-        return try await performRequest(request)
-    }
-    
-    func getHealthInsights(latitude: Double, longitude: Double) async throws -> HealthInsight {
-        let endpoint = "/ai/health?latitude=\(latitude)&longitude=\(longitude)"
-        let request = try createRequest(endpoint: endpoint, requiresAuth: true)
-        return try await performRequest(request)
-    }
-    
+
     // MARK: - Subscription Endpoints
     //
     // The subscriptions router is mounted at /api/subscriptions (see
@@ -504,7 +411,7 @@ class APIClient {
     }
     
     func getStateWeatherAlerts(state: String) async throws -> NWSStateAlertsResponse {
-        let endpoint = "/api/weather/alerts/\(state)"
+        let endpoint = "/api/weather/alerts/state/\(state)"
         let request = try createRequest(endpoint: endpoint)
         return try await performRequest(request)
     }

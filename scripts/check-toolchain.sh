@@ -18,7 +18,7 @@ else bad "Postgres (psql not on PATH)"; fi
 if [[ -x backend/api/.venv/bin/python ]]; then
   ok "backend venv ($(backend/api/.venv/bin/python --version 2>&1))"
 else
-  bad "backend venv — run: cd backend/api && python3.11 -m venv .venv && .venv/bin/pip install -r requirements.txt"
+  bad "backend venv — run: cd backend/api && python3.11 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
 fi
 
 print "\n── Android ─────────────────────────────────────────────"

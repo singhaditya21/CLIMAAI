@@ -40,7 +40,7 @@ class AIInsightsViewModel: ObservableObject {
         
         do {
             let response: AIInsightsResponse = try await apiClient.get(
-                "/api/v1/ai/insights",
+                "/api/insights",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude)),
@@ -68,7 +68,7 @@ class AIInsightsViewModel: ObservableObject {
         
         do {
             let response: DailySummaryResponse = try await apiClient.get(
-                "/api/v1/ai/summary",
+                "/api/summary",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude)),
@@ -91,7 +91,7 @@ class AIInsightsViewModel: ObservableObject {
         
         do {
             let outfit: OutfitRecommendation = try await apiClient.get(
-                "/api/v1/ai/outfit",
+                "/api/outfit",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude))
@@ -113,7 +113,7 @@ class AIInsightsViewModel: ObservableObject {
         
         do {
             let activities: [ActivityRecommendation] = try await apiClient.get(
-                "/api/v1/ai/activities",
+                "/api/activities",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude))
@@ -135,7 +135,7 @@ class AIInsightsViewModel: ObservableObject {
         
         do {
             let health: HealthInsight = try await apiClient.get(
-                "/api/v1/ai/health",
+                "/api/health",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude))
@@ -157,7 +157,7 @@ class AIInsightsViewModel: ObservableObject {
         
         do {
             let risk: TravelRiskAnalysis = try await apiClient.get(
-                "/api/v1/ai/travel-risk",
+                "/api/travel-risk",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude)),

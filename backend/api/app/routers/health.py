@@ -30,8 +30,7 @@ async def get_pollen_forecast(
     - Weed pollen levels (Ragweed, Sagebrush, etc.)
     - Health recommendations based on levels
     
-    Uses Google Pollen API with 5K free calls/month.
-    Falls back to seasonal mock data if API key not configured.
+    Requires a configured Google Pollen API key; never invents measurements.
     """
     
     try:
@@ -82,8 +81,10 @@ async def get_pollen_forecast(
             health_recommendations=pollen_data.health_recommendations
         )
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=503, detail="Pollen data unavailable")
 
 
 @router.get("/pollen/today")
@@ -137,8 +138,8 @@ async def get_todays_pollen(
         
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=503, detail="Pollen data unavailable")
 
 
 @router.get("/flu-risk")

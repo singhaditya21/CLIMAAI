@@ -97,7 +97,7 @@ class WeatherViewModel: ObservableObject {
         do {
             // Fetch current weather (includes hourly and daily)
             let response: WeatherResponse = try await apiClient.get(
-                "/api/v1/weather/current",
+                "/api/weather/current",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude))
@@ -173,7 +173,7 @@ class WeatherViewModel: ObservableObject {
     func fetchAirQuality(latitude: Double, longitude: Double) async {
         do {
             let response: AirQualityResponse = try await apiClient.get(
-                "/api/v1/weather/air-quality",
+                "/api/weather/air-quality",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude))
@@ -207,7 +207,7 @@ class WeatherViewModel: ObservableObject {
     func fetchPollen(latitude: Double, longitude: Double) async {
         do {
             let response: PollenResponse = try await apiClient.get(
-                "/api/v1/health/pollen/today",
+                "/health/pollen/today",
                 queryItems: [
                     URLQueryItem(name: "latitude", value: String(latitude)),
                     URLQueryItem(name: "longitude", value: String(longitude))
@@ -365,7 +365,7 @@ class WeatherViewModel: ObservableObject {
     /// Fetch user's favorite locations
     func fetchFavoriteLocations() async {
         do {
-            let response: FavoriteLocationsResponse = try await apiClient.get("/api/v1/locations/favorites")
+            let response: FavoriteLocationsResponse = try await apiClient.get("/api/locations/favorites")
             favoriteLocations = response.favorites
         } catch {
             print("Error fetching favorites: \(error)")
@@ -388,7 +388,7 @@ class WeatherViewModel: ObservableObject {
             ]
             let query = components.percentEncodedQuery ?? ""
             let _: AddFavoriteResponse = try await apiClient.post(
-                "/api/v1/locations/favorites?\(query)"
+                "/api/locations/favorites?\(query)"
             )
 
             await fetchFavoriteLocations()
@@ -402,7 +402,7 @@ class WeatherViewModel: ObservableObject {
     /// Remove location from favorites
     func removeFavorite(locationId: Int) async -> Bool {
         do {
-            let _: MessageResponse = try await apiClient.delete("/api/v1/locations/favorites/\(locationId)")
+            let _: MessageResponse = try await apiClient.delete("/api/locations/favorites/\(locationId)")
             await fetchFavoriteLocations()
             return true
         } catch {
@@ -417,7 +417,7 @@ class WeatherViewModel: ObservableObject {
         
         do {
             let response: LocationSearchResponse = try await apiClient.get(
-                "/api/v1/locations/search",
+                "/api/locations/search",
                 queryItems: [URLQueryItem(name: "query", value: query)]
             )
             return response.results

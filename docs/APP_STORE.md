@@ -1,5 +1,10 @@
 # Store Listing for ClimaAI
 
+**Draft only.** Do not submit or publish this copy yet. The release backend is
+not deployed, so the consensus feature described below is unavailable in the
+current release configuration. Verify every claim against the signed artifact
+after choosing the first launch target; see [CODEBASE_AUDIT.md](CODEBASE_AUDIT.md).
+
 Every claim in this file must be true of the build being submitted. The previous
 version of this listing sold AI insights (off in the shipped config), minute-level
 rain alerts (never implemented), and a premium tier (monetization is compiled out

@@ -1,56 +1,39 @@
-"""Pollen fallback data.
-
-The month-end case is a regression test: the generator built each forecast day
-with date(year, month, day + i), which raised "day is out of range for month"
-from the 28th onward — the endpoint was broken for the last few days of every
-month.
-"""
-from datetime import date
+"""Unavailable pollen data must not be presented as a measured forecast."""
 
 import pytest
+from fastapi import HTTPException
 
 from app.services.pollen_service import PollenService
 
 
-@pytest.fixture
-def service():
-    return PollenService()
+@pytest.mark.asyncio
+async def test_no_api_key_does_not_generate_pollen_forecast():
+    service = PollenService()
+    service.api_key = ""
+    try:
+        with pytest.raises(HTTPException) as error:
+            await service.get_pollen_forecast(51.5, -0.12)
+        assert error.value.status_code == 503
+    finally:
+        await service.close()
 
 
-@pytest.mark.parametrize(
-    "today",
-    [
-        date(2026, 7, 31),   # month end, the case that raised
-        date(2026, 1, 30),
-        date(2026, 2, 28),   # short month
-        date(2028, 2, 28),   # leap year, day before the 29th
-        date(2026, 12, 31),  # year boundary
-        date(2026, 6, 15),   # mid-month control
-    ],
-)
-def test_forecast_spans_five_consecutive_days(service, monkeypatch, today):
-    class FrozenDate(date):
-        @classmethod
-        def today(cls):
-            return today
+def test_google_pollen_list_contract_and_missing_index():
+    service = object.__new__(PollenService)
+    types = [{
+        "code": "TREE",
+        "indexInfo": {"value": 4},
+        "healthRecommendations": ["Limit outdoor exposure"],
+    }]
+    plants = [{
+        "displayName": "Birch",
+        "plantDescription": {"type": "TREE"},
+    }]
 
-    monkeypatch.setattr("app.services.pollen_service.date", FrozenDate)
+    tree = service._parse_pollen_type(types, plants, "tree")
+    assert tree.index == 4
+    assert tree.species == ["Birch"]
+    assert tree.health_advice == "Limit outdoor exposure"
 
-    result = service._get_mock_pollen_data(51.5, -0.12)
-
-    dates = [day.date for day in result.forecast]
-    assert len(dates) == 5
-    # Consecutive, and crossing month and year boundaries correctly.
-    for earlier, later in zip(dates, dates[1:]):
-        assert (later - earlier).days == 1
-    assert dates[0] == today
-
-
-def test_mock_data_is_returned_without_an_api_key(service):
-    result = service._get_mock_pollen_data(51.5, -0.12)
-
-    assert result.forecast
-    first = result.forecast[0]
-    assert first.tree.index >= 0
-    assert first.grass.index >= 0
-    assert first.weed.index >= 0
+    with pytest.raises(ValueError, match="No measured grass"):
+        service._parse_pollen_type(types, plants, "grass")

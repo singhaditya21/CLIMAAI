@@ -5,10 +5,11 @@ Provides detailed pollen counts for tree, grass, and weed allergens.
 import httpx
 import json
 from typing import Dict, List, Optional
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 import redis.asyncio as redis
 from pydantic import BaseModel
 from enum import Enum
+from fastapi import HTTPException
 from ..config import get_settings
 
 settings = get_settings()
@@ -74,8 +75,7 @@ class PollenService:
     - 5-day forecast
     - Health recommendations
     
-    Free tier: 5,000 calls/month
-    API key required from Google Cloud Console
+    Requires a configured Google Maps Platform Pollen API key.
     """
     
     GOOGLE_POLLEN_API = "https://pollen.googleapis.com/v1/forecast:lookup"
@@ -83,7 +83,7 @@ class PollenService:
     def __init__(self):
         self.redis_client: Optional[redis.Redis] = None
         self.http_client = httpx.AsyncClient(timeout=30.0)
-        self.api_key = getattr(settings, 'GOOGLE_POLLEN_API_KEY', None)
+        self.api_key = settings.GOOGLE_POLLEN_API_KEY
     
     async def _get_redis(self) -> redis.Redis:
         """Get or create Redis client."""
@@ -114,23 +114,23 @@ class PollenService:
     
     def _parse_pollen_type(
         self,
-        data: dict,
+        type_info: list[dict],
+        plant_info: list[dict],
         type_name: str
     ) -> PollenType:
-        """Parse pollen type data from API response."""
-        type_info = data.get(type_name, {})
-        index = type_info.get("index", 0) or 0
-        
-        species = []
-        health_advice = None
-        
-        # Extract plant species info if available
-        plant_info = type_info.get("plantInfo", [])
-        for plant in plant_info:
-            if plant.get("displayName"):
-                species.append(plant["displayName"])
-            if plant.get("healthRecommendations"):
-                health_advice = plant["healthRecommendations"]
+        """Parse Google's list format without turning absent indices into zero."""
+        match = next((item for item in type_info if item.get("code") == type_name.upper()), None)
+        index = match.get("indexInfo", {}).get("value") if match else None
+        if not isinstance(index, int) or not 0 <= index <= 5:
+            raise ValueError(f"No measured {type_name} pollen index for this location")
+
+        species = [
+            plant["displayName"] for plant in plant_info
+            if plant.get("plantDescription", {}).get("type") == type_name.upper()
+            and plant.get("displayName")
+        ][:5]
+        advice = match.get("healthRecommendations") or []
+        health_advice = advice[0] if advice else None
         
         display_names = {
             "tree": "Tree Pollen",
@@ -142,7 +142,7 @@ class PollenService:
             display_name=display_names.get(type_name, type_name.title()),
             level=self._parse_level(index),
             index=index,
-            species=species[:5],  # Limit to top 5
+            species=species,
             health_advice=health_advice
         )
     
@@ -200,8 +200,11 @@ class PollenService:
         Returns:
             PollenResponse with daily forecasts
         """
+        if not self.api_key:
+            raise HTTPException(status_code=503, detail="Pollen data provider is not configured")
+
         # Check cache first (valid for 6 hours)
-        cache_key = f"pollen:{latitude:.2f}:{longitude:.2f}"
+        cache_key = f"pollen:v2:{latitude:.2f}:{longitude:.2f}:{min(days, 5)}"
         
         try:
             redis_client = await self._get_redis()
@@ -211,10 +214,6 @@ class PollenService:
                 return PollenResponse(**data)
         except Exception as e:
             print(f"Redis cache error: {e}")
-        
-        # If no API key, return mock data for development
-        if not self.api_key:
-            return self._get_mock_pollen_data(latitude, longitude)
         
         # Fetch from Google Pollen API
         params = {
@@ -228,21 +227,22 @@ class PollenService:
         response.raise_for_status()
         data = response.json()
         
-        # Parse daily forecasts
+        # Parse daily forecasts using Google's documented pollenTypeInfo list.
         daily_forecasts = []
         for day_data in data.get("dailyInfo", []):
             date_info = day_data.get("date", {})
             forecast_date = date(
-                year=date_info.get("year", 2026),
-                month=date_info.get("month", 1),
-                day=date_info.get("day", 1)
+                year=date_info["year"],
+                month=date_info["month"],
+                day=date_info["day"]
             )
             
-            pollen_info = day_data.get("pollenTypeInfo", {})
-            
-            tree = self._parse_pollen_type(pollen_info, "tree")
-            grass = self._parse_pollen_type(pollen_info, "grass")
-            weed = self._parse_pollen_type(pollen_info, "weed")
+            pollen_info = day_data.get("pollenTypeInfo", [])
+            plants = day_data.get("plantInfo", [])
+
+            tree = self._parse_pollen_type(pollen_info, plants, "tree")
+            grass = self._parse_pollen_type(pollen_info, plants, "grass")
+            weed = self._parse_pollen_type(pollen_info, plants, "weed")
             
             overall_index = max(tree.index, grass.index, weed.index)
             
@@ -254,6 +254,8 @@ class PollenService:
                 overall_index=overall_index,
                 overall_level=self._parse_level(overall_index)
             ))
+        if not daily_forecasts:
+            raise ValueError("No measured pollen forecast for this location")
         
         # Generate recommendations based on today's levels
         health_recs = []
@@ -280,82 +282,6 @@ class PollenService:
         
         return result
     
-    def _get_mock_pollen_data(
-        self,
-        latitude: float,
-        longitude: float
-    ) -> PollenResponse:
-        """Generate mock pollen data for development without API key."""
-        today = date.today()
-        
-        # Simulate seasonal pollen patterns
-        month = today.month
-        
-        # Tree pollen peaks in spring (March-May)
-        # Grass pollen peaks in summer (May-July)
-        # Weed pollen peaks in fall (August-October)
-        
-        if 3 <= month <= 5:
-            tree_level, grass_level, weed_level = 4, 2, 1
-        elif 5 <= month <= 7:
-            tree_level, grass_level, weed_level = 2, 4, 2
-        elif 8 <= month <= 10:
-            tree_level, grass_level, weed_level = 1, 2, 4
-        else:
-            tree_level, grass_level, weed_level = 1, 1, 1
-        
-        forecasts = []
-        for i in range(5):
-            # timedelta, not day + i: near month end that overflowed the day
-            # field and raised "day is out of range for month".
-            forecast_date = today + timedelta(days=i)
-            
-            tree = PollenType(
-                display_name="Tree Pollen",
-                level=self._parse_level(tree_level),
-                index=tree_level,
-                species=["Oak", "Birch", "Maple"],
-                health_advice="Limit outdoor exposure in morning" if tree_level >= 3 else None
-            )
-            
-            grass = PollenType(
-                display_name="Grass Pollen",
-                level=self._parse_level(grass_level),
-                index=grass_level,
-                species=["Timothy", "Bermuda", "Kentucky Bluegrass"],
-                health_advice="Avoid freshly cut grass" if grass_level >= 3 else None
-            )
-            
-            weed = PollenType(
-                display_name="Weed Pollen",
-                level=self._parse_level(weed_level),
-                index=weed_level,
-                species=["Ragweed", "Sagebrush", "Pigweed"],
-                health_advice="Keep windows closed" if weed_level >= 3 else None
-            )
-            
-            overall = max(tree_level, grass_level, weed_level)
-            
-            forecasts.append(DailyPollen(
-                date=forecast_date,
-                tree=tree,
-                grass=grass,
-                weed=weed,
-                overall_index=overall,
-                overall_level=self._parse_level(overall)
-            ))
-        
-        health_recs = self._generate_health_recommendations(
-            forecasts[0].tree, forecasts[0].grass, forecasts[0].weed
-        )
-        
-        return PollenResponse(
-            location={"latitude": latitude, "longitude": longitude},
-            forecast=forecasts,
-            last_updated=datetime.now(timezone.utc),
-            health_recommendations=health_recs
-        )
-
 
 _pollen_service: Optional[PollenService] = None
 

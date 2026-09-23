@@ -30,15 +30,12 @@ cd "$(dirname "$0")/../.." || exit 1
 GRADLE=android/app/build.gradle
 MANIFEST=android/app/src/main/AndroidManifest.xml
 
-# Play's floor for new submissions and updates, bumped every August. 35 has
-# applied since 2025-08-31; 36 takes over on 2026-08-31. Raise this together
-# with targetSdk when that date passes — leaving it stale turns the gate into a
-# rubber stamp.
-PLAY_MIN_TARGET_SDK=35
+# Since 2026-08-31 new phone apps and updates must target API 36; Wear OS has
+# a separate API 35 floor. Keep this aligned with Google's current Play policy.
+PLAY_MIN_TARGET_SDK=36
 
-# Play stopped accepting Billing Library 6 with the same 2025 deadline. 7 is the
-# floor; the app may sit above it.
-PLAY_MIN_BILLING_MAJOR=7
+# Play Billing Library 7 passed its upload deadline on 2026-08-31.
+PLAY_MIN_BILLING_MAJOR=8
 
 fail=0
 
@@ -368,7 +365,7 @@ while IFS= read -r perm; do
 done < <(sed -n 's/.*uses-permission[^>]*android:name="android\.permission\.\([A-Z_]*\)".*/\1/p' "$MANIFEST")
 
 if [[ $fail -eq 0 ]]; then
-  printf '\nRelease config is shippable.\n\n'
+  printf '\nStatic release-config checks passed; validate backend features and the signed artifact before distribution.\n\n'
 else
   printf '\nRelease config would be rejected or would fail in the field — see the annotations above.\n\n'
 fi

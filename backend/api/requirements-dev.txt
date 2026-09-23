@@ -1,0 +1,8 @@
+-r requirements.txt
+
+# Linting — ruff.toml enables the DTZ ruleset for datetime handling.
+ruff==0.6.9
+
+# Tests run against Postgres via asyncpg (already pinned above).
+pytest==8.0.0
+pytest-asyncio==0.23.5

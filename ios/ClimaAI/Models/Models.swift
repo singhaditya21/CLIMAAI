@@ -127,18 +127,6 @@ struct AirQuality: Codable {
     let sulphurDioxide: Double
     let category: String
     let healthRecommendation: String
-    
-    enum CodingKeys: String, CodingKey {
-        case aqi
-        case pm25 = "pm2_5"
-        case pm10
-        case carbonMonoxide
-        case nitrogenDioxide
-        case ozone
-        case sulphurDioxide
-        case category
-        case healthRecommendation
-    }
 }
 
 struct Location: Codable {
@@ -364,26 +352,6 @@ struct UserPreferences: Codable {
         case timeFormat
         case notificationsEnabled
         case theme
-    }
-}
-
-struct UserLogin: Codable {
-    let email: String
-    let password: String
-}
-
-struct UserRegister: Codable {
-    let email: String
-    let password: String
-    let fullName: String?
-    let platform: String
-    let deviceToken: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case email, password
-        case fullName
-        case platform
-        case deviceToken
     }
 }
 

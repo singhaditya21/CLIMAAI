@@ -2,6 +2,7 @@
 Configuration management using Pydantic BaseSettings.
 Loads environment variables for database, Redis, OpenAI, and Open-Meteo.
 """
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Any, Dict, Tuple
@@ -12,6 +13,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "ClimaAI API"
     APP_VERSION: str = "1.0.0"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = False
     
     # Database
@@ -37,6 +39,7 @@ class Settings(BaseSettings):
     # Open-Meteo call to the licensed customer- host with the key attached.
     # Full flip procedure: docs/LICENSING.md.
     OPEN_METEO_API_KEY: str = ""
+    GOOGLE_POLLEN_API_KEY: str = ""
     
     # JWT
     JWT_SECRET: str = "your-secret-key-change-in-production"
@@ -57,7 +60,7 @@ class Settings(BaseSettings):
     GOOGLE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string of service account key
     
     # Feature flags
-    ENABLE_AI_INSIGHTS: bool = True
+    ENABLE_AI_INSIGHTS: bool = False
     # Mounts the /demo router, which serves generated mock weather with no
     # external API dependencies. Keep off in production.
     DEMO_MODE: bool = False
@@ -71,6 +74,26 @@ class Settings(BaseSettings):
     NOAA_API_KEY: str = ""             # https://www.ncdc.noaa.gov/cdo-web/webservices/v2
     PIRATE_WEATHER_API_KEY: str = ""   # https://pirateweather.net (20k/month free)
     WEATHERAPI_KEY: str = ""           # https://www.weatherapi.com (1M/month free)
+
+    @model_validator(mode="after")
+    def validate_production(self):
+        """Never boot a public API with development auth or browser settings."""
+        if self.ENVIRONMENT.lower() not in {"production", "prod"}:
+            return self
+        if self.DEBUG:
+            raise ValueError("DEBUG must be false in production")
+        if len(self.JWT_SECRET) < 32 or len(set(self.JWT_SECRET)) < 8 or any(
+            marker in self.JWT_SECRET.lower()
+            for marker in ("change", "placeholder", "your-", "test-secret", "replace", "example")
+        ):
+            raise ValueError("Set a strong, unique JWT_SECRET in production")
+        if "*" in self.CORS_ORIGINS:
+            raise ValueError("Set explicit CORS_ORIGINS in production (or [] for mobile only)")
+        if self.DEMO_MODE:
+            raise ValueError("DEMO_MODE must be false in production")
+        if self.ENABLE_AI_INSIGHTS and not self.OPENAI_API_KEY:
+            raise ValueError("AI insights require an API key when enabled in production")
+        return self
     
     def open_meteo_request(
         self, url: str, params: Dict[str, Any]

@@ -1,67 +1,105 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ClimaAI — Legal &amp; Support</title>
-<style>
-  :root {
-    --bg: #ffffff; --fg: #1a1f2b; --muted: #5b6472; --accent: #2563eb;
-    --card: #f4f6fa; --border: #dde3ec;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f1420; --fg: #e8ecf3; --muted: #9aa5b5; --accent: #7aa2ff;
-      --card: #1a2130; --border: #2a3347;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  }
-  main { max-width: 720px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
-  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .5rem; }
-  .lede { color: var(--muted); margin-bottom: 2.5rem; }
-  a { color: var(--accent); }
-  .links { display: grid; gap: 1rem; }
-  .link-card {
-    display: block; background: var(--card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 1.1rem 1.25rem; text-decoration: none;
-  }
-  .link-card:hover { border-color: var(--accent); }
-  .link-card strong { color: var(--fg); display: block; font-size: 1.1rem; }
-  .link-card span { color: var(--muted); font-size: .95rem; }
-  footer { margin-top: 3rem; color: var(--muted); font-size: .95rem; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Free, live weather forecasts with no account or ads.">
+  <meta name="theme-color" content="#102b48">
+  <title>ClimaAI — Live Weather</title>
+  <link rel="stylesheet" href="assets/weather.css?v=3">
+  <script type="module" src="assets/weather.mjs?v=2"></script>
 </head>
 <body>
-<main>
-<h1>ClimaAI</h1>
-<p class="lede">A free weather app that shows forecasts from multiple sources
-— and tells you honestly how much they agree. No ads, no trackers, no account
-required.</p>
+  <a class="skip-link" href="#forecast">Skip to forecast</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="./" aria-label="ClimaAI home"><span aria-hidden="true">☀</span> ClimaAI</a>
+      <span class="header-note">Live weather · free to use</span>
+    </div>
+  </header>
 
-<div class="links">
-  <a class="link-card" href="privacy.html">
-    <strong>Privacy Policy</strong>
-    <span>What the app collects, what it deliberately doesn't, and how long
-    anything is kept.</span>
-  </a>
-  <a class="link-card" href="terms.html">
-    <strong>Terms of Service</strong>
-    <span>The rules of use — short, because the app is free.</span>
-  </a>
-  <a class="link-card" href="delete-account.html">
-    <strong>Delete Your Account</strong>
-    <span>The in-app deletion path, what gets removed, and how to request
-    deletion by email.</span>
-  </a>
-</div>
+  <main id="forecast" class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Your forecast, without the noise</p>
+        <h1 id="page-title">A clearer look at the weather.</h1>
+        <p class="intro-copy">Current conditions, the next 24 hours, and seven days ahead. Search any city or choose to share your location.</p>
+      </div>
+      <div class="intro-mark" aria-hidden="true">◒</div>
+    </section>
 
-<footer>
-  Support: <a href="mailto:singhaditya21@gmail.com">singhaditya21@gmail.com</a>
-</footer>
-</main>
+    <section class="location-panel" aria-label="Choose a location">
+      <form id="place-form" class="search-form" autocomplete="off">
+        <label for="place-query">Find a place</label>
+        <div class="search-row">
+          <input id="place-query" name="place" type="search" minlength="2" maxlength="100" placeholder="City or postal code" required>
+          <button class="button primary" type="submit">Search</button>
+        </div>
+        <div id="search-results" class="search-results" aria-live="polite" hidden></div>
+      </form>
+      <button class="button location-button" id="use-location" type="button">Use my location</button>
+      <div class="unit-control" role="group" aria-label="Temperature unit">
+        <button id="unit-c" class="unit-button active" type="button" aria-pressed="true">°C</button>
+        <button id="unit-f" class="unit-button" type="button" aria-pressed="false">°F</button>
+      </div>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite">Loading the latest forecast for New Delhi, India…</p>
+    <section id="error-panel" class="error-panel" role="alert" hidden>
+      <h2>Forecast unavailable</h2>
+      <p id="error-message">The weather service could not be reached. Try again in a moment.</p>
+      <button id="retry" type="button" class="button primary">Try again</button>
+    </section>
+
+    <div id="weather-content" hidden>
+      <section class="current-card" aria-labelledby="current-heading">
+        <div class="current-topline">
+          <div>
+            <p class="eyebrow">Current conditions</p>
+            <h2 id="current-heading" tabindex="-1">New Delhi, India</h2>
+            <p id="observation-time" class="muted"></p>
+          </div>
+          <button class="refresh-button" id="refresh" type="button" aria-label="Refresh forecast">↻ <span>Refresh</span></button>
+        </div>
+        <div class="current-main">
+          <div id="current-icon" class="weather-icon" aria-hidden="true">☀</div>
+          <div>
+            <div id="current-temp" class="current-temp">—</div>
+            <p id="current-description" class="description">—</p>
+            <p id="feels-like" class="muted">—</p>
+          </div>
+        </div>
+        <div id="current-details" class="detail-grid"></div>
+      </section>
+
+      <section class="forecast-section" aria-labelledby="hourly-heading">
+        <div class="section-heading"><div><p class="eyebrow">Coming up</p><h2 id="hourly-heading">Next 24 hours</h2></div><p>Scroll to explore →</p></div>
+        <div id="hourly-list" class="hourly-list" aria-label="Hourly weather forecast"></div>
+      </section>
+
+      <section class="forecast-section" aria-labelledby="daily-heading">
+        <div class="section-heading"><div><p class="eyebrow">The week ahead</p><h2 id="daily-heading">7-day forecast</h2></div></div>
+        <div id="daily-list" class="daily-list"></div>
+      </section>
+    </div>
+
+    <aside class="source-note">
+      <strong>About this forecast</strong>
+      <p>Weather data and place search come from <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> (CC BY 4.0). Temperatures can be rounded or converted for display. Forecasts can change and may be unavailable; check official warnings for severe weather.</p>
+      <p>This free site has no account, ads, paid features, or AI-generated weather. Location sharing is optional.</p>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <span>© ClimaAI</span>
+      <nav aria-label="Legal and support">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="delete-account.html">Account deletion</a>
+        <a href="mailto:singhaditya21@gmail.com">Support</a>
+      </nav>
+    </div>
+  </footer>
 </body>
 </html>
