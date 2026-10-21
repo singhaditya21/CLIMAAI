@@ -26,6 +26,24 @@ struct ContentView: View {
                         }
                         .tag(0)
                     
+                    // Radar Tab
+                    NavigationView {
+                        RadarMapView()
+                    }
+                    .tabItem {
+                        Label("Radar", systemImage: "map.fill")
+                    }
+                    .tag(1)
+                    
+                    // Pollen & Health Tab
+                    NavigationView {
+                        PollenView()
+                    }
+                    .tabItem {
+                        Label("Health", systemImage: "leaf.fill")
+                    }
+                    .tag(2)
+                    
                     // AI Insights Tab
                     NavigationView {
                         if subscriptionViewModel.isPremium {
@@ -37,14 +55,14 @@ struct ContentView: View {
                     .tabItem {
                         Label("AI Insights", systemImage: "sparkles")
                     }
-                    .tag(1)
+                    .tag(3)
                     
                     // Settings Tab
                     SettingsView()
                         .tabItem {
                             Label("Settings", systemImage: "gearshape.fill")
                         }
-                        .tag(2)
+                        .tag(4)
                 }
                 .environmentObject(weatherViewModel)
                 .environmentObject(aiInsightsViewModel)

@@ -36,12 +36,9 @@ android/app/src/main/kotlin/com/climaai/app/service/NotificationService.kt,Andro
 android/app/src/main/kotlin/com/climaai/app/ui/components/AnimatedBackground.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/components/AnimatedText.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/components/GlassmorphicCard.kt,Android phone,ui,core
-android/app/src/main/kotlin/com/climaai/app/ui/components/HourlyScrollView.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/components/Interactions.kt,Android phone,ui,core
-android/app/src/main/kotlin/com/climaai/app/ui/components/PrecipitationBanner.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/components/PullToRefreshBox.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/components/WeatherAnimation.kt,Android phone,ui,core
-android/app/src/main/kotlin/com/climaai/app/ui/components/WeatherBackground.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/navigation/AppNavigation.kt,Android phone,ui,core
 android/app/src/main/kotlin/com/climaai/app/ui/screens/AIInsightsScreen.kt,Android phone,AI insights,deferred
 android/app/src/main/kotlin/com/climaai/app/ui/screens/AirQualityDetailScreen.kt,Android phone,ui,core
@@ -210,7 +207,6 @@ docs/ARCHITECTURE.md,Documentation,Project guidance,documentation
 docs/CODEBASE_AUDIT.md,Documentation,Project guidance,documentation
 docs/DEPLOYMENT.md,Documentation,Project guidance,documentation
 docs/LICENSING.md,Documentation,Project guidance,documentation
-docs/PRE_LAUNCH_AUDIT.md,Documentation,Historical audit,documentation
 docs/PRIVACY.md,Documentation,Project guidance,documentation
 docs/WEATHER_APIS.md,Documentation,Project guidance,documentation
 docs/WEBSITE.md,Documentation,Project guidance,documentation
@@ -261,11 +257,9 @@ ios/ClimaAITests/APIClientTests.swift,iOS phone,Tests,verification
 ios/ClimaAITests/AccessibilityTests.swift,iOS phone,Tests,verification
 ios/ClimaAITests/AuthenticationTests.swift,iOS phone,Tests,verification
 ios/ClimaAITests/ModelsTests.swift,iOS phone,Tests,verification
-ios/ClimaAITests/README.md,iOS phone,Tests,verification
 ios/ClimaAITests/SecurityTests.swift,iOS phone,Tests,verification
 ios/ClimaAITests/SubscriptionTests.swift,iOS phone,Tests,verification
 ios/ClimaAITests/WeatherViewModelTests.swift,iOS phone,Tests,verification
-ios/ClimaAITests/run_tests.swift,iOS phone,Tests,verification
 ios/ClimaAIWatch/Assets.xcassets/AppIcon.appiconset/Contents.json,Apple Watch,Watch app,optional
 ios/ClimaAIWatch/Assets.xcassets/Contents.json,Apple Watch,Watch app,optional
 ios/ClimaAIWatch/ClimaAIWatchApp.swift,Apple Watch,Watch app,optional
@@ -279,11 +273,6 @@ ios/ClimaAIWidget/LockScreenWeatherWidget.swift,iOS widgets,Widgets,optional
 ios/ClimaAIWidget/MediumWeatherWidget.swift,iOS widgets,Widgets,optional
 ios/ClimaAIWidget/SmallWeatherWidget.swift,iOS widgets,Widgets,optional
 ios/ClimaAIWidget/WidgetBackground.swift,iOS widgets,Widgets,optional
-ios/ClimaAIWidget/WidgetModels.swift,iOS widgets,Widgets,optional
-ios/SETUP.md,iOS,Build and setup,build
-ios/TESTING.md,iOS,Build and setup,build
-ios/WATCH_SETUP.md,iOS,Build and setup,build
-ios/WIDGETS_SETUP.md,iOS,Build and setup,build
 ios/XCODE_SETUP.md,iOS,Build and setup,build
 ios/project.yml,iOS,Build and setup,build
 scripts/check-toolchain.sh,Automation,Developer tooling,verification

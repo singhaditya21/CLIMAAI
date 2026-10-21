@@ -43,6 +43,5 @@ an end-to-end test against a deployed API.
 Paid subscriptions and OpenAI-powered insights are outside the free release.
 Android monetization is compiled off, while iOS still exposes paid UI and must
 be corrected before its first release. The Node payment webhook service and
-store billing code remain classified as deferred in the catalog. The older
-[pre-launch audit](docs/PRE_LAUNCH_AUDIT.md) is historical; some of its findings
-were fixed in August 2026 and should not be treated as current release status.
+store billing code remain classified as deferred in the catalog. See
+[CODEBASE_AUDIT.md](docs/CODEBASE_AUDIT.md) for current release status.

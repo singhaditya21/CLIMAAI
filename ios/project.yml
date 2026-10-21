@@ -51,16 +51,13 @@ targets:
 
   # --------------------------------------------------------------------
   # Widget extension
-  #
-  # Carries its own copy of WidgetModels.swift. The app target has a separate
-  # copy under ClimaAI/Models — they are different modules, so this is not a
-  # duplicate-symbol problem, but the two files must be kept in step by hand.
   # --------------------------------------------------------------------
   ClimaAIWidget:
     type: app-extension
     platform: iOS
     sources:
       - path: ClimaAIWidget
+      - path: ClimaAI/Models/WidgetModels.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.climaai.app.widget
@@ -96,10 +93,6 @@ targets:
     platform: iOS
     sources:
       - path: ClimaAITests
-        excludes:
-          # A standalone `swift run_tests.swift` script with top-level code and
-          # its own assert(); it cannot compile inside a test bundle.
-          - run_tests.swift
     dependencies:
       - target: ClimaAI
     settings:

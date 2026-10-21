@@ -77,13 +77,4 @@ This is meaningful evidence but not a guarantee: iOS-only API usage is unchecked
 and linking, resources and code signing are untested. Expect *some* first-build
 friction, just less than "never compiled" would suggest.
 
-`ClimaAITests` still has not run — it needs a simulator, so full Xcode.
-
-## Known rough edges
-- `ClimaAIWidget/WidgetModels.swift` is a byte-identical copy of
-  `ClimaAI/Models/WidgetModels.swift`. They are separate modules so this compiles
-  fine, but the two have to be kept in step by hand. Worth collapsing into a
-  shared framework target.
-- `ClimaAITests/run_tests.swift` is a standalone `swift` script with top-level
-  code, deliberately excluded from the test bundle — it cannot compile inside
-  one. Run it directly with `swift ClimaAITests/run_tests.swift`.
+`ClimaAITests` runs on a simulator in the `Mobile` GitHub Actions workflow (`macos-15`).

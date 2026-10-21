@@ -70,8 +70,6 @@ def classify(path: str) -> tuple[str, str, str]:
         return "GitHub Pages", "Weather website", "release-candidate"
     if path.startswith("docs/") and path.endswith(".html"):
         return "GitHub Pages", "Legal/support site", "release-candidate"
-    if path == "docs/PRE_LAUNCH_AUDIT.md":
-        return "Documentation", "Historical audit", "documentation"
     if path.startswith("docs/"):
         return "Documentation", "Project guidance", "documentation"
     if path.startswith(".github/"):
