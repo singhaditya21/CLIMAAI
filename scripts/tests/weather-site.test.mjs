@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   forecastUrl, searchUrl, searchPlaces, validateForecast, loadForecast,
-  weatherCondition, temperature
+  weatherCondition, temperature, weatherSvg, temperatureRange, buildHourlyChartSvg
 } from '../../docs/assets/weather.mjs';
 
 function sampleForecast() {
@@ -62,8 +62,13 @@ test('incomplete and failed provider responses never become a forecast', async (
 
 test('weather labels and unit conversion are honest about missing values', () => {
   assert.equal(weatherCondition(95).label, 'Thunderstorm');
+  assert.equal(weatherCondition(95).theme, 'thunderstorm');
   assert.equal(weatherCondition(0, false).icon, '🌙');
+  assert.equal(weatherCondition(0, false).theme, 'clear-night');
   assert.equal(weatherCondition(999).label, 'Weather conditions');
   assert.equal(temperature(0, 'F'), '32°');
   assert.equal(temperature(null, 'C'), '—');
+  assert.match(weatherSvg(0, true), /<svg/);
+  assert.deepEqual(temperatureRange(20, 30, 15, 35), { startPercent: 25, widthPercent: 50 });
+  assert.match(buildHourlyChartSvg(Array.from({ length: 24 }, (_, i) => 20 + (i % 5)), 'C'), /<svg/);
 });

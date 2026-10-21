@@ -88,13 +88,15 @@ struct HourlyItemView: View {
             
             // Temperature
             Text("\(Int(hour.temperature))°")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 14, weight: .semibold))
+                .monospacedDigit()
                 .foregroundColor(isNow ? .white : .primary)
             
             // Precipitation probability
             if hour.precipitationProbability > 0 {
                 Text("\(hour.precipitationProbability)%")
                     .font(.system(size: 9, weight: .medium))
+                    .monospacedDigit()
                     .foregroundColor(.cyan)
             } else {
                 Text(" ")

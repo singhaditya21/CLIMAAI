@@ -16,11 +16,15 @@ struct DailyForecastView: View {
     }
     
     var body: some View {
+        let slice = Array(weatherViewModel.dailyForecast.prefix(displayedDays))
+        let weekMin = slice.map(\.temperatureMin).min() ?? 0
+        let weekMax = slice.map(\.temperatureMax).max() ?? 100
+
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 // Daily forecast list
-                ForEach(Array(weatherViewModel.dailyForecast.prefix(displayedDays).enumerated()), id: \.offset) { index, day in
-                    DailyForecastRow(day: day, dayIndex: index)
+                ForEach(Array(slice.enumerated()), id: \.offset) { index, day in
+                    DailyForecastRow(day: day, dayIndex: index, weekMin: weekMin, weekMax: weekMax)
                 }
                 
                 // Premium upsell for extended forecast
@@ -68,6 +72,8 @@ struct DailyForecastView: View {
 struct DailyForecastRow: View {
     let day: DailyWeather
     let dayIndex: Int
+    var weekMin: Double = 0
+    var weekMax: Double = 40
     
     var body: some View {
         VStack(spacing: 0) {
@@ -99,6 +105,7 @@ struct DailyForecastRow: View {
                                 .foregroundColor(.blue)
                             Text("\(day.precipitationProbability)%")
                                 .font(.caption)
+                                .monospacedDigit()
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -110,41 +117,65 @@ struct DailyForecastRow: View {
                                 .foregroundColor(.cyan)
                             Text("\(String(format: "%.1f", snow))mm")
                                 .font(.caption2)
+                                .monospacedDigit()
                                 .foregroundColor(.cyan)
                         }
                     }
                 }
                 .frame(width: 60)
                 
-                // Temperature range
+                // Temperature range with proportional Apple Weather-style pill bar
                 HStack(spacing: 8) {
                     Text("\(Int(day.temperatureMin))°")
+                        .font(.subheadline)
+                        .monospacedDigit()
                         .foregroundColor(.secondary)
+                        .frame(width: 34, alignment: .trailing)
                     
-                    // Temperature bar
                     GeometryReader { geometry in
+                        let span = max(1.0, weekMax - weekMin)
+                        let startFraction = min(1.0, max(0.0, (day.temperatureMin - weekMin) / span))
+                        let endFraction = min(1.0, max(startFraction, (day.temperatureMax - weekMin) / span))
+                        let barWidth = max(6.0, CGFloat(endFraction - startFraction) * geometry.size.width)
+                        let barOffset = CGFloat(startFraction) * geometry.size.width
+
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(.systemGray5))
-                                .frame(height: 4)
+                            Capsule()
+                                .fill(Color(.systemGray5).opacity(0.6))
+                                .frame(height: 6)
                             
-                            RoundedRectangle(cornerRadius: 2)
+                            Capsule()
                                 .fill(temperatureGradient)
-                                .frame(width: geometry.size.width * 0.7, height: 4)
+                                .frame(width: barWidth, height: 6)
+                                .offset(x: barOffset)
                         }
                     }
-                    .frame(width: 60, height: 4)
+                    .frame(width: 64, height: 6)
                     
                     Text("\(Int(day.temperatureMax))°")
-                        .fontWeight(.semibold)
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .frame(width: 34, alignment: .trailing)
                 }
-                .frame(width: 140)
+                .frame(width: 148)
             }
             .padding()
         }
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemGray6))
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.24), .white.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
         )
         .padding(.horizontal)
     }

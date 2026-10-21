@@ -131,10 +131,11 @@ struct HomeView: View {
             // Temperature - refined typography
             VStack(spacing: 4) {
                 Text("\(Int(weather.temperature))°")
-                    .font(.system(size: 56, weight: .ultraLight, design: .rounded))
+                    .font(.system(size: 64, weight: .thin, design: .rounded))
+                    .monospacedDigit()
                     .foregroundStyle(
                         .linearGradient(
-                            colors: [.white, .white.opacity(0.7)],
+                            colors: [.white, .white.opacity(0.78)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -142,19 +143,21 @@ struct HomeView: View {
                     .tracking(-2)
                 
                 Text(weather.weatherDescription)
-                    .font(.system(size: 15, weight: .medium))
-                    .tracking(0.5)
+                    .font(.system(size: 16, weight: .semibold))
+                    .tracking(0.3)
                 
                 HStack(spacing: 8) {
                     Text("Feels like \(Int(weather.feelsLike))°")
-                        .font(.system(size: 12, weight: .regular))
+                        .font(.system(size: 13, weight: .medium))
+                        .monospacedDigit()
                         .foregroundColor(.secondary)
 
                     if let shade = weather.feelsLikeShade {
                         Text("•")
                             .foregroundColor(.secondary.opacity(0.5))
                         Text("Shade \(Int(shade))°")
-                            .font(.system(size: 12, weight: .regular))
+                            .font(.system(size: 13, weight: .medium))
+                            .monospacedDigit()
                             .foregroundColor(.secondary)
                     }
                 }
@@ -186,9 +189,16 @@ struct HomeView: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.32), .white.opacity(0.06), .cyan.opacity(0.16)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 )
-                .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+                .shadow(color: .black.opacity(0.22), radius: 24, y: 12)
         )
     }
     

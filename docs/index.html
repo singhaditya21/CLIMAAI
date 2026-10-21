@@ -52,7 +52,7 @@
     </section>
 
     <div id="weather-content" hidden>
-      <section class="current-card" aria-labelledby="current-heading">
+      <section id="current-card" class="current-card" data-condition="clear-day" aria-labelledby="current-heading">
         <div class="current-topline">
           <div>
             <p class="eyebrow">Current conditions</p>
@@ -74,6 +74,7 @@
 
       <section class="forecast-section" aria-labelledby="hourly-heading">
         <div class="section-heading"><div><p class="eyebrow">Coming up</p><h2 id="hourly-heading">Next 24 hours</h2></div><p>Scroll to explore →</p></div>
+        <div id="hourly-chart" class="hourly-chart" aria-hidden="true"></div>
         <div id="hourly-list" class="hourly-list" aria-label="Hourly weather forecast"></div>
       </section>
 

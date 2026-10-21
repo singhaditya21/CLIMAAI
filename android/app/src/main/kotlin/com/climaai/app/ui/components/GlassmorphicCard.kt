@@ -32,37 +32,37 @@ fun GlassmorphicCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
     blurRadius: Dp = 20.dp,
-    backgroundColor: Color = Color.White.copy(alpha = 0.08f),
+    backgroundColor: Color = Color.White.copy(alpha = 0.09f),
     borderWidth: Dp = 1.dp,
-    animatedBorder: Boolean = true,
-    glowColor: Color = Color(0xFF667EEA),
+    animatedBorder: Boolean = false,
+    glowColor: Color = Color(0xFF60A5FA),
     content: @Composable () -> Unit
 ) {
-    // Animated gradient rotation for border
-    val infiniteTransition = rememberInfiniteTransition(label = "border")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(8000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "borderRotation"
-    )
-    
     val gradientBrush = if (animatedBorder) {
-        Brush.sweepGradient(
-            0f to Color(0xFF667EEA).copy(alpha = 0.6f),
-            0.25f to Color(0xFF764BA2).copy(alpha = 0.3f),
-            0.5f to Color(0xFF667EEA).copy(alpha = 0.1f),
-            0.75f to Color(0xFF764BA2).copy(alpha = 0.3f),
-            1f to Color(0xFF667EEA).copy(alpha = 0.6f)
+        val infiniteTransition = rememberInfiniteTransition(label = "border")
+        val alphaPulse by infiniteTransition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 0.55f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(3200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "borderPulse"
         )
-    } else {
         Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.3f),
-                Color.White.copy(alpha = 0.1f)
+                Color.White.copy(alpha = alphaPulse),
+                glowColor.copy(alpha = alphaPulse * 0.8f),
+                Color.White.copy(alpha = 0.10f)
+            )
+        )
+    } else {
+        // Directional top-left specular rim highlight for optical glass depth
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.32f),
+                Color.White.copy(alpha = 0.08f),
+                glowColor.copy(alpha = 0.16f)
             )
         )
     }
