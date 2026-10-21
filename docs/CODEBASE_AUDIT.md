@@ -4,7 +4,7 @@ The selected first release is a **browser-only weather website on GitHub Pages**
 
 ## Public and local status
 
-The public Pages URL still serves the previous legal/support landing page. The new `docs/index.html` on this branch fetches real current, hourly and seven-day forecasts directly from Open-Meteo. It uses Open-Meteo geocoding for place search and requests browser location only after a click. It has no sign-in, paid tier, AI output, ClimaAI backend, API key or generated forecast. The former `web-demo/` with fake authentication and random weather has been deleted. Privacy, terms and deletion URLs remain at their existing paths, with copy specific to the website. Nothing has been pushed or deployed from this branch.
+The public Pages URL (`https://singhaditya21.github.io/CLIMAAI/`) now serves `docs/index.html` from `main`, which fetches real current, hourly and seven-day forecasts directly from Open-Meteo. It uses Open-Meteo geocoding for place search and requests browser location only after a click. It has no sign-in, paid tier, AI output, ClimaAI backend, API key or generated forecast. The former `web-demo/` with fake authentication and random weather has been deleted. Privacy, terms and deletion URLs remain at their existing paths, with copy specific to the website.
 
 The Android and iOS apps and FastAPI backend are not live. Mobile release builds still have unconfigured backend URLs. The website does not depend on those components.
 

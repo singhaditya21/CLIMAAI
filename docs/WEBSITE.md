@@ -16,4 +16,4 @@ A public static site has no central request quota. Monitor actual usage and prov
 
 ## Publication
 
-GitHub Pages is already configured to serve this repository's `docs/` directory. The public root currently hosts an older legal landing page. Once the branch has passed browser review, merge or push the reviewed `docs/` changes to the configured Pages source branch. GitHub Pages will publish `docs/index.html` at `https://singhaditya21.github.io/CLIMAAI/`; the legal pages stay at their existing `.html` URLs. Check the Pages build and public site after publication. No deployment action has been taken from the audit branch.
+GitHub Pages serves this repository's `docs/` directory from `main`. The reviewed `docs/` changes are published on `main`, and GitHub Pages serves `docs/index.html` at `https://singhaditya21.github.io/CLIMAAI/`; the legal pages remain at their existing `.html` URLs.

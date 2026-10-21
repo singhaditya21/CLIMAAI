@@ -9,7 +9,17 @@ from app.config import Settings
 SECRET = "S3cure-Mixed-Long-Key-For-Unit-Checks-2026"
 
 
-def test_production_requires_unique_jwt_secret_and_restricted_cors():
+def test_production_requires_unique_jwt_secret_and_restricted_cors(monkeypatch):
+    for var in (
+        "JWT_SECRET",
+        "CORS_ORIGINS",
+        "DEBUG",
+        "DEMO_MODE",
+        "ENABLE_AI_INSIGHTS",
+        "OPENAI_API_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+
     with pytest.raises(ValidationError, match="JWT_SECRET"):
         Settings(_env_file=None, ENVIRONMENT="production", CORS_ORIGINS=[])
 
@@ -31,7 +41,7 @@ def test_production_requires_unique_jwt_secret_and_restricted_cors():
     with pytest.raises(ValidationError, match="AI insights"):
         Settings(
             _env_file=None, ENVIRONMENT="production", JWT_SECRET=SECRET,
-            CORS_ORIGINS=[], ENABLE_AI_INSIGHTS=True,
+            CORS_ORIGINS=[], ENABLE_AI_INSIGHTS=True, OPENAI_API_KEY="",
         )
 
     safe = Settings(

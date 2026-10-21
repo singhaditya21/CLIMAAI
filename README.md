@@ -1,9 +1,8 @@
 # ClimaAI
 
 ClimaAI's first release target is a **free weather website on GitHub Pages**.
-The reviewed website code is in `docs/` on the local `audit/free-launch-cleanup`
-branch; the public [Pages URL](https://singhaditya21.github.io/CLIMAAI/) still
-serves the older legal landing page until this branch is published. Android,
+The reviewed website code in `docs/` is published on `main` and live at the
+public [Pages URL](https://singhaditya21.github.io/CLIMAAI/). Android,
 iOS and the backend remain unreleased.
 
 The planned differentiator is a multi-provider consensus readout showing the
@@ -18,7 +17,7 @@ browser geolocation. It makes no multi-provider consensus or AI claim.
 
 | Directory | Purpose | Free-launch state |
 | --- | --- | --- |
-| `docs/` | Browser weather site and legal/support pages | First-release candidate; not yet published |
+| `docs/` | Browser weather site and legal/support pages | Published on `main` and live on GitHub Pages |
 | `android/app/` | Kotlin phone app, widgets and direct weather providers | Core client; release URL and device testing remain |
 | `android/wear/` | Wear OS app, tile and complications | Optional companion |
 | `ios/ClimaAI/` | SwiftUI phone app | Backend-dependent; login and paid UI still need free-release work |

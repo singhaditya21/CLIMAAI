@@ -8,8 +8,8 @@ the website release candidate, a mobile companion, a prototype, or a deferred fe
 
 The selected first release is a real weather website on GitHub Pages. It uses
 Open-Meteo directly, needs no payment method, and has no account, paid tier,
-OpenAI, or ClimaAI backend. The current Pages root remains the old legal landing
-page until this branch is published to the Pages source. See
+OpenAI, or ClimaAI backend. The website is published on `main` and live at
+`https://singhaditya21.github.io/CLIMAAI/`. See
 [the website release guide](docs/WEBSITE.md).
 
 - [x] Replace simulated browser weather with direct, live provider requests.
@@ -20,7 +20,7 @@ page until this branch is published to the Pages source. See
   links and narrow mobile layout in a local Chrome preview.
 - [ ] Review denied geolocation and browser-offline behavior. Automated tests
   already cover failed provider responses.
-- [ ] Publish the reviewed `docs/` changes to the Pages source branch and verify
+- [x] Publish the reviewed `docs/` changes to the Pages source branch (`main`) and verify
   the public URL and legal links after deployment.
 
 ## What CI currently proves
